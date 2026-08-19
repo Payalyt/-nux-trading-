@@ -187,10 +187,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-5 border-b border-white/10 bg-white/5 flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-black text-lg shadow-md shadow-emerald-500/20">
-              Q
+              N
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Quotex Trading</h2>
+              <h2 className="text-base font-bold text-white">NUX Trading</h2>
               <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
                 {mode === 'login' ? 'Sign In to Your Account' : 'Open Real or Demo Account'}
               </p>

@@ -197,10 +197,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           className="flex items-center space-x-3 cursor-pointer group"
         >
           <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-black text-lg shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-            Q
+            N
           </div>
           <div className="flex flex-col">
-            <span className="font-extrabold text-base tracking-tight text-white">QUOTEX</span>
+            <span className="font-extrabold text-base tracking-tight text-white">NUX</span>
             <span className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase -mt-1">
               INNOVATIVE TRADING
             </span>
@@ -463,7 +463,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     disabled={loading}
                     className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
                   >
-                    {loading ? 'Logging In...' : 'Log In to Quotex'}
+                    {loading ? 'Logging In...' : 'Log In to NUX'}
                   </button>
                 </form>
               ) : (

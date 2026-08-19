@@ -12,6 +12,7 @@ interface AccountProfileModalProps {
   user?: UserAccount | null;
   onLogout?: () => void;
   onOpenAuth?: (mode: 'login' | 'register') => void;
+  onOpenAdmin?: () => void;
 }
 
 export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
@@ -24,6 +25,7 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
   user,
   onLogout,
   onOpenAuth,
+  onOpenAdmin,
 }) => {
   if (!isOpen) return null;
 
@@ -129,7 +131,7 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
                       type="button"
                       onClick={() => {
                         onClose();
-                        window.location.href = '/admin';
+                        if (onOpenAdmin) onOpenAdmin();
                       }}
                       className="px-3 py-1.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center space-x-1 transition-all cursor-pointer mr-2"
                       title="Open Admin Panel"

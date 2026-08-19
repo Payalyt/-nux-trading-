@@ -776,6 +776,10 @@ export default function App() {
           setAuthModalMode(mode);
           setIsAuthModalOpen(true);
         }}
+        onOpenAdmin={() => {
+          setIsProfileOpen(false);
+          setCurrentView('admin_panel');
+        }}
       />
 
       <AuthModal
