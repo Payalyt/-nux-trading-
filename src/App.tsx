@@ -52,7 +52,6 @@ import { TradesHistoryPage } from './components/pages/TradesHistoryPage';
 import { AnalyticsPage } from './components/pages/AnalyticsPage';
 import { AuthPage } from './components/pages/AuthPage';
 import { HomePage } from './components/pages/HomePage';
-import { AdminDashboard } from './components/pages/AdminDashboard';
 
 export default function App() {
   // User Account Session (No auto-login without explicit register/login)
@@ -153,29 +152,18 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
   const handleAuthSuccess = (userData: UserAccount) => {
-    const isAdmin = userData.role === 'admin' || userData.email?.toLowerCase() === 'rosul9552@gmail.com';
-    const finalUserData = {
-      ...userData,
-      role: isAdmin ? 'admin' : (userData.role || 'user')
-    };
-
-    setUser(finalUserData);
-    localStorage.setItem('qx_user_session', JSON.stringify(finalUserData));
-    
-    if (isAdmin) {
-      setCurrentView('admin');
-    } else {
-      setCurrentView('trade');
-    }
+    setUser(userData);
+    localStorage.setItem('qx_user_session', JSON.stringify(userData));
+    setCurrentView('trade');
     setIsAuthModalOpen(false);
 
     // Sync user data directly to Firebase Firestore
     FirebaseService.syncUser({
-      username: finalUserData.email,
-      email: finalUserData.email,
-      fullName: finalUserData.name,
-      phone: (finalUserData as any).phone || '',
-      role: finalUserData.role,
+      username: userData.email,
+      email: userData.email,
+      fullName: userData.name,
+      phone: (userData as any).phone || '',
+      role: userData.role || 'user',
       balance: liveBalance,
       demoBalance: demoBalance,
       accountStatus: 'active',
@@ -803,12 +791,6 @@ export default function App() {
             {currentView === 'analytics' && (
               <AnalyticsPage
                 completedTrades={completedTrades}
-              />
-            )}
-            {currentView === 'admin' && (
-              <AdminDashboard
-                onBackToTrade={() => setCurrentView('trade')}
-                currentUser={user}
               />
             )}
           </div>

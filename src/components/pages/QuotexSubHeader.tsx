@@ -12,7 +12,6 @@ export type QuotexNavPage =
   | 'market' 
   | 'tournaments' 
   | 'analytics'
-  | 'admin'
   | 'auth';
 
 interface QuotexSubHeaderProps {
@@ -37,9 +36,8 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
   onOpenDeposit,
   onOpenWithdrawal,
   onBackToTrade,
-  user,
+  user: _user,
 }) => {
-  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin' || user?.email === 'rosul9552@gmail.com' || true; // Always allow or check admin
   const navTabs: { id: QuotexNavPage; label: string }[] = [
     { id: 'withdrawal', label: 'Withdrawal' },
     { id: 'payments', label: 'Payments' },
@@ -48,10 +46,9 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
     { id: 'market', label: 'Market' },
     { id: 'tournaments', label: 'Tournaments' },
     { id: 'analytics', label: 'Analytics' },
-    ...(isAdmin ? [{ id: 'admin' as QuotexNavPage, label: '🛡️ Admin Panel' }] : []),
   ];
 
-  const currentBalance = (!user || accountType === 'DEMO') ? demoBalance : liveBalance;
+  const currentBalance = (!_user || accountType === 'DEMO') ? demoBalance : liveBalance;
 
   return (
     <div className="flex flex-col bg-[#0e131d] border-b border-white/10 shrink-0 select-none z-30">
@@ -122,7 +119,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
           {/* Balance Badge */}
           <div className="text-right">
             <div className="text-[8px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
-              {user ? (accountType === 'DEMO' ? 'Demo' : 'Live') : 'Demo'}
+              {_user ? (accountType === 'DEMO' ? 'Demo' : 'Live') : 'Demo'}
             </div>
             <div className="text-xs sm:text-sm font-mono-nums font-extrabold text-white">
               ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
