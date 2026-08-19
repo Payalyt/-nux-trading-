@@ -72,6 +72,26 @@ export const FirebaseService = {
   },
 
   /**
+   * Get Single User directly from Firestore
+   */
+  async getUser(usernameOrEmail: string): Promise<any | null> {
+    try {
+      const emailValue = (usernameOrEmail || '').trim().toLowerCase();
+      if (!emailValue) return null;
+      const sanitizedId = emailValue.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const userRef = doc(db, 'users', sanitizedId);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        return { id: snap.id, ...snap.data() };
+      }
+      return null;
+    } catch (err) {
+      console.warn('[Firebase] getUser failed:', err);
+      return null;
+    }
+  },
+
+  /**
    * Fetch All Users directly from Firestore
    */
   async fetchUsers(): Promise<any[]> {

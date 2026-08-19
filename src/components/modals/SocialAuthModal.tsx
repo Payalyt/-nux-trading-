@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, ShieldCheck, ArrowRight, User } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
-import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 import { FirebaseService } from '../../utils/firebaseSync';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth } from '../../firebase';
 
 interface SocialAuthModalProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
   useEffect(() => {
     if (provider) {
       if (provider === 'Google') {
-        setEmail('parvezhasanonline@gmail.com');
+        setEmail('');
       } else if (provider === 'Facebook') {
         setEmail('parvez.facebook@gmail.com');
       } else {
@@ -41,31 +42,24 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
 
   const handleSocialSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!email.trim()) {
-      setError('Please enter a valid email or account ID.');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      const name = email.includes('@') 
-        ? email.split('@')[0].replace('.', ' ').replace(/^./, str => str.toUpperCase())
-        : `${provider} Trader`;
+      let userEmail = email.trim();
+      let userName = `${provider} Trader`;
 
-      const res = await apiClient.post('/api/auth/social', {
-        provider,
-        email: email.trim(),
-        name
-      });
+      if (provider === 'Google') {
+        const providerGoogle = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, providerGoogle);
+        if (result.user) {
+          userEmail = result.user.email || '';
+          userName = result.user.displayName || userEmail.split('@')[0];
+        }
+      }
 
-      if (!res.ok || !res.data) {
-        const errorMsg = formatErrorMessage(
-          res.error || res.data?.message || res.data?.error || res.data,
-          `${provider} authentication failed.`
-        );
-        throw new Error(errorMsg);
+      if (!userEmail) {
+        throw new Error('Please enter a valid email or select a Google account.');
       }
 
       soundManager.playWin();
@@ -74,31 +68,31 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
       } catch {}
 
       const user = {
-        email: res.data.user.email || email.trim(),
-        name: res.data.user.name || name,
+        email: userEmail,
+        name: userName,
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: currency,
-        role: res.data.user.role || 'user',
+        role: userEmail === 'rosul9552@gmail.com' ? 'admin' : 'user',
         provider
       };
 
       // Sync social user to Firebase Firestore
-      FirebaseService.syncUser({
-        username: user.email,
-        email: user.email,
-        fullName: user.name,
+      await FirebaseService.syncUser({
+        username: userEmail,
+        email: userEmail,
+        fullName: userName,
         role: user.role,
-        balance: res.data.user.balance || 0,
-        demoBalance: res.data.user.demoBalance || 10000,
+        balance: 0,
+        demoBalance: 10000,
         accountStatus: 'active',
         verificationStatus: 'verified',
-        createdAt: res.data.user.createdAt || new Date().toISOString()
+        createdAt: new Date().toISOString()
       });
 
       onSuccess(user);
       onClose();
     } catch (err: any) {
-      setError(formatErrorMessage(err, 'Social authentication error.'));
+      setError(err?.message || 'Social authentication error.');
     } finally {
       setLoading(false);
     }

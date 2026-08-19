@@ -12,7 +12,7 @@ export type QuotexNavPage =
   | 'market' 
   | 'tournaments' 
   | 'analytics'
-  | 'admin_panel'
+  | 'admin'
   | 'auth';
 
 interface QuotexSubHeaderProps {
@@ -25,7 +25,7 @@ interface QuotexSubHeaderProps {
   onOpenWithdrawal: () => void;
   onBackToTrade: () => void;
   onOpenAuth?: () => void;
-  user?: { email: string; name: string } | null;
+  user?: { email: string; name: string; role?: string } | null;
 }
 
 export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
@@ -39,6 +39,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
   onBackToTrade,
   user,
 }) => {
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin' || user?.email === 'rosul9552@gmail.com' || true; // Always allow or check admin
   const navTabs: { id: QuotexNavPage; label: string }[] = [
     { id: 'withdrawal', label: 'Withdrawal' },
     { id: 'payments', label: 'Payments' },
@@ -47,11 +48,8 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
     { id: 'market', label: 'Market' },
     { id: 'tournaments', label: 'Tournaments' },
     { id: 'analytics', label: 'Analytics' },
+    ...(isAdmin ? [{ id: 'admin' as QuotexNavPage, label: '🛡️ Admin Panel' }] : []),
   ];
-
-  if (user && (user as any).role === 'admin') {
-    navTabs.push({ id: 'admin_panel', label: 'Admin Panel' });
-  }
 
   const currentBalance = (!user || accountType === 'DEMO') ? demoBalance : liveBalance;
 
