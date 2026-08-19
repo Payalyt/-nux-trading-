@@ -1,0 +1,6 @@
+{
+  "name": "Quotex Trading Platform",
+  "description": "Professional high-frequency binary options and live trading platform with interactive candlestick charts, real-time indicators, and trade execution.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
