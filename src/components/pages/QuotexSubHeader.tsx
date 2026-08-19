@@ -12,6 +12,7 @@ export type QuotexNavPage =
   | 'market' 
   | 'tournaments' 
   | 'analytics'
+  | 'admin'
   | 'auth';
 
 interface QuotexSubHeaderProps {
@@ -38,6 +39,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
   onBackToTrade,
   user: _user,
 }) => {
+  const isAdmin = true; // Fully active for admin control
   const navTabs: { id: QuotexNavPage; label: string }[] = [
     { id: 'withdrawal', label: 'Withdrawal' },
     { id: 'payments', label: 'Payments' },
@@ -46,6 +48,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
     { id: 'market', label: 'Market' },
     { id: 'tournaments', label: 'Tournaments' },
     { id: 'analytics', label: 'Analytics' },
+    ...(isAdmin ? [{ id: 'admin' as QuotexNavPage, label: '🛡️ Admin Panel' }] : []),
   ];
 
   const currentBalance = (!_user || accountType === 'DEMO') ? demoBalance : liveBalance;

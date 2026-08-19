@@ -52,6 +52,7 @@ import { TradesHistoryPage } from './components/pages/TradesHistoryPage';
 import { AnalyticsPage } from './components/pages/AnalyticsPage';
 import { AuthPage } from './components/pages/AuthPage';
 import { HomePage } from './components/pages/HomePage';
+import { AdminDashboard } from './components/pages/AdminDashboard';
 
 export default function App() {
   // User Account Session (No auto-login without explicit register/login)
@@ -791,6 +792,12 @@ export default function App() {
             {currentView === 'analytics' && (
               <AnalyticsPage
                 completedTrades={completedTrades}
+              />
+            )}
+            {currentView === 'admin' && (
+              <AdminDashboard
+                onBackToTrade={() => setCurrentView('trade')}
+                currentUser={user}
               />
             )}
           </div>
