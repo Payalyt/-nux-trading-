@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 
 interface HeaderProps {
+  platformName?: string;
   accountType: AccountType;
   setAccountType: (type: AccountType) => void;
   demoBalance: number;
@@ -55,6 +56,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  platformName = 'NUX',
   accountType,
   setAccountType,
   demoBalance,
@@ -131,10 +133,10 @@ export const Header: React.FC<HeaderProps> = ({
             title="NUX Home"
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-black text-base sm:text-lg shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-              N
+              {platformName[0].toUpperCase()}
             </div>
             <div className="flex flex-col">
-              <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">NUX</span>
+              <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">{platformName}</span>
             </div>
           </div>
         </div>
@@ -409,9 +411,9 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-black text-lg shadow-md">
-                    N
+                    {platformName[0].toUpperCase()}
                   </div>
-                  <span className="font-extrabold text-base text-white">NUX</span>
+                  <span className="font-extrabold text-base text-white">{platformName}</span>
                 </div>
                 <button
                   onClick={() => setShowMobileMenu(false)}

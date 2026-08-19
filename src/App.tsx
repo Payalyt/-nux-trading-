@@ -141,6 +141,31 @@ export default function App() {
   const [completedTrades, setCompletedTrades] = useState<Trade[]>([]);
   const [latestSettledTrade, setLatestSettledTrade] = useState<Trade | null>(null);
 
+  // Global Platform Settings (Support, Banner, etc.)
+  const [platformSettings, setPlatformSettings] = useState<any>(() => {
+    const saved = localStorage.getItem('qx_support_settings');
+    return saved ? JSON.parse(saved) : {
+      platformName: 'NUX Trading Platform',
+      noticeBanner: '🚀 Instant Automated Deposits & 24/7 Fast Withdrawals via bKash, Nagad & Crypto!'
+    };
+  });
+
+  // Listen to Global Settings from Firebase
+  useEffect(() => {
+    const unsubscribe = FirebaseService.listenToSettings((data) => {
+      if (data) {
+        setPlatformSettings(data);
+        localStorage.setItem('qx_support_settings', JSON.stringify(data));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync Platform Name to Document Title
+  useEffect(() => {
+    document.title = platformSettings.platformName || 'NUX Trading Platform';
+  }, [platformSettings.platformName]);
+
   // 4. Chart Settings
   const [chartType, setChartType] = useState<ChartType>('candlestick');
   const [timeframe, setTimeframe] = useState<Timeframe>('1m');
@@ -602,14 +627,14 @@ export default function App() {
       }`}
     >
       {/* Top Broadcast Notice Marquee Bar */}
-      {platformControls.showNoticeBanner && platformControls.noticeBannerText && (
+      {platformSettings.showNoticeBanner !== false && platformSettings.noticeBanner && (
         <div className="bg-gradient-to-r from-emerald-600/90 via-cyan-600/90 to-blue-600/90 text-white text-[11px] font-bold py-1 px-4 flex items-center justify-between shadow-md z-40 border-b border-white/10 shrink-0">
           <div className="flex items-center space-x-2 truncate">
             <span className="px-1.5 py-0.2 rounded bg-black/40 text-[9px] font-black uppercase tracking-wider text-amber-300">ANNOUNCEMENT</span>
-            <span className="truncate">{platformControls.noticeBannerText}</span>
+            <span className="truncate">{platformSettings.noticeBanner}</span>
           </div>
           <button 
-            onClick={() => setPlatformControls(prev => ({ ...prev, showNoticeBanner: false }))}
+            onClick={() => setPlatformSettings(prev => ({ ...prev, showNoticeBanner: false }))}
             className="text-white/80 hover:text-white text-xs ml-3 shrink-0 cursor-pointer"
           >
             ✕
@@ -660,6 +685,7 @@ export default function App() {
         <>
           {/* 1. Top Navigation Bar */}
           <Header
+            platformName={platformSettings.platformName}
             accountType={!user ? 'DEMO' : accountType}
             setAccountType={setAccountType}
             demoBalance={demoBalance}
@@ -719,49 +745,55 @@ export default function App() {
             </div>
 
             {/* Center Workspace (Asset Tabs + Interactive Candlestick Chart) */}
-            <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#12161f] min-h-[320px] lg:min-h-0">
+            <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#12161f] min-h-0">
               {/* Top Asset Tabs Bar */}
-              <AssetTabBar
-                openAssets={openAssets}
-                activeAsset={activeAsset}
-                onSelectAsset={handleSelectAsset}
-                onCloseAssetTab={handleCloseAssetTab}
-                onOpenAssetSelector={() => setIsAssetSelectorOpen(true)}
-              />
+              <div className="shrink-0">
+                <AssetTabBar
+                  openAssets={openAssets}
+                  activeAsset={activeAsset}
+                  onSelectAsset={handleSelectAsset}
+                  onCloseAssetTab={handleCloseAssetTab}
+                  onOpenAssetSelector={() => setIsAssetSelectorOpen(true)}
+                />
+              </div>
 
               {/* Interactive Trading Chart Engine */}
-              <TradingChart
-                asset={activeAsset}
-                candles={activeCandles}
-                activeTrades={activeTrades}
-                currentPrice={activeCurrentPrice}
-                tradeDurationSeconds={tradeDuration}
-                chartType={chartType}
-                setChartType={setChartType}
-                timeframe={timeframe}
-                setTimeframe={setTimeframe}
-                indicators={indicators}
-                onOpenIndicatorsModal={() => setIsIndicatorsOpen(true)}
-                onOpenPairInfoModal={() => setIsPairInfoOpen(true)}
-                themeMode={themeMode}
-              />
+              <div className="flex-1 min-h-0">
+                <TradingChart
+                  asset={activeAsset}
+                  candles={activeCandles}
+                  activeTrades={activeTrades}
+                  currentPrice={activeCurrentPrice}
+                  tradeDurationSeconds={tradeDuration}
+                  chartType={chartType}
+                  setChartType={setChartType}
+                  timeframe={timeframe}
+                  setTimeframe={setTimeframe}
+                  indicators={indicators}
+                  onOpenIndicatorsModal={() => setIsIndicatorsOpen(true)}
+                  onOpenPairInfoModal={() => setIsPairInfoOpen(true)}
+                  themeMode={themeMode}
+                />
+              </div>
             </div>
 
             {/* Right Trade Execution Panel (Responsive: Desktop right panel / Mobile bottom dock) */}
-            <TradeExecutionPanel
-              asset={activeAsset}
-              currentPrice={activeCurrentPrice}
-              balance={(!user || accountType === 'DEMO') ? demoBalance : liveBalance}
-              accountType={!user ? 'DEMO' : accountType}
-              tradeDuration={tradeDuration}
-              setTradeDuration={setTradeDuration}
-              investment={investment}
-              setInvestment={setInvestment}
-              onPlaceTrade={handlePlaceTrade}
-              activeTrades={activeTrades}
-              completedTrades={completedTrades}
-              onSellEarly={handleSellEarly}
-            />
+            <div className="shrink-0">
+              <TradeExecutionPanel
+                asset={activeAsset}
+                currentPrice={activeCurrentPrice}
+                balance={(!user || accountType === 'DEMO') ? demoBalance : liveBalance}
+                accountType={!user ? 'DEMO' : accountType}
+                tradeDuration={tradeDuration}
+                setTradeDuration={setTradeDuration}
+                investment={investment}
+                setInvestment={setInvestment}
+                onPlaceTrade={handlePlaceTrade}
+                activeTrades={activeTrades}
+                completedTrades={completedTrades}
+                onSellEarly={handleSellEarly}
+              />
+            </div>
           </div>
         </>
       ) : (
@@ -769,6 +801,7 @@ export default function App() {
         <div className={`flex flex-col h-full w-full ${themeMode === 'light' ? 'bg-[#f4f6f9]' : 'bg-[#0a0d14]'}`}>
           {currentView !== 'auth' && (
             <QuotexSubHeader
+              platformName={platformSettings.platformName}
               currentPage={currentView}
               onSelectPage={(page) => setCurrentView(page)}
               accountType={accountType}

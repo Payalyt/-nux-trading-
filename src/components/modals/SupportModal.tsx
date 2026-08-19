@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MessageSquare, ExternalLink, ShieldCheck, CheckCircle2, Send } from 'lucide-react';
 import { apiClient } from '../../utils/apiClient';
+import { FirebaseService } from '../../utils/firebaseSync';
 
 interface SupportModalProps {
   isOpen: boolean;
@@ -11,22 +12,23 @@ export const SupportModal: React.FC<SupportModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [supportSettings, setSupportSettings] = useState<any>({
-    whatsappNumber: '+8801700000000',
-    telegramUrl: 'https://t.me/Quotex_Support_BD',
-    email: 'support@nux-trading.com',
-    liveChatEnabled: true,
+  const [supportSettings, setSupportSettings] = useState<any>(() => {
+    const saved = localStorage.getItem('qx_support_settings');
+    return saved ? JSON.parse(saved) : {
+      whatsappNumber: '+8801700000000',
+      telegramUrl: 'https://t.me/Quotex_Support_BD',
+      email: 'support@nux-trading.com'
+    };
   });
 
   useEffect(() => {
     if (isOpen) {
-      apiClient.get('/api/public/settings').then((res) => {
-        if (res.ok && res.data?.supportSettings) {
-          setSupportSettings(res.data.supportSettings);
+      const unsubscribe = FirebaseService.listenToSettings((data) => {
+        if (data) {
+          setSupportSettings(data);
         }
-      }).catch((err) => {
-        console.error('Error fetching support settings:', err);
       });
+      return () => unsubscribe();
     }
   }, [isOpen]);
 

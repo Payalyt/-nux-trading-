@@ -105,7 +105,10 @@
 .light-theme .bg-\[\#090d15\],
 .light-theme .bg-\[\#111a2e\],
 .light-theme .bg-slate-900,
-.light-theme .bg-slate-950 {
+.light-theme .bg-slate-950,
+.light-theme .bg-black\/40,
+.light-theme .bg-black\/30,
+.light-theme .bg-black\/20 {
   background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
@@ -140,7 +143,9 @@
 .light-theme .absolute.bg-\[\#0d121b\],
 .light-theme .absolute.bg-\[\#121722\],
 .light-theme .absolute.bg-\[\#0a0e17\],
-.light-theme .absolute.bg-\[\#121824\] {
+.light-theme .absolute.bg-\[\#121824\],
+.light-theme .absolute.inset-y-0.right-0.bg-\[\#0d121b\],
+.light-theme .fixed.inset-0.z-50.flex.lg\:hidden.bg-black\/70.backdrop-blur-md > div {
   background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
@@ -156,7 +161,9 @@
 .light-theme [id$="-modal-dialog"] .bg-\[\#121722\],
 .light-theme .absolute .bg-white\/5,
 .light-theme .absolute .bg-white\/10,
-.light-theme .absolute .bg-black\/40 {
+.light-theme .absolute .bg-black\/40,
+.light-theme .bg-white\/5,
+.light-theme .bg-white\/10 {
   background-color: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
@@ -184,17 +191,17 @@
 .light-theme .text-slate-100,
 .light-theme .text-slate-200,
 .light-theme .text-slate-300,
+.light-theme .text-slate-400,
 .light-theme .text-gray-100,
 .light-theme .text-gray-200,
-.light-theme .text-gray-300 {
+.light-theme .text-gray-300,
+.light-theme .text-gray-400 {
   color: #0f172a !important;
 }
 
-.light-theme .text-slate-400,
 .light-theme .text-slate-500,
-.light-theme .text-gray-400,
 .light-theme .text-gray-500 {
-  color: #334155 !important;
+  color: #475569 !important;
 }
 
 /* Targeted Light Mode Fix for Selected Section */

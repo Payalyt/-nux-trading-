@@ -310,79 +310,67 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           /* Method Selection Screen */
           <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
             
-            {/* Left Sidebar Category Tabs */}
-            <div className="w-full md:w-56 bg-[#0a0d14] border-r border-white/10 p-3 space-y-1.5 shrink-0">
+            {/* Left Sidebar Category Tabs (Horizontal on mobile, vertical on desktop) */}
+            <div className="w-full md:w-56 bg-[#0a0d14] border-b md:border-b-0 md:border-r border-white/10 p-2 sm:p-3 flex md:flex-col space-x-2 md:space-x-0 md:space-y-1.5 shrink-0 overflow-x-auto scrollbar-none">
               <button
                 onClick={() => setActiveCategory('popular')}
-                className={`w-full p-3 rounded-xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 md:w-full p-2.5 sm:p-3 rounded-xl flex items-center justify-between text-[10px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
                   activeCategory === 'popular'
                     ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 font-black'
                     : 'text-slate-300 hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <Zap className="w-4 h-4" />
-                  <span className="uppercase tracking-wider">POPULAR (BD)</span>
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="uppercase tracking-wider">POPULAR</span>
                 </div>
-                <span className="text-[10px] opacity-80 font-mono-nums">bKash / Nagad</span>
+                <ChevronRight className="hidden md:block w-3 h-3 opacity-50" />
               </button>
 
               <button
                 onClick={() => setActiveCategory('crypto')}
-                className={`w-full p-3 rounded-xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 md:w-full p-2.5 sm:p-3 rounded-xl flex items-center justify-between text-[10px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
                   activeCategory === 'crypto'
                     ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 font-black'
                     : 'text-slate-300 hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <Globe className="w-4 h-4" />
+                  <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="uppercase tracking-wider">CRYPTO</span>
                 </div>
-                <span className="text-[10px] opacity-80 font-mono-nums">USDT / BTC</span>
+                <ChevronRight className="hidden md:block w-3 h-3 opacity-50" />
               </button>
 
               <button
                 onClick={() => setActiveCategory('epay')}
-                className={`w-full p-3 rounded-xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 md:w-full p-2.5 sm:p-3 rounded-xl flex items-center justify-between text-[10px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
                   activeCategory === 'epay'
                     ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 font-black'
                     : 'text-slate-300 hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <CreditCard className="w-4 h-4" />
-                  <span className="uppercase tracking-wider">E-PAY & CARDS</span>
+                  <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="uppercase tracking-wider">E-PAY</span>
                 </div>
-                <span className="text-[10px] opacity-80 font-mono-nums">Global</span>
+                <ChevronRight className="hidden md:block w-3 h-3 opacity-50" />
               </button>
 
               <button
                 onClick={() => setActiveCategory('bank')}
-                className={`w-full p-3 rounded-xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 md:w-full p-2.5 sm:p-3 rounded-xl flex items-center justify-between text-[10px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
                   activeCategory === 'bank'
                     ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 font-black'
                     : 'text-slate-300 hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <Building className="w-4 h-4" />
-                  <span className="uppercase tracking-wider">BANK TRANSFER</span>
+                  <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="uppercase tracking-wider">BANK</span>
                 </div>
-                <span className="text-[10px] opacity-80 font-mono-nums">Local BD</span>
+                <ChevronRight className="hidden md:block w-3 h-3 opacity-50" />
               </button>
-
-              <div className="pt-4">
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 space-y-1">
-                  <div className="flex items-center space-x-1.5 font-bold text-xs">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>50% Bonus Active</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 leading-tight">
-                    Get extra funds on any deposit with zero fees.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Right Method Cards Grid */}

@@ -48,7 +48,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return saved ? JSON.parse(saved) : {
       telegramUrl: 'https://t.me/Quotex_Support_BD',
       whatsappNumber: '+8801700000000',
-      email: 'support@nux-trading.com'
+      email: 'support@nux-trading.com',
+      noticeBanner: '🚀 Instant Automated Deposits & 24/7 Fast Withdrawals via bKash, Nagad & Crypto!',
+      platformName: 'NUX Trading Platform',
+      depositBonus: 50
     };
   });
 
@@ -348,65 +351,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* Tabs */}
-      <div className="flex items-center space-x-2 px-6 pt-4 border-b border-white/10 bg-[#0d121b]/50">
+      <div className="flex items-center space-x-2 px-4 sm:px-6 pt-4 border-b border-white/10 bg-[#0d121b]/50 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('users')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer ${
+          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
             activeTab === 'users' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Registered Users ({users.length})</span>
+          <span>Users ({users.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('transactions')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer ${
+          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
             activeTab === 'transactions' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
           <Wallet className="w-4 h-4" />
-          <span>Deposits & Withdrawals ({transactions.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer ${
-            activeTab === 'settings' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Platform Controls</span>
+          <span>Transactions ({transactions.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('gateways')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer ${
+          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
             activeTab === 'gateways' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
           <CreditCard className="w-4 h-4" />
-          <span>Payment Gateways</span>
+          <span>Gateways</span>
         </button>
         <button
           onClick={() => setActiveTab('graph')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer ${
+          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
             activeTab === 'graph' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
           <Edit3 className="w-4 h-4 text-amber-400" />
-          <span>Graph & Risk Controls</span>
+          <span>Graph & Risk</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
+            activeTab === 'settings' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span>Support & Links</span>
         </button>
         <button
           onClick={() => setActiveTab('kyc')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer ${
+          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
             activeTab === 'kyc' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
           <Shield className="w-4 h-4" />
-          <span>KYC Document Verification</span>
+          <span>KYC Verification</span>
         </button>
       </div>
 
       {/* Content Area */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {activeTab === 'users' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
@@ -629,7 +632,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <label className="block text-xs font-bold text-slate-300 mb-1">Platform Name</label>
                   <input
                     type="text"
-                    defaultValue="NUX Trading Platform"
+                    value={supportSettings.platformName || 'NUX Trading Platform'}
+                    onChange={(e) => setSupportSettings({ ...supportSettings, platformName: e.target.value })}
                     className="w-full bg-[#0a0e17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -661,7 +665,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <label className="block text-xs font-bold text-slate-300 mb-1">Default Deposit Bonus (%)</label>
                   <input
                     type="number"
-                    defaultValue="50"
+                    value={supportSettings.depositBonus || 50}
+                    onChange={(e) => setSupportSettings({ ...supportSettings, depositBonus: Number(e.target.value) })}
                     className="w-full bg-[#0a0e17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -670,7 +675,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <label className="block text-xs font-bold text-slate-300 mb-1">Notice Banner Announcement</label>
                   <input
                     type="text"
-                    defaultValue="🚀 Instant Automated Deposits & 24/7 Fast Withdrawals via bKash, Nagad & Crypto!"
+                    value={supportSettings.noticeBanner || '🚀 Instant Automated Deposits & 24/7 Fast Withdrawals via bKash, Nagad & Crypto!'}
+                    onChange={(e) => setSupportSettings({ ...supportSettings, noticeBanner: e.target.value })}
                     className="w-full bg-[#0a0e17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -678,9 +684,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button
                   onClick={async () => {
                     localStorage.setItem('qx_support_settings', JSON.stringify(supportSettings));
-                    await FirebaseService.syncSettings({ supportSettings });
-                    setActionMessage('Platform & Telegram Support settings updated successfully!');
-                    setTimeout(() => setActionMessage(''), 4000);
+                    const success = await FirebaseService.syncSettings(supportSettings);
+                    if (success) {
+                      setActionMessage('Platform & Telegram Support settings updated successfully!');
+                      setTimeout(() => setActionMessage(''), 4000);
+                    } else {
+                      alert('Sync failed. Settings saved locally only.');
+                    }
                   }}
                   className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer"
                 >

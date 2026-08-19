@@ -16,6 +16,7 @@ export type QuotexNavPage =
   | 'auth';
 
 interface QuotexSubHeaderProps {
+  platformName?: string;
   currentPage: QuotexNavPage;
   onSelectPage: (page: QuotexNavPage) => void;
   accountType: AccountType;
@@ -31,6 +32,7 @@ interface QuotexSubHeaderProps {
 }
 
 export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
+  platformName = 'NUX',
   currentPage,
   onSelectPage,
   accountType,
@@ -67,11 +69,11 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
             title="Back to Trading Chart"
           >
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-black text-base sm:text-lg shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-              N
+              {platformName[0].toUpperCase()}
             </div>
             <div className="flex flex-col">
               <div className="flex items-center space-x-1.5">
-                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">NUX</span>
+                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">{platformName}</span>
                 <span className="hidden sm:inline text-white/20">•</span>
                 <span className="hidden sm:inline text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                   TRADING PLATFORM

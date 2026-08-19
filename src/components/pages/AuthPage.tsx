@@ -25,7 +25,15 @@ import { SocialAuthModal } from '../modals/SocialAuthModal';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 import { FirebaseService } from '../../utils/firebaseSync';
 import { auth } from '../../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult 
+} from 'firebase/auth';
+import { useEffect } from 'react';
 
 interface AuthPageProps {
   initialMode?: 'login' | 'register';
@@ -53,6 +61,53 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [socialProvider, setSocialProvider] = useState<'Google' | 'Facebook' | 'VK' | null>(null);
+
+  // Handle Google Redirect Result on Mount
+  useEffect(() => {
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          const userEmail = result.user.email || '';
+          const userName = result.user.displayName || userEmail.split('@')[0];
+          
+          soundManager.playWin();
+          try {
+            confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+          } catch {}
+
+          const loggedInUser = {
+            email: userEmail,
+            name: userName,
+            id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+            currency: currency || 'USD',
+            role: userEmail === 'rosul9552@gmail.com' ? 'admin' : 'user',
+            provider: 'Google'
+          };
+
+          await FirebaseService.syncUser({
+            username: userEmail,
+            email: userEmail,
+            fullName: userName,
+            role: loggedInUser.role,
+            balance: 0,
+            demoBalance: 10000,
+            accountStatus: 'active',
+            verificationStatus: 'verified',
+            createdAt: new Date().toISOString()
+          });
+
+          onAuthSuccess(loggedInUser);
+        }
+      } catch (err: any) {
+        console.error('[Google Redirect Error]:', err);
+        if (err.code !== 'auth/no-auth-event') {
+          setError('Google authentication failed. Please try again or use direct login.');
+        }
+      }
+    };
+    handleRedirect();
+  }, [auth]);
 
   const currencies = [
     { code: 'USD', symbol: '$', label: 'USD ($) - US Dollar' },
@@ -277,6 +332,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         setLoading(true);
         setError(null);
         const providerGoogle = new GoogleAuthProvider();
+        providerGoogle.setCustomParameters({ prompt: 'select_account' });
+
+        // Robust mobile & preview domain detection
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isRestricted = window.location.hostname.includes('run.app') || window.location.hostname.includes('web.app');
+
+        if (isMobile || isRestricted) {
+          try {
+            await signInWithRedirect(auth, providerGoogle);
+            return;
+          } catch (e) {
+            console.warn('Redirect failed, trying popup:', e);
+          }
+        }
+
         const result = await signInWithPopup(auth, providerGoogle);
         if (result.user) {
           const userEmail = result.user.email || '';

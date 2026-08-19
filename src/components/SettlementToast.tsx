@@ -15,10 +15,10 @@ export const SettlementToast: React.FC<SettlementToastProps> = ({ trade, onDismi
   return (
     <div 
       id="trade-settlement-toast"
-      className="fixed bottom-6 right-84 z-50 animate-in slide-in-from-bottom-5 duration-200"
+      className="fixed bottom-32 sm:bottom-6 right-4 sm:right-84 z-[100] animate-in slide-in-from-bottom-5 duration-200 pointer-events-auto"
     >
       <div
-        className={`p-4 rounded-2xl border shadow-2xl backdrop-blur-2xl flex items-center space-x-4 min-w-[320px] bg-[#0d121b]/95 ${
+        className={`p-4 rounded-2xl border shadow-2xl backdrop-blur-2xl flex items-center space-x-4 w-full sm:min-w-[320px] bg-[#0d121b]/95 ${
           isWin
             ? 'border-emerald-500/40 shadow-emerald-500/10'
             : 'border-rose-500/40 shadow-rose-500/10'

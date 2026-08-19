@@ -3,7 +3,7 @@ import { X, Check, ShieldCheck, ArrowRight, User } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { FirebaseService } from '../../utils/firebaseSync';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth } from '../../firebase';
 
 interface SocialAuthModalProps {
@@ -38,6 +38,56 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
     }
   }, [provider]);
 
+  // Handle redirect result on mount
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          setLoading(true);
+          const userEmail = result.user.email || '';
+          const userName = result.user.displayName || userEmail.split('@')[0];
+          
+          soundManager.playWin();
+          try {
+            confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+          } catch {}
+
+          const user = {
+            email: userEmail,
+            name: userName,
+            id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+            currency: currency,
+            role: userEmail === 'rosul9552@gmail.com' ? 'admin' : 'user',
+            provider: 'Google'
+          };
+
+          await FirebaseService.syncUser({
+            username: userEmail,
+            email: userEmail,
+            fullName: userName,
+            role: user.role,
+            balance: 0,
+            demoBalance: 10000,
+            accountStatus: 'active',
+            verificationStatus: 'verified',
+            createdAt: new Date().toISOString()
+          });
+
+          onSuccess(user);
+        }
+      } catch (err: any) {
+        console.error('Redirect result error:', err);
+        if (err.code !== 'auth/no-auth-event') {
+          setError('Redirect login failed. Please try again.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (isOpen) checkRedirect();
+  }, [isOpen]);
+
   if (!isOpen || !provider) return null;
 
   const handleSocialSubmit = async (e?: React.FormEvent) => {
@@ -52,6 +102,16 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
       if (provider === 'Google') {
         try {
           const providerGoogle = new GoogleAuthProvider();
+          providerGoogle.setCustomParameters({ prompt: 'select_account' });
+
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          const isRestricted = window.location.hostname.includes('run.app') || window.location.hostname.includes('web.app');
+
+          if (isMobile || isRestricted) {
+            await signInWithRedirect(auth, providerGoogle);
+            return;
+          }
+
           const result = await signInWithPopup(auth, providerGoogle);
           if (result.user) {
             userEmail = result.user.email || '';
