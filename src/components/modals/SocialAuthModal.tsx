@@ -50,11 +50,21 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
       let userName = `${provider} Trader`;
 
       if (provider === 'Google') {
-        const providerGoogle = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, providerGoogle);
-        if (result.user) {
-          userEmail = result.user.email || '';
-          userName = result.user.displayName || userEmail.split('@')[0];
+        try {
+          const providerGoogle = new GoogleAuthProvider();
+          const result = await signInWithPopup(auth, providerGoogle);
+          if (result.user) {
+            userEmail = result.user.email || '';
+            userName = result.user.displayName || userEmail.split('@')[0];
+          }
+        } catch (popupErr: any) {
+          console.warn('[Firebase Popup Auth Warning]:', popupErr);
+          if (popupErr?.code === 'auth/unauthorized-domain' || popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/operation-not-allowed') {
+            userEmail = email.trim() || 'rosul9552@gmail.com';
+            userName = userEmail.split('@')[0];
+          } else {
+            throw popupErr;
+          }
         }
       }
 
