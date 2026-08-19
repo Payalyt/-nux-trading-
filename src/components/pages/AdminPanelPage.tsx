@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import { UserAccount } from '../../types/trading';
+import { apiClient } from '../../utils/apiClient';
 
 interface AdminPanelPageProps {
   user: UserAccount | null;
@@ -60,23 +61,13 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ user }) => {
     setLoading(true);
     setError('');
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('qx_token='))
-        ?.split('=')[1];
-
-      const res = await fetch('/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!res.ok) {
-        throw new Error('Failed to fetch users. Admin privileges required.');
+      const res = await apiClient.get('/api/admin/users');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Failed to fetch users. Admin privileges required.');
       }
-      const data = await res.json();
-      setUsers(data.users || []);
+      setUsers(res.data.users || []);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to retrieve users');
     } finally {
       setLoading(false);
     }
@@ -96,25 +87,14 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ user }) => {
   const handleDelete = async (username: string) => {
     if (!window.confirm(`Are you sure you want to delete user "${username}"? This action is irreversible.`)) return;
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('qx_token='))
-        ?.split('=')[1];
-
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(username)}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await apiClient.delete(`/api/admin/users/${encodeURIComponent(username)}`);
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to delete user.');
+        throw new Error(res.error || 'Failed to delete user.');
       }
       soundManager.playWin();
       setUsers(prev => prev.filter(u => u.username !== username));
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message || 'Could not delete user.');
     }
   };
 
@@ -124,34 +104,20 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ user }) => {
     setIsAdding(true);
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('qx_token='))
-        ?.split('=')[1];
-
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          username: newEmail.trim().toLowerCase(),
-          password: newPassword,
-          fullName: newFullName.trim(),
-          role: newRole,
-          phone: newPhone.trim()
-        })
+      const res = await apiClient.post('/api/admin/users', {
+        username: newEmail.trim().toLowerCase(),
+        password: newPassword,
+        fullName: newFullName.trim(),
+        role: newRole,
+        phone: newPhone.trim()
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create user');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Failed to create user');
       }
 
       soundManager.playWin();
-      setUsers(prev => [data.user, ...prev]);
+      setUsers(prev => [res.data.user, ...prev]);
       setIsAddModalOpen(false);
       setNewFullName('');
       setNewEmail('');
@@ -159,7 +125,7 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ user }) => {
       setNewPhone('');
       setNewRole('user');
     } catch (err: any) {
-      setAddError(err.message);
+      setAddError(err.message || 'Error creating user');
     } finally {
       setIsAdding(false);
     }
@@ -183,37 +149,23 @@ export const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ user }) => {
     setIsUpdating(true);
 
     try {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('qx_token='))
-        ?.split('=')[1];
-
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(editingUser.username)}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          fullName: editFullName.trim(),
-          phone: editPhone.trim(),
-          role: editRole,
-          password: editPassword ? editPassword : undefined
-        })
+      const res = await apiClient.put(`/api/admin/users/${encodeURIComponent(editingUser.username)}`, {
+        fullName: editFullName.trim(),
+        phone: editPhone.trim(),
+        role: editRole,
+        password: editPassword ? editPassword : undefined
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update user');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Failed to update user');
       }
 
       soundManager.playWin();
-      setUsers(prev => prev.map(u => u.username === editingUser.username ? data.user : u));
+      setUsers(prev => prev.map(u => u.username === editingUser.username ? res.data.user : u));
       setIsEditModalOpen(false);
       setEditingUser(null);
     } catch (err: any) {
-      setEditError(err.message);
+      setEditError(err.message || 'Error updating user');
     } finally {
       setIsUpdating(false);
     }

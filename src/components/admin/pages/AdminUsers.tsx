@@ -1,24 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, MoreVertical, Edit, ShieldBan, ShieldCheck, Trash2, CheckCircle } from 'lucide-react';
+import { Search, Filter, Edit, Trash2 } from 'lucide-react';
 import { UserRecord } from '../../../../server/dbHelper';
+import { apiClient } from '../../../utils/apiClient';
 
 export const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch('/api/admin/users');
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
+      const res = await apiClient.get<{ users: UserRecord[] }>('/api/admin/users');
+      if (res.ok && res.data) {
+        setUsers(res.data.users || []);
+      } else {
+        setError(res.error || 'Failed to load users');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || 'Error loading users');
     } finally {
       setIsLoading(false);
     }
@@ -27,14 +33,15 @@ export const AdminUsers: React.FC = () => {
   const handleDelete = async (username: string) => {
     if (!confirm(`Are you sure you want to delete user ${username}?`)) return;
     try {
-      const res = await fetch(`/api/admin/users/${username}`, { method: 'DELETE' });
+      const res = await apiClient.delete(`/api/admin/users/${encodeURIComponent(username)}`);
       if (res.ok) {
         setUsers(users.filter(u => u.username !== username));
       } else {
-        alert('Failed to delete user');
+        alert(res.error || 'Failed to delete user');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(e.message || 'Error deleting user');
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, ShieldCheck, ArrowRight, User } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
+import { apiClient } from '../../utils/apiClient';
 
 interface SocialAuthModalProps {
   isOpen: boolean;
@@ -52,20 +53,14 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
         ? email.split('@')[0].replace('.', ' ').replace(/^./, str => str.toUpperCase())
         : `${provider} Trader`;
 
-      const res = await fetch('/api/auth/social', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider,
-          email: email.trim(),
-          name
-        }),
+      const res = await apiClient.post('/api/auth/social', {
+        provider,
+        email: email.trim(),
+        name
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || `${provider} authentication failed.`);
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || `${provider} authentication failed.`);
       }
 
       soundManager.playWin();
@@ -74,11 +69,11 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
       } catch {}
 
       const user = {
-        email: data.user.email || email.trim(),
-        name: data.user.name || name,
+        email: res.data.user.email || email.trim(),
+        name: res.data.user.name || name,
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: currency,
-        role: data.user.role || 'user',
+        role: res.data.user.role || 'user',
         provider
       };
 

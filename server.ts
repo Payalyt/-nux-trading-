@@ -42,6 +42,20 @@ async function startServer() {
   app.use(express.json());
   app.use(cookieParser());
 
+  // Handle invalid JSON body payload errors gracefully with a JSON response
+  app.use((err: any, req: any, res: any, next: any) => {
+    if (err instanceof SyntaxError && 'body' in err) {
+      return res.status(400).json({ error: 'Invalid JSON payload provided.' });
+    }
+    next(err);
+  });
+
+  // Ensure all API responses default to Content-Type: application/json
+  app.use('/api', (req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
+
   // Authentication Middleware
   const authenticateToken = (req: any, res: any, next: any) => {
     const token = req.cookies?.qx_token || req.headers['authorization']?.split(' ')[1];
@@ -323,6 +337,22 @@ async function startServer() {
       console.error('[Update User Error]', err);
       return res.status(500).json({ error: 'Internal server error while updating user' });
     }
+  });
+
+  // --- API 404 CATCH-ALL (Guarantees unmatched API requests return JSON rather than HTML) ---
+  app.all('/api/*', (req, res) => {
+    return res.status(404).json({ error: `API route ${req.method} ${req.originalUrl} not found` });
+  });
+
+  // --- GLOBAL API ERROR HANDLER ---
+  app.use((err: any, req: any, res: any, next: any) => {
+    if (req.path.startsWith('/api')) {
+      console.error('[Unhandled API Server Error]', err);
+      return res.status(err.status || 500).json({
+        error: err.message || 'Internal Server Error'
+      });
+    }
+    next(err);
   });
 
   // --- VITE / STATIC MIDDLEWARE ---

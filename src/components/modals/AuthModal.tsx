@@ -15,12 +15,13 @@ import {
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { SocialAuthModal } from './SocialAuthModal';
+import { apiClient } from '../../utils/apiClient';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'login' | 'register';
-  onAuthSuccess: (user: { email: string; name: string; id: string; currency: string }) => void;
+  onAuthSuccess: (user: { email: string; name: string; id: string; currency: string; role?: string }) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -67,16 +68,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
     try {
-      const username = email.includes('@') ? email.split('@')[0] : email;
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
+      const username = email.trim().toLowerCase();
+      const res = await apiClient.post('/api/auth/login', { username, password });
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Account not available or invalid credentials.');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Account not available or invalid credentials.');
       }
 
       soundManager.playWin();
@@ -86,10 +82,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       const user = {
         email: email.trim(),
-        name: data.user.username.charAt(0).toUpperCase() + data.user.username.slice(1),
+        name: res.data.user.fullName || (res.data.user.username.charAt(0).toUpperCase() + res.data.user.username.slice(1)),
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: 'USD',
-        role: data.user.role,
+        role: res.data.user.role,
       };
       onAuthSuccess(user);
       onClose();
@@ -123,16 +119,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
     try {
-      const username = email.includes('@') ? email.split('@')[0] : email;
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, fullName: fullName.trim() }),
+      const username = email.trim().toLowerCase();
+      const res = await apiClient.post('/api/auth/register', {
+        username,
+        password,
+        fullName: fullName.trim()
       });
-      const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Registration failed.');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Registration failed. Please try again.');
       }
 
       soundManager.playWin();
@@ -142,10 +137,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       const user = {
         email: email.trim(),
-        name: data.user.fullName || (data.user.username.charAt(0).toUpperCase() + data.user.username.slice(1)),
+        name: res.data.user.fullName || (res.data.user.username.charAt(0).toUpperCase() + res.data.user.username.slice(1)),
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: currency,
-        role: data.user.role,
+        role: res.data.user.role,
       };
       onAuthSuccess(user);
       onClose();

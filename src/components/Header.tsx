@@ -348,7 +348,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="sm:hidden">DEP</span>
           </button>
 
-          {/* User Profile Avatar or Log In */}
+          {/* User Profile Avatar or Log In / Sign Up */}
           {user ? (
             <div
               id="btn-user-profile"
@@ -359,12 +359,21 @@ export const Header: React.FC<HeaderProps> = ({
               {user.name ? user.name[0].toUpperCase() : 'U'}
             </div>
           ) : (
-            <button
-              onClick={() => onOpenAuthModal ? onOpenAuthModal('login') : onOpenAuthPage?.('login')}
-              className="px-2.5 sm:px-3.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 font-bold text-xs rounded-xl transition-all"
-            >
-              Log In
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => onOpenAuthModal ? onOpenAuthModal('login') : onOpenAuthPage?.('login')}
+                className="hidden sm:inline-block px-2.5 sm:px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all"
+              >
+                Log In
+              </button>
+              <button
+                onClick={() => onOpenAuthModal ? onOpenAuthModal('register') : onOpenAuthPage?.('register')}
+                className="px-2.5 sm:px-3.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 font-bold text-xs rounded-xl transition-all flex items-center space-x-1"
+              >
+                <UserPlus className="w-3 h-3" />
+                <span>Sign Up</span>
+              </button>
+            </div>
           )}
         </div>
       </header>

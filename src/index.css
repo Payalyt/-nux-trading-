@@ -43,6 +43,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .glass-panel {
   background: rgba(13, 18, 27, 0.75);
   backdrop-filter: blur(16px);

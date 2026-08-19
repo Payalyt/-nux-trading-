@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight, UserPlus, AlertCircle } from 'lucide-react';
+import { apiClient } from '../../utils/apiClient';
 
 interface RegistrationFormProps {
   onRegisterSuccess: (user: { username: string; role: 'user' | 'admin' }) => void;
@@ -7,6 +8,7 @@ interface RegistrationFormProps {
 }
 
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSuccess, onSwitchToLogin }) => {
+  const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,6 +18,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!fullName.trim()) {
+      setError('Please enter your full name');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -30,20 +37,19 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSu
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+      const res = await apiClient.post('/api/auth/register', {
+        fullName: fullName.trim(),
+        username: username.trim().toLowerCase(),
+        password,
       });
-      const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Registration failed');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Registration failed. Please try again.');
       }
 
-      onRegisterSuccess(data.user);
+      onRegisterSuccess(res.data.user);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'An unexpected error occurred during registration');
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +74,24 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSu
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Username</label>
+          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Full Name</label>
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+              <User className="w-4 h-4" />
+            </span>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="e.g. Alex Morgan"
+              className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Username / Email</label>
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
               <User className="w-4 h-4" />
@@ -78,7 +101,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSu
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. alex_trader"
+              placeholder="e.g. alex_trader or alex@gmail.com"
               className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
             />
           </div>

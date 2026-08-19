@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Trash2, Users, Search, RefreshCw, LogOut, CheckCircle, AlertTriangle, FileText, Database } from 'lucide-react';
+import { apiClient } from '../../utils/apiClient';
 
 interface UserRecord {
   username: string;
@@ -30,12 +31,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onL
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to fetch users');
+      const res = await apiClient.get<{ users: UserRecord[] }>('/api/admin/users');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Failed to fetch users');
       }
-      setUsers(data.users || []);
+      setUsers(res.data.users || []);
     } catch (err: any) {
       showToast(err.message || 'Failed to load users', 'error');
     } finally {
@@ -58,13 +58,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onL
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(userToDelete)}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
+      const res = await apiClient.delete(`/api/admin/users/${encodeURIComponent(userToDelete)}`);
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete user');
+        throw new Error(res.error || 'Failed to delete user');
       }
 
       // Optimistic UI update

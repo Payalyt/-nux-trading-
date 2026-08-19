@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Minus, ArrowRightLeft, ShieldAlert } from 'lucide-react';
 import { UserRecord } from '../../../../server/dbHelper';
+import { apiClient } from '../../../utils/apiClient';
 
 export const AdminBalances: React.FC = () => {
   const [users, setUsers] = useState<UserRecord[]>([]);
@@ -16,10 +17,9 @@ export const AdminBalances: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users');
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
+      const res = await apiClient.get<{ users: UserRecord[] }>('/api/admin/users');
+      if (res.ok && res.data) {
+        setUsers(res.data.users || []);
       }
     } catch (e) {
       console.error(e);

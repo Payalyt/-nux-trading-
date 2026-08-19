@@ -20,7 +20,7 @@ export const AssetTabBar: React.FC<AssetTabBarProps> = ({
   return (
     <div 
       id="asset-tab-bar"
-      className="h-12 bg-[#0b0e14]/90 backdrop-blur-md border-b border-white/10 flex items-center px-4 space-x-2 overflow-x-auto select-none shrink-0"
+      className="h-10 sm:h-12 bg-[#0b0e14]/90 backdrop-blur-md border-b border-white/10 flex items-center px-2 sm:px-4 space-x-1.5 sm:space-x-2 w-full max-w-full overflow-x-auto scrollbar-none select-none shrink-0"
     >
       {/* Open Asset Tabs */}
       {openAssets.map((asset) => {

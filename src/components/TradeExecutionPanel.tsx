@@ -439,7 +439,7 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
       {/* ========================================================================= */}
       <div 
         id="trade-execution-mobile-dock"
-        className="flex lg:hidden flex-col w-full bg-[#0b0e14]/95 backdrop-blur-xl border-t border-white/10 p-2.5 select-none shrink-0 z-20"
+        className="flex lg:hidden flex-col w-full max-w-full overflow-hidden bg-[#0b0e14]/95 backdrop-blur-xl border-t border-white/10 p-2.5 select-none shrink-0 z-20"
       >
         {/* Active Trades Mini Alert Pill (if any active trades exist) */}
         {activeTrades.length > 0 && (

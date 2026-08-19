@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { apiClient } from '../../utils/apiClient';
 
 interface LoginFormProps {
   onLoginSuccess: (user: { username: string; role: 'user' | 'admin' }) => void;
@@ -18,20 +19,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+      const res = await apiClient.post('/api/auth/login', {
+        username: username.trim(),
+        password
       });
-      const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Login failed');
+      if (!res.ok || !res.data) {
+        throw new Error(res.error || 'Login failed. Please check your credentials.');
       }
 
-      onLoginSuccess(data.user);
+      onLoginSuccess(res.data.user);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'An unexpected error occurred during login');
     } finally {
       setIsLoading(false);
     }

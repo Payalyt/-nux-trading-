@@ -125,27 +125,27 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-[#070a10] text-slate-100 overflow-y-auto font-sans selection:bg-emerald-500 selection:text-black">
+    <div className="flex-1 w-full max-w-full bg-[#070a10] text-slate-100 overflow-y-auto overflow-x-hidden font-sans selection:bg-emerald-500 selection:text-black">
       
       {/* 1. TOP NAVBAR */}
-      <header className="sticky top-0 z-40 bg-[#0a0e17]/90 backdrop-blur-xl border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-[#0a0e17]/90 backdrop-blur-xl border-b border-white/10 px-3 sm:px-8 py-3 flex items-center justify-between w-full max-w-full">
         {/* Brand */}
-        <div className="flex items-center space-x-8">
+        <div className="flex items-center space-x-3 sm:space-x-8">
           <div 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center space-x-3 cursor-pointer group"
+            className="flex items-center space-x-2.5 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-              <Activity className="w-5 h-5 text-black stroke-[2.5]" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-black stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center space-x-1.5">
-                <span className="font-black text-lg tracking-tight text-white">QUOTEX</span>
-                <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="font-black text-base sm:text-lg tracking-tight text-white">QUOTEX</span>
+                <span className="hidden xs:inline text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   OFFICIAL
                 </span>
               </div>
-              <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase block -mt-0.5">
+              <span className="hidden sm:block text-[9px] font-bold text-slate-400 tracking-wider uppercase -mt-0.5">
                 Innovation Trading Platform
               </span>
             </div>
@@ -187,11 +187,11 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         {/* Right CTA Actions */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
           {user ? (
             <button
               onClick={onStartTrading}
-              className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+              className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
             >
               <BarChart3 className="w-4 h-4" />
               <span>Go to Terminal</span>
@@ -203,7 +203,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   soundManager.playClick();
                   onOpenAuth('login');
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all cursor-pointer"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all cursor-pointer"
               >
                 Log In
               </button>
@@ -212,9 +212,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                   soundManager.playClick();
                   onOpenAuth('register');
                 }}
-                className="flex items-center space-x-1.5 px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black rounded-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer"
+                className="flex items-center space-x-1 sm:space-x-1.5 px-3.5 sm:px-5 py-1.5 sm:py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black rounded-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer"
               >
-                <span>Registration</span>
+                <span>Sign Up</span>
                 <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
               </button>
             </>
