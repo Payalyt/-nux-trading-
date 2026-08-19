@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CreditCard, 
   ArrowUpRight, 
@@ -6,45 +6,38 @@ import {
   Calendar, 
   Filter, 
   CheckCircle2, 
-  Clock 
+  Clock,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
+import { apiClient } from '../../utils/apiClient';
 
 export const PaymentsPage: React.FC = () => {
   const [filterType, setFilterType] = useState<'all' | 'deposits' | 'withdrawals'>('all');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const transactions = [
-    {
-      id: 'tx-948192',
-      type: 'DEPOSIT',
-      method: 'bKash (BD)',
-      amount: 100.0,
-      bonus: 50.0,
-      status: 'SUCCESSFUL',
-      date: '18.08.2026, 12:45',
-    },
-    {
-      id: 'tx-942110',
-      type: 'DEPOSIT',
-      method: 'Binance Pay',
-      amount: 250.0,
-      bonus: 125.0,
-      status: 'SUCCESSFUL',
-      date: '14.08.2026, 19:20',
-    },
-    {
-      id: 'tx-931002',
-      type: 'WITHDRAWAL',
-      method: 'Nagad (BD)',
-      amount: 75.0,
-      bonus: 0,
-      status: 'COMPLETED',
-      date: '09.08.2026, 10:15',
-    },
-  ];
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get('/api/user/transactions');
+      if (res.ok && res.data?.transactions) {
+        setTransactions(res.data.transactions);
+      }
+    } catch (e) {
+      console.error('Error fetching transactions:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   const filtered = transactions.filter((t) => {
-    if (filterType === 'deposits') return t.type === 'DEPOSIT';
-    if (filterType === 'withdrawals') return t.type === 'WITHDRAWAL';
+    if (filterType === 'deposits') return t.type === 'deposit';
+    if (filterType === 'withdrawals') return t.type === 'withdrawal';
     return true;
   });
 
@@ -54,8 +47,8 @@ export const PaymentsPage: React.FC = () => {
         
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Payment History</h2>
-            <p className="text-xs text-slate-400">Statement of all balance deposits and withdrawal requests</p>
+            <h2 className="text-lg font-bold text-white">Payment & Transaction History</h2>
+            <p className="text-xs text-slate-400">Complete statement of all balance deposits and withdrawal requests</p>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -89,6 +82,13 @@ export const PaymentsPage: React.FC = () => {
             >
               Withdrawals
             </button>
+            <button
+              onClick={fetchTransactions}
+              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
 
@@ -98,38 +98,69 @@ export const PaymentsPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-white/5 border-b border-white/10 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th className="p-4">Transaction ID</th>
-                  <th className="p-4">Type</th>
-                  <th className="p-4">Payment System</th>
-                  <th className="p-4">Amount</th>
-                  <th className="p-4">Bonus</th>
-                  <th className="p-4">Date</th>
-                  <th className="p-4 text-right">Status</th>
+                  <th className="py-3 px-4">Transaction ID</th>
+                  <th className="py-3 px-4">Type</th>
+                  <th className="py-3 px-4">Payment Method</th>
+                  <th className="py-3 px-4">Amount ($)</th>
+                  <th className="py-3 px-4">Bonus ($)</th>
+                  <th className="py-3 px-4">Date & Time</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Sender/Recipient Ref</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 font-mono-nums">
-                {filtered.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-white/5 transition-colors">
-                    <td className="p-4 font-bold text-white">{tx.id}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        tx.type === 'DEPOSIT' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      }`}>
-                        {tx.type}
-                      </span>
-                    </td>
-                    <td className="p-4 font-sans font-semibold text-slate-200">{tx.method}</td>
-                    <td className="p-4 font-bold text-white">${tx.amount.toFixed(2)}</td>
-                    <td className="p-4 text-emerald-400">{tx.bonus > 0 ? `+$${tx.bonus.toFixed(2)}` : '—'}</td>
-                    <td className="p-4 text-slate-400 font-sans text-[11px]">{tx.date}</td>
-                    <td className="p-4 text-right">
-                      <span className="inline-flex items-center space-x-1 text-emerald-400 text-xs font-bold">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>{tx.status}</span>
-                      </span>
+              <tbody className="divide-y divide-white/5 text-slate-300 font-mono">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-slate-500 text-xs font-sans">
+                      {loading ? 'Loading transaction history...' : 'No transaction records found.'}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filtered.map((t) => {
+                    const isDeposit = t.type === 'deposit';
+                    return (
+                      <tr key={t.id} className="hover:bg-white/5 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-white uppercase">{t.id}</td>
+                        <td className="py-3.5 px-4 font-sans font-bold">
+                          <div className="flex items-center space-x-1.5">
+                            {isDeposit ? (
+                              <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <ArrowUpRight className="w-3.5 h-3.5 text-amber-400" />
+                            )}
+                            <span className={isDeposit ? 'text-emerald-400' : 'text-amber-400'}>
+                              {isDeposit ? 'DEPOSIT' : 'WITHDRAWAL'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 font-sans text-white">{t.gateway}</td>
+                        <td className="py-3.5 px-4 font-bold text-white">${Number(t.amount || 0).toFixed(2)}</td>
+                        <td className="py-3.5 px-4 text-emerald-400">
+                          {t.bonusAmount ? `+$${Number(t.bonusAmount).toFixed(2)}` : '-'}
+                        </td>
+                        <td className="py-3.5 px-4 font-sans text-slate-400 text-[11px]">
+                          {new Date(t.createdAt).toLocaleDateString()} {new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="py-3.5 px-4 font-sans">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center space-x-1 ${
+                              t.status === 'completed' || t.status === 'approved'
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : t.status === 'rejected'
+                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            }`}
+                          >
+                            <span>{t.status}</span>
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-400 text-[11px] truncate max-w-xs">
+                          {t.trxId || t.senderNumber || t.accountNumber || '-'}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

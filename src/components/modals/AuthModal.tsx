@@ -4,6 +4,7 @@ import {
   Lock, 
   Mail, 
   User,
+  Smartphone,
   Eye, 
   EyeOff, 
   CheckCircle2, 
@@ -21,7 +22,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'login' | 'register';
-  onAuthSuccess: (user: { email: string; name: string; id: string; currency: string; role?: string }) => void;
+  onAuthSuccess: (user: { email: string; name: string; id: string; currency: string; role?: string; phone?: string }) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -33,6 +34,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [currency, setCurrency] = useState('USD');
@@ -90,6 +92,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: 'USD',
         role: res.data.user.role,
+        phone: res.data.user.phone,
       };
       onAuthSuccess(user);
       onClose();
@@ -109,7 +112,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
     if (!email) {
-      setError('Please enter a username or email.');
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!phone || !phone.trim()) {
+      setError('Please enter your phone number.');
       return;
     }
     if (!password || password.length < 6) {
@@ -127,7 +134,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const res = await apiClient.post('/api/auth/register', {
         username,
         password,
-        fullName: fullName.trim()
+        fullName: fullName.trim(),
+        phone: phone.trim()
       });
 
       if (!res.ok || !res.data) {
@@ -148,7 +156,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         name: res.data.user.fullName || (res.data.user.username.charAt(0).toUpperCase() + res.data.user.username.slice(1)),
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: currency,
-        role: res.data.user.role,
+        role: res.data.user.role || 'user',
+        phone: phone.trim(),
       };
       onAuthSuccess(user);
       onClose();
@@ -171,7 +180,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     >
       <div
         id="auth-modal-dialog"
-        className="bg-[#121722] border border-white/10 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
+        className="bg-[#121722] border border-white/10 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -196,7 +205,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {/* Tab switch */}
-        <div className="p-5 space-y-4">
+        <div className="p-5 overflow-y-auto space-y-4">
           <div className="grid grid-cols-2 p-1 rounded-2xl bg-black/40 border border-white/10 text-xs font-bold">
             <button
               type="button"
@@ -305,14 +314,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. John Doe"
+                    placeholder="e.g. Mohammad Rahim"
                     className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 font-semibold">Email *</label>
+                <label className="text-[11px] text-slate-400 font-semibold">Email Address *</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
@@ -327,7 +336,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 font-semibold">Password</label>
+                <label className="text-[11px] text-slate-400 font-semibold">Phone Number *</label>
+                <div className="relative">
+                  <Smartphone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g. 01712345678 or +88017..."
+                    className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] text-slate-400 font-semibold">Password *</label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
@@ -349,11 +373,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 font-semibold">Currency</label>
+                <label className="text-[11px] text-slate-400 font-semibold">Account Currency</label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
                 >
                   {currencies.map((c) => (
                     <option key={c.code} value={c.code} className="bg-[#121722]">
@@ -363,7 +387,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </select>
               </div>
 
-              <div className="flex items-start space-x-2 pt-0.5">
+              <div className="flex items-start space-x-2 pt-1">
                 <input
                   type="checkbox"
                   id="agree-modal"
@@ -371,8 +395,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onChange={(e) => setAgreeTerms(e.target.checked)}
                   className="accent-emerald-500 w-4 h-4 rounded cursor-pointer mt-0.5"
                 />
-                <label htmlFor="agree-modal" className="text-[11px] text-slate-300 cursor-pointer">
-                  I confirm that I am 18+ years old and accept terms.
+                <label htmlFor="agree-modal" className="text-[11px] text-slate-400 leading-tight cursor-pointer">
+                  I confirm that I am 18 years old and accept the Service Agreement
                 </label>
               </div>
 
@@ -381,34 +405,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 disabled={loading}
                 className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
               >
-                {loading ? 'Creating Account...' : 'Sign Up (Free $10k Demo)'}
+                {loading ? 'Creating Account...' : 'Open Account for Free'}
               </button>
             </form>
           )}
 
-          {/* Social auth */}
-          <div className="space-y-2 pt-2 border-t border-white/10">
-            <div>
-              <button
-                type="button"
-                onClick={() => handleSocialAuth('Google')}
-                className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white flex items-center justify-center space-x-2 cursor-pointer transition-colors"
-              >
-                <span className="font-bold text-red-400">G</span>
-                <span>Continue with Google</span>
-              </button>
+          {/* Social Auth Divider */}
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
             </div>
+            <div className="relative flex justify-center text-[10px] uppercase">
+              <span className="bg-[#121722] px-2 text-slate-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleSocialAuth('Google')}
+              className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white font-medium flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+            >
+              <span>Google</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSocialAuth('Facebook')}
+              className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white font-medium flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+            >
+              <span>Facebook</span>
+            </button>
           </div>
         </div>
       </div>
 
       <SocialAuthModal
-        isOpen={!!socialProvider}
-        provider={socialProvider}
-        currency={currency}
+        isOpen={socialProvider !== null}
         onClose={() => setSocialProvider(null)}
-        onSuccess={(user) => {
-          onAuthSuccess(user);
+        provider={socialProvider || 'Google'}
+        onAuthSuccess={(u) => {
+          onAuthSuccess(u);
           onClose();
         }}
       />

@@ -3,6 +3,7 @@ import {
   Lock, 
   Mail, 
   User,
+  Smartphone,
   Eye, 
   EyeOff, 
   CheckCircle2, 
@@ -25,7 +26,7 @@ import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 
 interface AuthPageProps {
   initialMode?: 'login' | 'register';
-  onAuthSuccess: (user: { email: string; name: string; id: string; currency: string; role?: string }) => void;
+  onAuthSuccess: (user: { email: string; name: string; id: string; currency: string; role?: string; phone?: string }) => void;
   onBackToTrade: () => void;
 }
 
@@ -37,6 +38,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [currency, setCurrency] = useState('USD');
@@ -65,7 +67,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setError(null);
 
     if (!email) {
-      setError('Please enter your username or email.');
+      setError('Please enter your username or email address.');
       return;
     }
     if (!password) {
@@ -88,7 +90,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       soundManager.playWin();
       try {
-        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
       } catch {}
 
       const user = {
@@ -97,6 +99,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: 'USD',
         role: res.data.user.role,
+        phone: res.data.user.phone,
       };
       onAuthSuccess(user);
     } catch (err: any) {
@@ -115,7 +118,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       return;
     }
     if (!email) {
-      setError('Please enter a username or email.');
+      setError('Please enter your email address.');
+      return;
+    }
+    if (!phone || !phone.trim()) {
+      setError('Please enter your phone number.');
       return;
     }
     if (!password || password.length < 6) {
@@ -133,7 +140,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       const res = await apiClient.post('/api/auth/register', {
         username,
         password,
-        fullName: fullName.trim()
+        fullName: fullName.trim(),
+        phone: phone.trim()
       });
 
       if (!res.ok || !res.data) {
@@ -154,7 +162,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         name: res.data.user.fullName || (res.data.user.username.charAt(0).toUpperCase() + res.data.user.username.slice(1)),
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: currency,
-        role: res.data.user.role,
+        role: res.data.user.role || 'user',
+        phone: phone.trim(),
       };
       onAuthSuccess(user);
     } catch (err: any) {
@@ -200,87 +209,84 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         <button
           onClick={onBackToTrade}
-          className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer"
+          className="flex items-center space-x-2 text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Trading Chart</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Terminal</span>
         </button>
       </header>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8 z-10">
-        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          
-          {/* Left Hero / Perks Column (5 cols on lg) */}
-          <div className="lg:col-span-5 space-y-6 hidden lg:block pr-4">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>OFFICIAL BROKER PLATFORM</span>
-            </div>
+      {/* Main Content Split Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-12 items-center justify-center gap-8 lg:gap-16 z-10">
+        
+        {/* Left Side: Brand Value Proposition & Trust Badges */}
+        <div className="flex-1 space-y-6 max-w-lg hidden md:block">
+          <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Regulated Next-Gen Digital Platform</span>
+          </div>
 
-            <h1 className="text-3xl xl:text-4xl font-extrabold text-white leading-tight">
-              Trade global markets with zero commission
-            </h1>
+          <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
+            Start Trading with <span className="text-emerald-400">$10,000</span> Free Practice Balance
+          </h1>
 
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Join over 4,000,000+ traders worldwide. Instant execution on currencies, crypto, commodities, and OTC assets.
-            </p>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Trade 40+ global assets including Forex, Crypto, Indices and Commodities with zero delay execution and up to 95% payout per minute.
+          </p>
 
-            {/* Feature Badges */}
-            <div className="space-y-3 pt-2">
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center space-x-3.5 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0 font-bold">
-                  $
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">$10,000 Free Demo Balance</h4>
-                  <p className="text-[11px] text-slate-400">Practice risk-free with infinite free balance refills</p>
-                </div>
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start space-x-3">
+              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+                <DollarSign className="w-5 h-5" />
               </div>
-
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center space-x-3.5 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30 shrink-0">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">Instant Payouts & 0% Fee</h4>
-                  <p className="text-[11px] text-slate-400">Local payment methods: bKash, Nagad, Binance Pay & USDT</p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center space-x-3.5 shadow-md">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/30 shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">Up to 98% Profit per Trade</h4>
-                  <p className="text-[11px] text-slate-400">Ultra-fast 5s to 4h binary options contracts</p>
-                </div>
+              <div>
+                <div className="font-extrabold text-sm text-white">$10 Min Deposit</div>
+                <div className="text-[11px] text-slate-400">Trade from $1 minimum stake</div>
               </div>
             </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-3 pt-2 text-center border-t border-white/10">
-              <div>
-                <div className="text-lg font-black font-mono-nums text-emerald-400">4.2M+</div>
-                <div className="text-[10px] text-slate-400 font-semibold">Active Traders</div>
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start space-x-3">
+              <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 shrink-0">
+                <Zap className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-lg font-black font-mono-nums text-white">$10</div>
-                <div className="text-[10px] text-slate-400 font-semibold">Min. Deposit</div>
+                <div className="font-extrabold text-sm text-white">Instant Withdrawals</div>
+                <div className="text-[11px] text-slate-400">bKash, Nagad, Crypto & Cards</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start space-x-3">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+                <Users className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-lg font-black font-mono-nums text-emerald-400">&lt; 10s</div>
-                <div className="text-[10px] text-slate-400 font-semibold">Fast Execution</div>
+                <div className="font-extrabold text-sm text-white">100,000+ Traders</div>
+                <div className="text-[11px] text-slate-400">Active community worldwide</div>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start space-x-3">
+              <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-extrabold text-sm text-white">256-Bit SSL Security</div>
+                <div className="text-[11px] text-slate-400">Strict encrypted data storage</div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Right Authentication Card (7 cols on lg) */}
-          <div className="lg:col-span-7 w-full max-w-md mx-auto">
-            <div className="bg-[#121722] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden backdrop-blur-xl">
-              
-              {/* Login / Registration Tabs Header */}
+        {/* Right Side: Auth Card */}
+        <div className="w-full max-w-md">
+          <div className="bg-[#111622] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60 relative overflow-hidden backdrop-blur-xl">
+            
+            {/* Top decorative gradient glow */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="space-y-6 relative">
+
+              {/* Login / Register Toggle Tabs */}
               <div className="grid grid-cols-2 p-1 rounded-2xl bg-black/40 border border-white/10 text-xs font-bold">
                 <button
                   type="button"
@@ -462,7 +468,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 </form>
               ) : (
                 /* REGISTRATION FORM */
-                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
                   {/* Full Name Input */}
                   <div className="space-y-1">
                     <label className="text-[11px] text-slate-400 font-semibold">Full Name *</label>
@@ -473,7 +479,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="e.g. John Doe"
+                        placeholder="e.g. Mohammad Rahim"
                         className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
@@ -481,7 +487,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                   {/* Email Input */}
                   <div className="space-y-1">
-                    <label className="text-[11px] text-slate-400 font-semibold">Email *</label>
+                    <label className="text-[11px] text-slate-400 font-semibold">Email Address *</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
@@ -495,9 +501,25 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     </div>
                   </div>
 
+                  {/* Phone Number Input */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-slate-400 font-semibold">Phone Number *</label>
+                    <div className="relative">
+                      <Smartphone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="e.g. 01712345678 or +88017..."
+                        className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
                   {/* Password Input */}
                   <div className="space-y-1">
-                    <label className="text-[11px] text-slate-400 font-semibold">Password</label>
+                    <label className="text-[11px] text-slate-400 font-semibold">Password *</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
@@ -598,18 +620,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="py-4 border-t border-white/5 text-center text-[11px] text-slate-500 z-10">
-        © 2026 Quotex. Financial operations provided on this site involve high risks.
-      </footer>
-
       <SocialAuthModal
-        isOpen={!!socialProvider}
-        provider={socialProvider}
-        currency={currency}
+        isOpen={socialProvider !== null}
         onClose={() => setSocialProvider(null)}
-        onSuccess={(user) => {
-          onAuthSuccess(user);
+        provider={socialProvider || 'Google'}
+        onAuthSuccess={(u) => {
+          onAuthSuccess(u);
         }}
       />
     </div>
