@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
-import { apiClient } from '../../utils/apiClient';
+import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 
 interface LoginFormProps {
   onLoginSuccess: (user: { username: string; role: 'user' | 'admin' }) => void;
@@ -25,12 +25,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
       });
 
       if (!res.ok || !res.data) {
-        throw new Error(res.error || 'Login failed. Please check your credentials.');
+        const errorMsg = formatErrorMessage(
+          res.error || res.data?.message || res.data?.error || res.data,
+          'Login failed. Please check your credentials.'
+        );
+        throw new Error(errorMsg);
       }
 
       onLoginSuccess(res.data.user);
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred during login');
+      setError(formatErrorMessage(err, 'An unexpected error occurred during login'));
     } finally {
       setIsLoading(false);
     }

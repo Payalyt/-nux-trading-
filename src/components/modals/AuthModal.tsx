@@ -15,7 +15,7 @@ import {
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { SocialAuthModal } from './SocialAuthModal';
-import { apiClient } from '../../utils/apiClient';
+import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -72,7 +72,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const res = await apiClient.post('/api/auth/login', { username, password });
 
       if (!res.ok || !res.data) {
-        throw new Error(res.error || 'Account not available or invalid credentials.');
+        const errorMsg = formatErrorMessage(
+          res.error || res.data?.message || res.data?.error || res.data,
+          'Account not available or invalid credentials.'
+        );
+        throw new Error(errorMsg);
       }
 
       soundManager.playWin();
@@ -90,7 +94,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onAuthSuccess(user);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Account not available or invalid credentials.');
+      setError(formatErrorMessage(err, 'Account not available or invalid credentials.'));
     } finally {
       setLoading(false);
     }
@@ -127,7 +131,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       });
 
       if (!res.ok || !res.data) {
-        throw new Error(res.error || 'Registration failed. Please try again.');
+        const errorMsg = formatErrorMessage(
+          res.error || res.data?.message || res.data?.error || res.data,
+          'Registration failed. Please check your details and try again.'
+        );
+        throw new Error(errorMsg);
       }
 
       soundManager.playWin();
@@ -145,7 +153,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onAuthSuccess(user);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Registration failed.');
+      setError(formatErrorMessage(err, 'Registration failed.'));
     } finally {
       setLoading(false);
     }
@@ -222,7 +230,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {error && (
             <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
-              {error}
+              {typeof error === 'string' ? error : formatErrorMessage(error)}
             </div>
           )}
 

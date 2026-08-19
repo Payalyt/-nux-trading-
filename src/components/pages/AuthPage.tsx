@@ -21,7 +21,7 @@ import {
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { SocialAuthModal } from '../modals/SocialAuthModal';
-import { apiClient } from '../../utils/apiClient';
+import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 
 interface AuthPageProps {
   initialMode?: 'login' | 'register';
@@ -79,7 +79,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       const res = await apiClient.post('/api/auth/login', { username, password });
 
       if (!res.ok || !res.data) {
-        throw new Error(res.error || 'Account not available or invalid credentials.');
+        const errorMsg = formatErrorMessage(
+          res.error || res.data?.message || res.data?.error || res.data,
+          'Account not available or invalid credentials.'
+        );
+        throw new Error(errorMsg);
       }
 
       soundManager.playWin();
@@ -96,7 +100,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       };
       onAuthSuccess(user);
     } catch (err: any) {
-      setError(err.message || 'Account not available or invalid credentials.');
+      setError(formatErrorMessage(err, 'Account not available or invalid credentials.'));
     } finally {
       setLoading(false);
     }
@@ -133,7 +137,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       });
 
       if (!res.ok || !res.data) {
-        throw new Error(res.error || 'Registration failed. Please try again.');
+        const errorMsg = formatErrorMessage(
+          res.error || res.data?.message || res.data?.error || res.data,
+          'Registration failed. Please check your details and try again.'
+        );
+        throw new Error(errorMsg);
       }
 
       soundManager.playWin();
@@ -150,7 +158,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       };
       onAuthSuccess(user);
     } catch (err: any) {
-      setError(err.message || 'Registration failed.');
+      setError(formatErrorMessage(err, 'Registration failed.'));
     } finally {
       setLoading(false);
     }
@@ -310,7 +318,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               {error && (
                 <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center space-x-2 animate-in fade-in">
                   <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0"></span>
-                  <span>{error}</span>
+                  <span>{typeof error === 'string' ? error : formatErrorMessage(error)}</span>
                 </div>
               )}
 

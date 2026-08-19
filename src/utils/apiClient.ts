@@ -13,6 +13,75 @@ export interface ApiResponse<T = any> {
 }
 
 /**
+ * Robust utility to format any error or response object into a clean, human-readable string.
+ * Guarantees that [object Object] is never returned.
+ */
+export function formatErrorMessage(err: any, fallback = 'An unexpected error occurred. Please try again.'): string {
+  if (!err) return fallback;
+
+  if (typeof err === 'string') {
+    const trimmed = err.trim();
+    if (!trimmed || trimmed === '[object Object]') return fallback;
+    return trimmed;
+  }
+
+  if (err instanceof Error) {
+    if (err.message && err.message.trim() && err.message.trim() !== '[object Object]') {
+      return err.message.trim();
+    }
+  }
+
+  if (typeof err === 'object') {
+    // Check nested message or error fields
+    if (typeof err.message === 'string' && err.message.trim() && err.message.trim() !== '[object Object]') {
+      return err.message.trim();
+    }
+    if (typeof err.error === 'string' && err.error.trim() && err.error.trim() !== '[object Object]') {
+      return err.error.trim();
+    }
+
+    // Check nested response/data structures
+    if (err.data && typeof err.data === 'object') {
+      const nested = formatErrorMessage(err.data, '');
+      if (nested && nested !== '[object Object]') return nested;
+    }
+    if (err.response && typeof err.response === 'object') {
+      const nested = formatErrorMessage(err.response.data || err.response, '');
+      if (nested && nested !== '[object Object]') return nested;
+    }
+
+    // Check errors array (e.g. validator errors)
+    if (Array.isArray(err.errors) && err.errors.length > 0) {
+      return err.errors
+        .map((e: any) => (typeof e === 'string' ? e : e?.message || e?.msg || JSON.stringify(e)))
+        .filter(Boolean)
+        .join(', ');
+    }
+
+    if (typeof err.error === 'object' && err.error !== null) {
+      const nested = formatErrorMessage(err.error, '');
+      if (nested && nested !== '[object Object]') return nested;
+    }
+
+    if (typeof err.statusText === 'string' && err.statusText.trim()) {
+      return err.statusText.trim();
+    }
+
+    try {
+      const jsonStr = JSON.stringify(err);
+      if (jsonStr && jsonStr !== '{}' && jsonStr !== '[]') {
+        return jsonStr;
+      }
+    } catch {
+      return fallback;
+    }
+  }
+
+  const str = String(err).trim();
+  return (str && str !== '[object Object]') ? str : fallback;
+}
+
+/**
  * Retrieve the current authentication JWT token from document cookies or localStorage
  */
 export function getStoredAuthToken(): string | null {
@@ -91,25 +160,31 @@ export async function safeFetchJson<T = any>(
     }
 
     if (!response.ok) {
-      const serverErrorMessage = parsedData?.error || parsedData?.message || errorText || `Request failed with status ${response.status}`;
+      const extractedMessage = formatErrorMessage(
+        parsedData?.message || parsedData?.error || parsedData || errorText,
+        `Request failed with status ${response.status}`
+      );
+
       return {
         ok: false,
         status: response.status,
         data: parsedData,
-        error: serverErrorMessage,
-        message: serverErrorMessage,
+        error: extractedMessage,
+        message: extractedMessage,
       };
     }
+
+    const successMessage = typeof parsedData?.message === 'string' ? parsedData.message : undefined;
 
     return {
       ok: true,
       status: response.status,
       data: parsedData as T,
-      message: parsedData?.message,
+      message: successMessage,
     };
   } catch (netErr: any) {
     console.error(`[apiClient] Network request failed on ${url}:`, netErr);
-    const message = netErr?.message || 'Network connection error. Please try again.';
+    const message = formatErrorMessage(netErr, 'Network connection error. Please check your internet connection.');
     return {
       ok: false,
       status: 0,

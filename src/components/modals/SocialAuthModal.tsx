@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, ShieldCheck, ArrowRight, User } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
-import { apiClient } from '../../utils/apiClient';
+import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 
 interface SocialAuthModalProps {
   isOpen: boolean;
@@ -60,7 +60,11 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
       });
 
       if (!res.ok || !res.data) {
-        throw new Error(res.error || `${provider} authentication failed.`);
+        const errorMsg = formatErrorMessage(
+          res.error || res.data?.message || res.data?.error || res.data,
+          `${provider} authentication failed.`
+        );
+        throw new Error(errorMsg);
       }
 
       soundManager.playWin();
@@ -80,7 +84,7 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
       onSuccess(user);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Social authentication error.');
+      setError(formatErrorMessage(err, 'Social authentication error.'));
     } finally {
       setLoading(false);
     }

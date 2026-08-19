@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight, UserPlus, AlertCircle } from 'lucide-react';
-import { apiClient } from '../../utils/apiClient';
+import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 
 interface RegistrationFormProps {
   onRegisterSuccess: (user: { username: string; role: 'user' | 'admin' }) => void;
@@ -44,12 +44,16 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSu
       });
 
       if (!res.ok || !res.data) {
-        throw new Error(res.error || 'Registration failed. Please try again.');
+        const errorMsg = formatErrorMessage(
+          res.error || res.data?.message || res.data?.error || res.data,
+          'Registration failed. Please try again.'
+        );
+        throw new Error(errorMsg);
       }
 
       onRegisterSuccess(res.data.user);
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred during registration');
+      setError(formatErrorMessage(err, 'An unexpected error occurred during registration'));
     } finally {
       setIsLoading(false);
     }
