@@ -3,6 +3,7 @@ import {
   X, 
   Lock, 
   Mail, 
+  User,
   Eye, 
   EyeOff, 
   CheckCircle2, 
@@ -29,6 +30,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onAuthSuccess,
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -102,6 +104,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setError(null);
 
+    if (!fullName || !fullName.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
     if (!email) {
       setError('Please enter a username or email.');
       return;
@@ -121,7 +127,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, fullName: fullName.trim() }),
       });
       const data = await res.json();
 
@@ -136,7 +142,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       const user = {
         email: email.trim(),
-        name: data.user.username.charAt(0).toUpperCase() + data.user.username.slice(1),
+        name: data.user.fullName || (data.user.username.charAt(0).toUpperCase() + data.user.username.slice(1)),
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
         currency: currency,
         role: data.user.role,
@@ -288,7 +294,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 font-semibold">Email</label>
+                <label className="text-[11px] text-slate-400 font-semibold">Full Name *</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="e.g. John Doe"
+                    className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] text-slate-400 font-semibold">Email *</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
@@ -364,30 +385,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Social auth */}
           <div className="space-y-2 pt-2 border-t border-white/10">
-            <div className="grid grid-cols-3 gap-2">
+            <div>
               <button
                 type="button"
                 onClick={() => handleSocialAuth('Google')}
-                className="py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white flex items-center justify-center space-x-1.5 cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white flex items-center justify-center space-x-2 cursor-pointer transition-colors"
               >
                 <span className="font-bold text-red-400">G</span>
-                <span>Google</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSocialAuth('Facebook')}
-                className="py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white flex items-center justify-center space-x-1.5 cursor-pointer"
-              >
-                <span className="font-bold text-blue-400">f</span>
-                <span>Facebook</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSocialAuth('VK')}
-                className="py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white flex items-center justify-center space-x-1.5 cursor-pointer"
-              >
-                <span className="font-bold text-sky-400">VK</span>
-                <span>VKontakte</span>
+                <span>Continue with Google</span>
               </button>
             </div>
           </div>

@@ -71,9 +71,13 @@ async function startServer() {
   // 1. Register
   app.post('/api/auth/register', async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, fullName } = req.body;
       if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
+      }
+
+      if (!fullName || !fullName.trim()) {
+        return res.status(400).json({ error: 'Full name is required for registration' });
       }
 
       const cleanUsername = username.trim().toLowerCase();
@@ -91,6 +95,7 @@ async function startServer() {
       const passwordHash = await bcrypt.hash(password, 10);
       const newUser: UserRecord = {
         username: cleanUsername,
+        fullName: fullName.trim(),
         passwordHash,
         role,
         createdAt: new Date().toISOString()
@@ -109,7 +114,7 @@ async function startServer() {
 
       return res.status(201).json({
         message: 'User registered successfully',
-        user: { username: cleanUsername, role, createdAt: newUser.createdAt }
+        user: { username: cleanUsername, fullName: newUser.fullName, role, createdAt: newUser.createdAt }
       });
     } catch (err: any) {
       console.error('[Register Error]', err);
@@ -146,7 +151,7 @@ async function startServer() {
 
       return res.json({
         message: 'Logged in successfully',
-        user: { username: user.username, role: user.role, createdAt: user.createdAt }
+        user: { username: user.username, fullName: user.fullName || user.username, role: user.role, createdAt: user.createdAt }
       });
     } catch (err: any) {
       console.error('[Login Error]', err);
@@ -209,7 +214,7 @@ async function startServer() {
       return res.status(404).json({ error: 'User not found' });
     }
     return res.json({
-      user: { username: user.username, role: user.role, createdAt: user.createdAt }
+      user: { username: user.username, fullName: user.fullName || user.username, role: user.role, createdAt: user.createdAt }
     });
   });
 
@@ -286,6 +291,37 @@ async function startServer() {
     } catch (err: any) {
       console.error('[Create User Error]', err);
       return res.status(500).json({ error: 'Internal server error while creating user' });
+    }
+  });
+
+  // 8. Admin: Update User (Phone, Full Name, Role, Password)
+  app.put('/api/admin/users/:username', requireAdmin, async (req: any, res: any) => {
+    try {
+      const targetUsername = req.params.username.trim().toLowerCase();
+      const { fullName, phone, role, password } = req.body;
+
+      const user = FileDatabase.getUser(targetUsername);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      if (fullName !== undefined) user.fullName = fullName.trim();
+      if (phone !== undefined) user.phone = phone.trim();
+      if (role && (role === 'user' || role === 'admin')) user.role = role;
+      if (password && password.trim().length >= 6) {
+        user.passwordHash = await bcrypt.hash(password.trim(), 10);
+      }
+
+      FileDatabase.saveUser(user);
+
+      const { passwordHash: _, ...safeUser } = user;
+      return res.json({
+        message: 'User updated successfully',
+        user: safeUser
+      });
+    } catch (err: any) {
+      console.error('[Update User Error]', err);
+      return res.status(500).json({ error: 'Internal server error while updating user' });
     }
   });
 

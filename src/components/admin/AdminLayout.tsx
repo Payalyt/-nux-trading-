@@ -6,7 +6,7 @@ import {
   DollarSign, Link2, Bell, FileBarChart, ShieldAlert, 
   ClipboardList, Settings, LogOut, Menu, X, Search
 } from 'lucide-react';
-import { UserAccount } from '../../../types/trading';
+import { UserAccount } from '../../types/trading';
 
 interface AdminLayoutProps {
   user: UserAccount | null;

@@ -682,6 +682,45 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     setIsDragging(false);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStartX(e.touches[0].clientX);
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        setMousePos({
+          x: e.touches[0].clientX - rect.left,
+          y: e.touches[0].clientY - rect.top,
+        });
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 1) {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        setMousePos({
+          x: e.touches[0].clientX - rect.left,
+          y: e.touches[0].clientY - rect.top,
+        });
+      }
+      if (isDragging) {
+        const deltaX = e.touches[0].clientX - dragStartX;
+        const candleShift = Math.round(deltaX / 8);
+        if (candleShift !== 0) {
+          setPanOffset((prev) => Math.max(0, Math.min(candles.length - 20, prev + candleShift)));
+          setDragStartX(e.touches[0].clientX);
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    setMousePos(null);
+  };
+
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     if (e.deltaY < 0) {
@@ -701,7 +740,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
       <canvas
         ref={canvasRef}
         id="trading-chart-canvas"
-        className="w-full h-full cursor-crosshair block"
+        className="w-full h-full cursor-crosshair block touch-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -709,6 +748,9 @@ export const TradingChart: React.FC<TradingChartProps> = ({
           setIsDragging(false);
           setMousePos(null);
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
       />
 

@@ -558,33 +558,38 @@ export default function App() {
             }}
             onLogout={handleLogout}
             onGoToHome={() => setCurrentView('home')}
+            onNavigatePage={(page) => setCurrentView(page as any)}
           />
 
           {/* 2. Main Middle Workspace: Sidebar + Sentiment + Chart Area + Execution Panel */}
-          <div className="flex flex-1 w-full overflow-hidden">
-            {/* Left Navigation Sidebar */}
-            <Sidebar
-              activeTab={sidebarTab}
-              setActiveTab={(tab) => {
-                setSidebarTab(tab);
-                if (tab === 'trade') setCurrentView('trade');
-              }}
-              onOpenSupport={() => setIsSupportOpen(true)}
-              onOpenTournaments={() => setCurrentView('tournaments')}
-              onOpenMarket={() => setCurrentView('market')}
-              onOpenProfile={() => setCurrentView('my_account')}
-              onOpenHelp={() => setIsSupportOpen(true)}
-              onGoToHome={() => setCurrentView('home')}
-            />
+          <div className="flex flex-col lg:flex-row flex-1 w-full overflow-hidden min-h-0">
+            {/* Left Navigation Sidebar (Desktop only) */}
+            <div className="hidden lg:flex shrink-0">
+              <Sidebar
+                activeTab={sidebarTab}
+                setActiveTab={(tab) => {
+                  setSidebarTab(tab);
+                  if (tab === 'trade') setCurrentView('trade');
+                }}
+                onOpenSupport={() => setIsSupportOpen(true)}
+                onOpenTournaments={() => setCurrentView('tournaments')}
+                onOpenMarket={() => setCurrentView('market')}
+                onOpenProfile={() => setCurrentView('my_account')}
+                onOpenHelp={() => setIsSupportOpen(true)}
+                onGoToHome={() => setCurrentView('home')}
+              />
+            </div>
 
-            {/* Vertical Sentiment Meter */}
-            <SentimentMeter
-              bullishPercent={sentiment.bull}
-              bearishPercent={sentiment.bear}
-            />
+            {/* Vertical Sentiment Meter (Tablet & Desktop only) */}
+            <div className="hidden md:flex shrink-0">
+              <SentimentMeter
+                bullishPercent={sentiment.bull}
+                bearishPercent={sentiment.bear}
+              />
+            </div>
 
             {/* Center Workspace (Asset Tabs + Interactive Candlestick Chart) */}
-            <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#12161f]">
+            <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#12161f] min-h-[320px] lg:min-h-0">
               {/* Top Asset Tabs Bar */}
               <AssetTabBar
                 openAssets={openAssets}
@@ -611,7 +616,7 @@ export default function App() {
               />
             </div>
 
-            {/* Right Trade Execution Panel */}
+            {/* Right Trade Execution Panel (Responsive: Desktop right panel / Mobile bottom dock) */}
             <TradeExecutionPanel
               asset={activeAsset}
               currentPrice={activeCurrentPrice}
