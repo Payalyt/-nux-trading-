@@ -99,6 +99,50 @@ async function startServer() {
     });
   });
 
+  // Deposit API
+  app.post('/api/user/deposit', (req, res) => {
+    const { amount, gateway, paymentType, senderNumber, trxId, bonusAmount, userNote } = req.body;
+    const txId = `DEP-${Math.floor(100000 + Math.random() * 900000)}`;
+    res.json({
+      success: true,
+      message: 'Deposit request submitted successfully',
+      transaction: {
+        id: txId,
+        type: 'deposit',
+        amount: Number(amount),
+        bonus: Number(bonusAmount || 0),
+        gateway,
+        paymentType,
+        senderNumber,
+        trxId,
+        status: 'pending',
+        userNote,
+        createdAt: new Date().toISOString()
+      }
+    });
+  });
+
+  // Withdrawal API
+  app.post('/api/user/withdrawal', (req, res) => {
+    const { amount, gateway, accountNumber, accountHolderName, userNote } = req.body;
+    const txId = `WDR-${Math.floor(100000 + Math.random() * 900000)}`;
+    res.json({
+      success: true,
+      message: 'Withdrawal request submitted successfully',
+      transaction: {
+        id: txId,
+        type: 'withdrawal',
+        amount: Number(amount),
+        gateway,
+        accountNumber,
+        accountHolderName,
+        status: 'pending',
+        userNote,
+        createdAt: new Date().toISOString()
+      }
+    });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

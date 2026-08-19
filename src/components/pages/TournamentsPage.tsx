@@ -79,8 +79,60 @@ export const TournamentsPage: React.FC = () => {
 
   return (
     <div className="flex-1 bg-[#0b0f17] overflow-y-auto p-6 md:p-8 space-y-8 text-slate-200">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-8">
         
+        {/* Featured High-Impact Tournament Banner */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/30 p-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Background Decorative Glow */}
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="relative z-10 space-y-3 max-w-xl text-center md:text-left">
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Official Monthly Major Tournament</span>
+            </div>
+            
+            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">
+              🏆 GLOBAL TRADING CHAMPIONSHIP 2026
+            </h1>
+            
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Trade active OTC forex pairs, accumulate highest profit percentage points, and rank in the top 50 global leaderboard to win direct cash prizes sent to your account!
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
+              <div className="bg-black/40 border border-white/10 rounded-2xl px-4 py-2">
+                <div className="text-[10px] text-slate-400 uppercase font-bold">Total Prize Pool</div>
+                <div className="text-xl font-black font-mono-nums text-emerald-400">$50,000.00 USD</div>
+              </div>
+
+              <div className="bg-black/40 border border-white/10 rounded-2xl px-4 py-2">
+                <div className="text-[10px] text-slate-400 uppercase font-bold">Registration Starts In</div>
+                <div className="text-xl font-black font-mono-nums text-amber-300 flex items-center space-x-1">
+                  <Clock className="w-4 h-4 mr-1 text-amber-400" />
+                  <span>04h : 18m : 32s</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center md:items-end space-y-4 shrink-0">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-500/30 to-emerald-500/30 border border-amber-400/50 flex items-center justify-center text-4xl shadow-2xl shadow-amber-500/20">
+              🏆
+            </div>
+            <button
+              onClick={() => {
+                soundManager.playWin();
+                alert('Congratulations! You are pre-registered for the $50,000 World Trading Championship!');
+              }}
+              className="px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              Enter $50,000 Championship Free
+            </button>
+          </div>
+        </div>
+
         {/* Header & Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>

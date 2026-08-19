@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { X, ArrowDownToLine, Check, ShieldCheck, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
+import { FirebaseService } from '../../utils/firebaseSync';
 
 interface WithdrawalModalProps {
   isOpen: boolean;
   onClose: () => void;
   liveBalance: number;
   onWithdrawSuccess: (amount: number) => void;
+  userEmail?: string;
 }
 
 export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
@@ -15,6 +17,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   onClose,
   liveBalance,
   onWithdrawSuccess,
+  userEmail,
 }) => {
   const [gateways, setGateways] = useState<any[]>([]);
   const [selectedGateway, setSelectedGateway] = useState<any | null>(null);
@@ -29,19 +32,29 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
     if (isOpen) {
       setErrorMsg('');
       setSuccessTx(null);
-      apiClient.get('/api/public/settings').then((res) => {
-        if (res.ok && res.data?.paymentGateways) {
-          const activeGws = res.data.paymentGateways;
+      FirebaseService.fetchGateways().then((fetchedGateways) => {
+        if (fetchedGateways && fetchedGateways.length > 0) {
+          const activeGws = fetchedGateways.filter(g => g.active !== false);
           setGateways(activeGws);
           if (activeGws.length > 0 && !selectedGateway) {
             setSelectedGateway(activeGws[0]);
           }
+        } else {
+          apiClient.get('/api/public/settings').then((res) => {
+            if (res.ok && res.data?.paymentGateways) {
+              const activeGws = res.data.paymentGateways;
+              setGateways(activeGws);
+              if (activeGws.length > 0 && !selectedGateway) {
+                setSelectedGateway(activeGws[0]);
+              }
+            }
+          }).catch((err) => {
+            console.error('Error fetching withdrawal gateways:', err);
+          });
         }
-      }).catch((err) => {
-        console.error('Error fetching withdrawal gateways:', err);
       });
     }
-  }, [isOpen]);
+  }, [isOpen, selectedGateway]);
 
   if (!isOpen) return null;
 
@@ -83,6 +96,20 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
 
       if (!res.ok) {
         throw new Error(formatErrorMessage(res.error || res.data?.error, 'Failed to submit withdrawal'));
+      }
+
+      const txData = res.data?.transaction;
+      if (txData) {
+        await FirebaseService.syncTransaction({
+          id: txData.id,
+          userId: userEmail || 'guest',
+          type: 'withdrawal',
+          amount: Number(amount),
+          gateway: selectedGateway?.name || 'Selected Gateway',
+          accountNumber: accountNumber.trim(),
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        });
       }
 
       setIsProcessing(false);

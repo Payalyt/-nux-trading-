@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
+import { FirebaseService } from '../../utils/firebaseSync';
 
 interface WithdrawalPageProps {
   liveBalance: number;
   onOpenDeposit: () => void;
   onWithdrawSuccess: (amount: number) => void;
   onBackToTrade: () => void;
+  userEmail?: string;
 }
 
 export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
@@ -28,28 +30,60 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
   onOpenDeposit,
   onWithdrawSuccess,
   onBackToTrade,
+  userEmail,
 }) => {
   const [amount, setAmount] = useState<number>(Math.min(50, liveBalance > 0 ? liveBalance : 50));
-  const [method, setMethod] = useState<'bkash' | 'nagad' | 'rocket' | 'binance' | 'usdt'>('bkash');
+  const [method, setMethod] = useState<string>('bkash');
   const [accountNumber, setAccountNumber] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [userTransactions, setUserTransactions] = useState<any[]>([]);
+  const [withdrawalGateways, setWithdrawalGateways] = useState<any[]>([]);
 
-  const fetchTransactions = () => {
-    apiClient.get('/api/user/transactions').then((res) => {
-      if (res.ok && res.data?.transactions) {
-        setUserTransactions(res.data.transactions);
+  const defaultGateways = [
+    { id: 'bkash', name: 'bKash', icon: 'https://i.postimg.cc/MZNd4Pjq/55.png', minWithdrawal: 10, maxWithdrawal: 1000 },
+    { id: 'nagad', name: 'Nagad', icon: 'https://i.postimg.cc/QtWfpBX1/1679248787Nagad-Logo.png', minWithdrawal: 10, maxWithdrawal: 1000 },
+    { id: 'rocket', name: 'Rocket', icon: 'https://i.postimg.cc/ryRwMszC/unnamed.png', minWithdrawal: 10, maxWithdrawal: 1000 },
+    { id: 'upay', name: 'Upay', icon: 'https://i.postimg.cc/pT3Y3yYr/upay.png', minWithdrawal: 10, maxWithdrawal: 1000 },
+    { id: 'binance', name: 'Binance Pay', icon: '🟡', minWithdrawal: 20, maxWithdrawal: 5000 },
+    { id: 'usdt', name: 'USDT (TRC20)', icon: '₮', minWithdrawal: 20, maxWithdrawal: 10000 },
+  ];
+
+  const fetchTransactionsAndGateways = async () => {
+    if (userEmail) {
+      try {
+        const txs = await FirebaseService.fetchUserTransactions(userEmail);
+        setUserTransactions(txs);
+      } catch (err) {
+        console.error('Error fetching transaction history:', err);
       }
-    }).catch((err) => {
-      console.error('Error fetching transaction history:', err);
-    });
+    }
+
+    try {
+      const gws = await FirebaseService.fetchGateways();
+      if (gws && gws.length > 0) {
+        const validWithdrawalGws = gws.filter((g: any) => g.active !== false && (g.type === 'withdrawal' || g.type === 'both' || !g.type));
+        if (validWithdrawalGws.length > 0) {
+          setWithdrawalGateways(validWithdrawalGws);
+          setMethod(validWithdrawalGws[0].id || validWithdrawalGws[0].name.toLowerCase());
+          return;
+        }
+      }
+      setWithdrawalGateways(defaultGateways);
+    } catch (err) {
+      console.error('Error loading gateways:', err);
+      setWithdrawalGateways(defaultGateways);
+    }
   };
 
   useEffect(() => {
-    fetchTransactions();
+    fetchTransactionsAndGateways();
   }, []);
+
+  const activeGw = withdrawalGateways.find((g) => g.id === method || g.name?.toLowerCase() === method) || withdrawalGateways[0] || defaultGateways[0];
+  const minLimit = activeGw?.minWithdrawal || activeGw?.minDeposit || 10;
+  const maxLimit = activeGw?.maxWithdrawal || activeGw?.maxDeposit || 5000;
 
   const faqs = [
     {
@@ -85,10 +119,17 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
       });
       return;
     }
-    if (amount < 10) {
+    if (amount < minLimit) {
       setStatusMessage({
         type: 'error',
-        text: 'Minimum withdrawal amount is $10.00 USD.'
+        text: `Minimum withdrawal amount for ${activeGw?.name || method.toUpperCase()} is $${minLimit}.00 USD.`
+      });
+      return;
+    }
+    if (amount > maxLimit) {
+      setStatusMessage({
+        type: 'error',
+        text: `Maximum withdrawal amount per transaction for ${activeGw?.name || method.toUpperCase()} is $${maxLimit}.00 USD.`
       });
       return;
     }
@@ -121,7 +162,7 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
         type: 'success',
         text: 'Withdrawal request submitted! It has been queued for administrator approval.'
       });
-      fetchTransactions();
+      fetchTransactionsAndGateways();
     } catch (err: any) {
       setIsProcessing(false);
       setStatusMessage({
@@ -193,49 +234,55 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
             <form onSubmit={handleExecuteWithdrawal} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Payment System
+                  Select Withdrawal Gateway
                 </label>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-xs">
-                  {[
-                    { id: 'bkash' as const, label: 'bKash', icon: 'https://i.postimg.cc/MZNd4Pjq/55.png' },
-                    { id: 'nagad' as const, label: 'Nagad', icon: 'https://i.postimg.cc/QtWfpBX1/1679248787Nagad-Logo.png' },
-                    { id: 'rocket' as const, label: 'Rocket', icon: 'https://i.postimg.cc/ryRwMszC/unnamed.png' },
-                    { id: 'binance' as const, label: 'Binance', icon: '🟡' },
-                    { id: 'usdt' as const, label: 'USDT', icon: '₮' },
-                  ].map((m) => (
-                    <button
-                      type="button"
-                      key={m.id}
-                      onClick={() => setMethod(m.id)}
-                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer font-bold flex flex-col items-center justify-center ${
-                        method === m.id
-                          ? 'bg-emerald-500/20 border-emerald-500/50 text-white shadow-md'
-                          : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <div className="w-7 h-7 mb-1 flex items-center justify-center rounded bg-white/5 overflow-hidden">
-                        {m.icon.startsWith('http') ? (
-                          <img src={m.icon} alt={m.label} className="w-full h-full object-contain p-0.5" referrerPolicy="no-referrer" />
-                        ) : (
-                          <span className="text-base">{m.icon}</span>
-                        )}
-                      </div>
-                      <div className="text-[11px]">{m.label}</div>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                  {withdrawalGateways.map((m) => {
+                    const mId = m.id || m.name.toLowerCase();
+                    const isSelected = method === mId || method === m.name?.toLowerCase();
+                    return (
+                      <button
+                        type="button"
+                        key={m.id || m.name}
+                        onClick={() => {
+                          setMethod(mId);
+                          if (amount < (m.minWithdrawal || m.minDeposit || 10)) {
+                            setAmount(m.minWithdrawal || m.minDeposit || 10);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer font-bold flex flex-col items-center justify-center ${
+                          isSelected
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-white shadow-md'
+                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <div className="w-8 h-8 mb-1 flex items-center justify-center rounded bg-white/5 overflow-hidden">
+                          {m.icon && m.icon.startsWith('http') ? (
+                            <img src={m.icon} alt={m.name} className="w-full h-full object-contain p-0.5" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span className="text-base">{m.icon || '💳'}</span>
+                          )}
+                        </div>
+                        <div className="text-[11px] font-bold text-white">{m.name}</div>
+                        <div className="text-[9px] text-slate-400 font-mono font-normal">
+                          Min: ${m.minWithdrawal || m.minDeposit || 10}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Your {method.toUpperCase()} Account Number / Address
+                  Your {activeGw?.name || method.toUpperCase()} Recipient Account Number / Address
                 </label>
                 <input
                   type="text"
                   required
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder="e.g. 01712345678 or TRC20 address"
+                  placeholder={`e.g. 017xxxxxxxx or ${activeGw?.name || 'Wallet'} address`}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -243,14 +290,14 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="font-bold text-slate-400 uppercase tracking-wider">Amount (USD)</span>
-                  <span className="text-slate-400 font-mono-nums">Min: $10.00</span>
+                  <span className="text-slate-400 font-mono-nums">Min: ${minLimit}.00 | Max: ${maxLimit}.00</span>
                 </div>
                 <div className="relative">
                   <DollarSign className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="number"
-                    min={10}
-                    max={Math.max(10, liveBalance)}
+                    min={minLimit}
+                    max={Math.min(maxLimit, Math.max(minLimit, liveBalance))}
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
                     className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm font-bold font-mono-nums text-white focus:outline-none focus:border-emerald-500"
@@ -333,7 +380,7 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
             <span>Your Recent Transactions</span>
           </h4>
           <button 
-            onClick={fetchTransactions}
+            onClick={fetchTransactionsAndGateways}
             className="text-xs text-emerald-400 hover:underline cursor-pointer"
           >
             Refresh History

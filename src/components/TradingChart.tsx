@@ -46,6 +46,7 @@ interface TradingChartProps {
   indicators: IndicatorConfig;
   onOpenIndicatorsModal: () => void;
   onOpenPairInfoModal: () => void;
+  themeMode?: 'dark' | 'light';
 }
 
 export const TradingChart: React.FC<TradingChartProps> = ({
@@ -61,6 +62,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
   indicators,
   onOpenIndicatorsModal,
   onOpenPairInfoModal,
+  themeMode = 'dark',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -131,15 +133,20 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     const mainHeight = height - bottomMargin - subChartHeight;
     const chartWidth = width - rightMargin;
 
-    // Clear background with rich dark radial gradient
-    const bgGradient = ctx.createRadialGradient(
-      width / 2, height / 2, 10,
-      width / 2, height / 2, Math.max(width, height) * 0.8
-    );
-    bgGradient.addColorStop(0, '#161d2b');
-    bgGradient.addColorStop(1, '#0b0e14');
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, width, height);
+    // Clear background with radial gradient or light theme canvas
+    if (themeMode === 'light') {
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      const bgGradient = ctx.createRadialGradient(
+        width / 2, height / 2, 10,
+        width / 2, height / 2, Math.max(width, height) * 0.8
+      );
+      bgGradient.addColorStop(0, '#161d2b');
+      bgGradient.addColorStop(1, '#0b0e14');
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, width, height);
+    }
 
     // Visible candles calculation based on zoom and pan
     const baseVisibleCandles = 60;
@@ -198,7 +205,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
 
     // 1. Draw Grid Lines (Horizontal Prices & Vertical Timestamps)
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(42, 50, 70, 0.45)';
+    ctx.strokeStyle = themeMode === 'light' ? 'rgba(203, 213, 225, 0.8)' : 'rgba(42, 50, 70, 0.45)';
 
     // Horizontal grid lines
     const gridSteps = 6;

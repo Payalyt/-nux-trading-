@@ -1,6 +1,6 @@
 import React from 'react';
 import { AccountType } from '../../types/trading';
-import { Plus, ArrowDownToLine, ChevronLeft } from 'lucide-react';
+import { Plus, ArrowDownToLine, ChevronLeft, Shield, Sun, Moon } from 'lucide-react';
 
 export type QuotexNavPage = 
   | 'home'
@@ -26,6 +26,8 @@ interface QuotexSubHeaderProps {
   onBackToTrade: () => void;
   onOpenAuth?: () => void;
   user?: { email: string; name: string; role?: string } | null;
+  themeMode?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
@@ -38,8 +40,10 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
   onOpenWithdrawal,
   onBackToTrade,
   user: _user,
+  themeMode = 'dark',
+  onToggleTheme,
 }) => {
-  const isAdmin = true; // Fully active for admin control
+  const isAdmin = _user?.role === 'admin' || _user?.email?.toLowerCase() === 'rosul9552@gmail.com';
   const navTabs: { id: QuotexNavPage; label: string }[] = [
     { id: 'withdrawal', label: 'Withdrawal' },
     { id: 'payments', label: 'Payments' },
@@ -47,8 +51,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
     { id: 'my_account', label: 'My account' },
     { id: 'market', label: 'Market' },
     { id: 'tournaments', label: 'Tournaments' },
-    { id: 'analytics', label: 'Analytics' },
-    ...(isAdmin ? [{ id: 'admin' as QuotexNavPage, label: '🛡️ Admin Panel' }] : []),
+    { id: 'analytics', label: 'Analytics' }
   ];
 
   const currentBalance = (!_user || accountType === 'DEMO') ? demoBalance : liveBalance;
@@ -129,6 +132,21 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
             </div>
           </div>
 
+          {/* Theme Toggle Button */}
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              className="flex p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-slate-300 hover:text-white transition-all cursor-pointer active:scale-95 shrink-0"
+              title={themeMode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {themeMode === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-400" />
+              )}
+            </button>
+          )}
+
           {/* Deposit Button */}
           <button
             onClick={onOpenDeposit}
@@ -147,6 +165,17 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
             <ArrowDownToLine className="w-3.5 h-3.5 text-slate-400" />
             <span>Withdrawal</span>
           </button>
+          
+          {/* Hidden Admin Button (Double Click balance or somewhere) */}
+          {isAdmin && (
+            <button
+              onClick={() => onSelectPage('admin')}
+              className="w-1 h-1 opacity-0 absolute top-0 left-0"
+              aria-label="Admin Panel"
+            >
+              <Shield className="w-4 h-4 text-emerald-400" />
+            </button>
+          )}
         </div>
       </header>
 

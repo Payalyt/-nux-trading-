@@ -22,17 +22,20 @@ import {
 import confetti from 'canvas-confetti';
 import { soundManager } from '../../utils/audio';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
+import { FirebaseService } from '../../utils/firebaseSync';
 
 interface DepositModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDepositSuccess: (amount: number) => void;
+  userEmail?: string;
 }
 
 export const DepositModal: React.FC<DepositModalProps> = ({
   isOpen,
   onClose,
   onDepositSuccess,
+  userEmail,
 }) => {
   const [gateways, setGateways] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState<'popular' | 'epay' | 'crypto' | 'bank'>('popular');
@@ -55,15 +58,28 @@ export const DepositModal: React.FC<DepositModalProps> = ({
     if (isOpen) {
       setSubmitSuccess(false);
       setErrorMessage(null);
-      apiClient.get('/api/public/settings').then((res) => {
-        if (res.ok && res.data?.paymentGateways) {
-          setGateways(res.data.paymentGateways.map((g: any) => ({
-            ...g,
-            minDeposit: Math.max(100, g.minDeposit || 100)
-          })));
+      FirebaseService.fetchGateways().then((fetchedGateways) => {
+        if (fetchedGateways && fetchedGateways.length > 0) {
+           const activeGateways = fetchedGateways.filter(g => g.active !== false);
+           setGateways(activeGateways.map((g: any) => ({
+             ...g,
+             minDeposit: Math.max(10, g.minDeposit || 10)
+           })));
+        } else {
+           // Fetch from fallback API if Firebase is empty
+           apiClient.get('/api/public/settings').then((res) => {
+             if (res.ok && res.data?.paymentGateways) {
+               setGateways(res.data.paymentGateways.map((g: any) => ({
+                 ...g,
+                 minDeposit: Math.max(10, g.minDeposit || 10)
+               })));
+             }
+           }).catch((err) => {
+             console.error('Error loading dynamic gateway settings:', err);
+           });
         }
       }).catch((err) => {
-        console.error('Error loading dynamic gateway settings:', err);
+        console.error('Error fetching Firebase gateways:', err);
       });
     }
   }, [isOpen]);
@@ -165,8 +181,9 @@ export const DepositModal: React.FC<DepositModalProps> = ({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (amount < 100) {
-      setErrorMessage('Minimum deposit amount is $100.00');
+    const minDeposit = selectedMethod?.minDeposit || 10;
+    if (amount < minDeposit) {
+      setErrorMessage(`Minimum deposit amount is $${minDeposit.toFixed(2)}`);
       return;
     }
 
@@ -185,6 +202,22 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
       if (!res.ok) {
         throw new Error(formatErrorMessage(res.error || res.data?.error, 'Failed to submit deposit'));
+      }
+
+      const txData = res.data?.transaction;
+      if (txData) {
+        await FirebaseService.syncTransaction({
+          id: txData.id,
+          userId: userEmail || 'guest',
+          type: 'deposit',
+          amount: Number(amount),
+          bonus: Number(bonusAmount || 0),
+          gateway: selectedMethod?.name || 'Mobile Banking',
+          senderNumber: senderNumber.trim(),
+          trxId: trxId.trim(),
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        });
       }
 
       setIsProcessing(false);
@@ -437,46 +470,12 @@ export const DepositModal: React.FC<DepositModalProps> = ({
               </button>
             </div>
 
-            {/* Payment Type Tabs for Mobile Banking (Send Money vs Merchant vs Cash Out) */}
+            {/* Default Payment Type: Send Money / Personal */}
             {selectedMethod.category !== 'crypto' && selectedMethod.category !== 'bank' && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Payment Number Type
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(selectedMethod.allowSendMoney ?? true) && (
-                    <button
-                      type="button"
-                      onClick={() => setPaymentType('send_money')}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        paymentType === 'send_money' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400'
-                      }`}
-                    >
-                      Send Money (Personal)
-                    </button>
-                  )}
-                  {(selectedMethod.allowMerchant ?? false) && (
-                    <button
-                      type="button"
-                      onClick={() => setPaymentType('merchant')}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        paymentType === 'merchant' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400'
-                      }`}
-                    >
-                      Merchant (Payment)
-                    </button>
-                  )}
-                  {(selectedMethod.allowCashOut ?? false) && (
-                    <button
-                      type="button"
-                      onClick={() => setPaymentType('cash_out')}
-                      className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        paymentType === 'cash_out' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400'
-                      }`}
-                    >
-                      Cash Out (Agent)
-                    </button>
-                  )}
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-between">
+                  <span>Payment Type: Personal Send Money</span>
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/20">Instant Verification</span>
                 </div>
               </div>
             )}
@@ -622,8 +621,8 @@ export const DepositModal: React.FC<DepositModalProps> = ({
               </div>
             </div>
 
-            {/* 50% Bonus Toggle */}
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+            {/* 50% Welcome Bonus Toggle */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/15 to-amber-500/15 border border-emerald-500/30 flex items-center justify-between shadow-lg">
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
@@ -632,28 +631,33 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                   onChange={(e) => setBonusApplied(e.target.checked)}
                   className="accent-emerald-500 w-4 h-4 cursor-pointer"
                 />
-                <label htmlFor="bonus-checkbox" className="text-xs font-bold text-white cursor-pointer">
-                  Apply {selectedMethod.bonusPercent || 50}% Welcome Bonus (+${bonusAmount.toFixed(2)})
-                </label>
+                <div>
+                  <label htmlFor="bonus-checkbox" className="text-xs font-bold text-white cursor-pointer block">
+                    Apply {selectedMethod.bonusPercent || 50}% Welcome Bonus
+                  </label>
+                  <div className="text-[11px] text-emerald-400 font-bold font-mono-nums mt-0.5">
+                    Bonus: +${bonusAmount.toFixed(2)} USD (৳{(bonusAmount * conversionRate).toLocaleString('en-IN')} BDT)
+                  </div>
+                </div>
               </div>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-black">
+              <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-emerald-500 text-black shadow-md">
                 {promoCode}
               </span>
             </div>
 
             {/* Summary Box */}
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs font-mono-nums">
-              <div className="flex justify-between text-slate-400">
-                <span>Amount to Send in BDT:</span>
-                <span className="font-bold text-white">৳{amountBdt.toLocaleString()} BDT</span>
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2.5 text-xs font-mono-nums">
+              <div className="flex justify-between text-slate-300">
+                <span>Amount to Send in BDT (Taka):</span>
+                <span className="font-bold text-white text-sm">৳{amountBdt.toLocaleString('en-IN')} BDT</span>
               </div>
               <div className="flex justify-between text-emerald-400">
-                <span>Bonus Added ({selectedMethod.bonusPercent || 50}%):</span>
-                <span className="font-bold">+${bonusAmount.toFixed(2)} USD</span>
+                <span>Welcome Bonus ({selectedMethod.bonusPercent || 50}%):</span>
+                <span className="font-bold">+${bonusAmount.toFixed(2)} USD (৳{(bonusAmount * conversionRate).toLocaleString('en-IN')} BDT)</span>
               </div>
               <div className="border-t border-white/10 pt-2 flex justify-between text-sm font-bold text-white">
                 <span className="font-sans">Total Credited to Live Balance:</span>
-                <span className="text-emerald-400 font-mono">${totalCredited.toFixed(2)} USD</span>
+                <span className="text-emerald-400 font-mono font-black">${totalCredited.toFixed(2)} USD (৳{(totalCredited * conversionRate).toLocaleString('en-IN')} BDT)</span>
               </div>
             </div>
 

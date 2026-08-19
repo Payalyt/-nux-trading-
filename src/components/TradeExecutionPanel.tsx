@@ -46,14 +46,39 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
   const [isPendingTrade, setIsPendingTrade] = useState(false);
   const [activeTab, setActiveTab] = useState<'trades' | 'orders' | 'leaderboard'>('trades');
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
 
-  const leaderboardTraders = [
-    { rank: 1, name: 'Shahadat_FX', country: '🇧🇩', profit: 14820.50, winRate: 92 },
-    { rank: 2, name: 'Gabriel_Trader', country: '🇧🇷', profit: 11450.00, winRate: 88 },
-    { rank: 3, name: 'Rahul_Quant', country: '🇮🇳', profit: 9840.20, winRate: 86 },
-    { rank: 4, name: 'Tanvir_Pro', country: '🇧🇩', profit: 8210.00, winRate: 85 },
-    { rank: 5, name: 'Bagus_Invest', country: '🇮🇩', profit: 6940.00, winRate: 81 },
-  ];
+  // Real-time updating unlimited Top Winners / Leaderboard
+  const [topTraders, setTopTraders] = React.useState([
+    { rank: 1, name: 'Shahadat_FX', country: '🇧🇩', profit: 18820.50, winRate: 94 },
+    { rank: 2, name: 'Gabriel_Trader', country: '🇧🇷', profit: 15450.00, winRate: 91 },
+    { rank: 3, name: 'Rahul_Quant', country: '🇮🇳', profit: 12840.20, winRate: 89 },
+    { rank: 4, name: 'Tanvir_Pro', country: '🇧🇩', profit: 10210.00, winRate: 87 },
+    { rank: 5, name: 'Bagus_Invest', country: '🇮🇩', profit: 8940.00, winRate: 85 },
+    { rank: 6, name: 'Liam_Alpha', country: '🇬🇧', profit: 7850.50, winRate: 84 },
+    { rank: 7, name: 'Arief_Master', country: '🇲🇾', profit: 6920.00, winRate: 82 },
+    { rank: 8, name: 'Nguyen_Trader', country: '🇻🇳', profit: 5800.00, winRate: 80 },
+    { rank: 9, name: 'Elena_Crypto', country: '🇩🇪', profit: 5120.30, winRate: 79 },
+    { rank: 10, name: 'Tariq_Pro', country: '🇦🇪', profit: 4650.00, winRate: 78 },
+    { rank: 11, name: 'David_USA', country: '🇺🇸', profit: 4100.00, winRate: 77 },
+    { rank: 12, name: 'Hasan_BD', country: '🇧🇩', profit: 3890.00, winRate: 76 }
+  ]);
+
+  // Periodically update top winners profit in real time
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setTopTraders((prev) =>
+        prev.map((trader) => {
+          const delta = (Math.random() - 0.2) * 45;
+          return {
+            ...trader,
+            profit: Math.max(1000, trader.profit + delta)
+          };
+        }).sort((a, b) => b.profit - a.profit).map((t, idx) => ({ ...t, rank: idx + 1 }))
+      );
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Time format helper (00:01:00)
   const formatTimeDuration = (seconds: number) => {
@@ -74,7 +99,23 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
   };
 
   const handleExecute = (type: 'CALL' | 'PUT') => {
-    onPlaceTrade(type);
+    if (isPendingTrade) {
+      soundManager.playClick();
+      const newOrder = {
+        id: `ORD-${Date.now()}`,
+        asset: asset.symbol,
+        type,
+        investment,
+        targetPrice: (currentPrice * (type === 'CALL' ? 0.9995 : 1.0005)).toFixed(5),
+        duration: tradeDuration,
+        status: 'PENDING',
+        createdAt: new Date().toLocaleTimeString()
+      };
+      setPendingOrders((prev) => [newOrder, ...prev]);
+      setActiveTab('orders');
+    } else {
+      onPlaceTrade(type);
+    }
   };
 
   // Expected payout calculation
@@ -211,24 +252,21 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
             </div>
           </div>
 
-          {/* 4. Action Buttons: Up (Green) & Down (Red) */}
+          {/* 4. Action Buttons: Up (Green) & Down (Red) matching Quotex exact styling */}
           <div className="space-y-2 pt-1">
             {/* UP Button */}
             <button
               id="btn-trade-up"
               onClick={() => handleExecute('CALL')}
-              className="w-full py-3.5 px-4 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] transition-all duration-150 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-between text-black font-extrabold group cursor-pointer"
+              className="w-full py-3 px-4 bg-[#00c076] hover:bg-[#00d684] active:scale-[0.98] transition-all duration-150 rounded-xl shadow-md flex items-center justify-between text-white font-extrabold group cursor-pointer"
             >
               <div className="text-left">
-                <div className="text-lg leading-tight font-black flex items-center space-x-1 uppercase tracking-wider">
-                  <span>Up</span>
-                </div>
-                <div className="text-xs font-bold text-emerald-950 font-mono-nums">
-                  +{netProfit.toFixed(2)} $
+                <div className="text-base leading-tight font-black uppercase tracking-wider">
+                  Up
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center group-hover:translate-y-[-2px] transition-transform">
-                <ArrowUpRight className="w-5 h-5 text-black stroke-[3]" />
+              <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ArrowUpRight className="w-4 h-4 text-white stroke-[3]" />
               </div>
             </button>
 
@@ -236,18 +274,15 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
             <button
               id="btn-trade-down"
               onClick={() => handleExecute('PUT')}
-              className="w-full py-3.5 px-4 bg-red-500 hover:bg-red-400 active:scale-[0.98] transition-all duration-150 rounded-xl shadow-lg shadow-red-500/20 flex items-center justify-between text-white font-extrabold group cursor-pointer"
+              className="w-full py-3 px-4 bg-[#ff4d4d] hover:bg-[#ff6666] active:scale-[0.98] transition-all duration-150 rounded-xl shadow-md flex items-center justify-between text-white font-extrabold group cursor-pointer"
             >
               <div className="text-left">
-                <div className="text-lg leading-tight font-black flex items-center space-x-1 uppercase tracking-wider">
-                  <span>Down</span>
-                </div>
-                <div className="text-xs font-semibold text-red-100 font-mono-nums">
-                  +{netProfit.toFixed(2)} $
+                <div className="text-base leading-tight font-black uppercase tracking-wider">
+                  Down
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center group-hover:translate-y-[2px] transition-transform">
-                <ArrowDownRight className="w-5 h-5 text-white stroke-[3]" />
+              <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ArrowDownRight className="w-4 h-4 text-white stroke-[3]" />
               </div>
             </button>
           </div>
@@ -393,41 +428,69 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
                 })
               )
             ) : activeTab === 'orders' ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-500 space-y-2">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div className="text-xs font-semibold text-slate-400">Order list is empty</div>
-                <div className="text-[11px] text-slate-500">
-                  Create a pending trade using the form above.
-                </div>
-              </div>
-            ) : (
-              /* Leaderboard / TOP Traders */
-              <div className="space-y-2">
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold px-1">
-                  Today's Top Traders
-                </div>
-                {leaderboardTraders.map((trader) => (
-                  <div
-                    key={trader.rank}
-                    className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between text-xs font-mono-nums"
-                  >
-                    <div className="flex items-center space-x-2 font-sans">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-                        trader.rank === 1 ? 'bg-amber-400 text-black' : trader.rank === 2 ? 'bg-slate-300 text-black' : trader.rank === 3 ? 'bg-amber-700 text-white' : 'bg-white/10 text-slate-400'
-                      }`}>
-                        {trader.rank}
-                      </span>
-                      <span className="text-base">{trader.country}</span>
-                      <span className="font-bold text-white text-[11px] truncate max-w-[90px]">{trader.name}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-emerald-400">+${trader.profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                      <div className="text-[9px] text-slate-500 font-sans">{trader.winRate}% win rate</div>
-                    </div>
+              pendingOrders.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-500 space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
+                    <Clock className="w-5 h-5" />
                   </div>
-                ))}
+                  <div className="text-xs font-semibold text-slate-400">Order list is empty</div>
+                  <div className="text-[11px] text-slate-500">
+                    Toggle "Pending Trade" ON and click UP/DOWN to create a pending order.
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 p-1 max-h-52 overflow-y-auto">
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold px-1">
+                    Pending Limit Orders ({pendingOrders.length})
+                  </div>
+                  {pendingOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-1 text-xs"
+                    >
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-white">{order.asset}</span>
+                        <span className={order.type === 'CALL' ? 'text-emerald-400' : 'text-rose-400'}>
+                          {order.type} (${order.investment})
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-mono-nums text-slate-400">
+                        <span>Trigger: {order.targetPrice}</span>
+                        <span className="text-amber-400 font-bold">{order.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              /* Leaderboard / TOP Traders (Infinite scrollable real-time update) */
+              <div className="space-y-2">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold px-1 flex items-center justify-between">
+                  <span>Top Global Traders</span>
+                  <span className="text-emerald-400 animate-pulse text-[9px]">● Live Updating</span>
+                </div>
+                <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1 text-xs">
+                  {topTraders.map((trader) => (
+                    <div
+                      key={`${trader.rank}-${trader.name}`}
+                      className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-between font-mono-nums transition-colors"
+                    >
+                      <div className="flex items-center space-x-2 font-sans">
+                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                          trader.rank === 1 ? 'bg-amber-400 text-black shadow-md' : trader.rank === 2 ? 'bg-slate-300 text-black' : trader.rank === 3 ? 'bg-amber-700 text-white' : 'bg-white/10 text-slate-400'
+                        }`}>
+                          {trader.rank}
+                        </span>
+                        <span className="text-base">{trader.country}</span>
+                        <span className="font-bold text-white text-[11px] truncate max-w-[85px]">{trader.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-emerald-400">+${trader.profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-[9px] text-slate-500 font-sans">{trader.winRate}% win rate</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

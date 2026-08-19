@@ -27,7 +27,9 @@ import {
   CreditCard,
   LifeBuoy,
   ShieldCheck,
-  Home
+  Home,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -48,6 +50,8 @@ interface HeaderProps {
   onLogout?: () => void;
   onGoToHome?: () => void;
   onNavigatePage?: (page: string) => void;
+  themeMode?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -68,6 +72,8 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onGoToHome,
   onNavigatePage,
+  themeMode = 'dark',
+  onToggleTheme,
 }) => {
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -156,6 +162,22 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
           </button>
+
+          {/* Theme Mode Toggle (Sun/Moon) */}
+          {onToggleTheme && (
+            <button
+              id="btn-toggle-theme"
+              onClick={onToggleTheme}
+              className="flex p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-slate-300 hover:text-white transition-all cursor-pointer active:scale-95 shadow-sm"
+              title={themeMode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {themeMode === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-400" />
+              )}
+            </button>
+          )}
 
           {/* Fullscreen Toggle (Hidden on small mobile) */}
           <button
@@ -477,16 +499,6 @@ export const Header: React.FC<HeaderProps> = ({
                   <User className="w-4 h-4 text-slate-300" />
                   <span>My Account</span>
                 </button>
-
-                {user?.role === 'admin' && (
-                  <button
-                    onClick={() => handleMobileNav('admin')}
-                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/20 font-bold transition-colors"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-purple-400" />
-                    <span>Admin Panel</span>
-                  </button>
-                )}
               </div>
             </div>
 

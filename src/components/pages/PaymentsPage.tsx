@@ -10,9 +10,9 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import { apiClient } from '../../utils/apiClient';
+import { FirebaseService } from '../../utils/firebaseSync';
 
-export const PaymentsPage: React.FC = () => {
+export const PaymentsPage: React.FC<{ user?: any }> = ({ user }) => {
   const [filterType, setFilterType] = useState<'all' | 'deposits' | 'withdrawals'>('all');
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -20,9 +20,9 @@ export const PaymentsPage: React.FC = () => {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/api/user/transactions');
-      if (res.ok && res.data?.transactions) {
-        setTransactions(res.data.transactions);
+      if (user?.email) {
+        const txs = await FirebaseService.fetchUserTransactions(user.email);
+        setTransactions(txs);
       }
     } catch (e) {
       console.error('Error fetching transactions:', e);
@@ -33,7 +33,7 @@ export const PaymentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [user?.email]);
 
   const filtered = transactions.filter((t) => {
     if (filterType === 'deposits') return t.type === 'deposit';

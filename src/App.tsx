@@ -86,6 +86,39 @@ export default function App() {
     return saved !== null ? Number(saved) : 0;
   });
 
+  // Listen to Firebase User Profile for Real-time Balance Updates
+  useEffect(() => {
+    if (!user?.email) return;
+    
+    const unsubscribe = FirebaseService.listenToUser(user.email, (data) => {
+      if (data) {
+        if (typeof data.balance === 'number') {
+          setLiveBalance(data.balance);
+          localStorage.setItem('qx_live_balance', String(data.balance));
+        }
+        if (typeof data.demoBalance === 'number') {
+          setDemoBalance(data.demoBalance);
+          localStorage.setItem('qx_demo_balance', String(data.demoBalance));
+        }
+        
+        // Also update user state if role or name changes
+        if (data.role && data.role !== user.role) {
+           setUser(prev => prev ? { ...prev, role: data.role } : prev);
+        }
+        
+        // Handle blocked status
+        if (data.accountStatus === 'blocked') {
+           setUser(null);
+           localStorage.removeItem('qx_user_session');
+           alert('Your account has been blocked by the administrator.');
+           window.location.reload();
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user?.email]);
+
   useEffect(() => {
     if (!user) {
       setAccountType('DEMO');
@@ -136,6 +169,17 @@ export default function App() {
     return initial;
   });
 
+  // Theme State (Dark vs Light)
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('qx_theme_mode') as 'dark' | 'light') || 'dark';
+  });
+
+  const handleToggleTheme = () => {
+    const nextTheme = themeMode === 'dark' ? 'light' : 'dark';
+    setThemeMode(nextTheme);
+    localStorage.setItem('qx_theme_mode', nextTheme);
+  };
+
   // 6. Navigation & Modals State
   const [currentView, setCurrentView] = useState<QuotexNavPage>('home');
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('trade');
@@ -153,18 +197,29 @@ export default function App() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
   const handleAuthSuccess = (userData: UserAccount) => {
-    setUser(userData);
-    localStorage.setItem('qx_user_session', JSON.stringify(userData));
-    setCurrentView('trade');
+    const isAdmin = userData.email?.toLowerCase() === 'rosul9552@gmail.com' || userData.role === 'admin';
+    const finalUserData = {
+      ...userData,
+      role: isAdmin ? 'admin' : (userData.role || 'user')
+    };
+
+    setUser(finalUserData);
+    localStorage.setItem('qx_user_session', JSON.stringify(finalUserData));
+    
+    if (isAdmin) {
+      setCurrentView('admin');
+    } else {
+      setCurrentView('trade');
+    }
     setIsAuthModalOpen(false);
 
     // Sync user data directly to Firebase Firestore
     FirebaseService.syncUser({
-      username: userData.email,
-      email: userData.email,
-      fullName: userData.name,
-      phone: (userData as any).phone || '',
-      role: userData.role || 'user',
+      username: finalUserData.email,
+      email: finalUserData.email,
+      fullName: finalUserData.name,
+      phone: (finalUserData as any).phone || '',
+      role: finalUserData.role,
       balance: liveBalance,
       demoBalance: demoBalance,
       accountStatus: 'active',
@@ -470,32 +525,13 @@ export default function App() {
 
   // Handle Deposit Success
   const handleDepositSuccess = (amount: number) => {
-    const newBal = liveBalance + amount;
-    setLiveBalance(newBal);
-    setAccountType('LIVE');
-
-    if (user?.email) {
-      FirebaseService.updateUserBalance(user.email, newBal, 'live');
-      FirebaseService.syncTransaction({
-        id: `DEP-${Date.now()}`,
-        userId: user.email,
-        userName: user.name,
-        type: 'deposit',
-        amount,
-        currency: 'USD',
-        gateway: 'Online Gateway',
-        status: 'approved',
-        createdAt: new Date().toISOString()
-      });
-    }
-
     setNotifications((prev) => [
       {
         id: 'dep-' + Date.now(),
-        title: 'Deposit Successful',
-        message: `Your live account has been credited with $${amount.toFixed(2)}.`,
+        title: 'Deposit Request Pending',
+        message: `Your deposit request for $${amount.toFixed(2)} has been submitted and is awaiting admin approval.`,
         time: 'Just now',
-        type: 'success',
+        type: 'info',
         read: false,
       },
       ...prev,
@@ -504,29 +540,19 @@ export default function App() {
 
   // Handle Withdrawal Success
   const handleWithdrawSuccess = (amount: number) => {
+    // Note: Deduct amount immediately, refund if rejected by admin
     const newBal = Math.max(0, liveBalance - amount);
     setLiveBalance(newBal);
 
     if (user?.email) {
       FirebaseService.updateUserBalance(user.email, newBal, 'live');
-      FirebaseService.syncTransaction({
-        id: `WTH-${Date.now()}`,
-        userId: user.email,
-        userName: user.name,
-        type: 'withdrawal',
-        amount,
-        currency: 'USD',
-        gateway: 'Online Gateway',
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      });
     }
 
     setNotifications((prev) => [
       {
         id: 'wth-' + Date.now(),
-        title: 'Withdrawal Processed',
-        message: `$${amount.toFixed(2)} was sent to your wallet address.`,
+        title: 'Withdrawal Request Pending',
+        message: `Your withdrawal request for $${amount.toFixed(2)} has been submitted and is awaiting admin approval.`,
         time: 'Just now',
         type: 'info',
         read: false,
@@ -571,7 +597,9 @@ export default function App() {
   return (
     <div 
       id="quotex-trading-application"
-      className="flex flex-col h-screen w-screen bg-[#0a0d14] text-slate-100 overflow-hidden font-sans select-none"
+      className={`flex flex-col h-screen w-screen transition-colors duration-200 overflow-hidden font-sans select-none ${
+        themeMode === 'light' ? 'bg-[#f4f6f9] text-slate-900 light-theme' : 'bg-[#0a0d14] text-slate-100 dark-theme'
+      }`}
     >
       {/* Top Broadcast Notice Marquee Bar */}
       {platformControls.showNoticeBanner && platformControls.noticeBannerText && (
@@ -657,8 +685,10 @@ export default function App() {
               setCurrentView('auth');
             }}
             onLogout={handleLogout}
-            onGoToHome={() => setCurrentView('home')}
+            onGoToHome={() => setCurrentView('trade')}
             onNavigatePage={(page) => setCurrentView(page as any)}
+            themeMode={themeMode}
+            onToggleTheme={handleToggleTheme}
           />
 
           {/* 2. Main Middle Workspace: Sidebar + Sentiment + Chart Area + Execution Panel */}
@@ -676,7 +706,7 @@ export default function App() {
                 onOpenMarket={() => setCurrentView('market')}
                 onOpenProfile={() => setCurrentView('my_account')}
                 onOpenHelp={() => setIsSupportOpen(true)}
-                onGoToHome={() => setCurrentView('home')}
+                onGoToHome={() => setCurrentView('trade')}
               />
             </div>
 
@@ -713,6 +743,7 @@ export default function App() {
                 indicators={indicators}
                 onOpenIndicatorsModal={() => setIsIndicatorsOpen(true)}
                 onOpenPairInfoModal={() => setIsPairInfoOpen(true)}
+                themeMode={themeMode}
               />
             </div>
 
@@ -735,7 +766,7 @@ export default function App() {
         </>
       ) : (
         /* Subpages with Quotex SubHeader */
-        <div className="flex flex-col h-full w-full bg-[#0a0d14]">
+        <div className={`flex flex-col h-full w-full ${themeMode === 'light' ? 'bg-[#f4f6f9]' : 'bg-[#0a0d14]'}`}>
           {currentView !== 'auth' && (
             <QuotexSubHeader
               currentPage={currentView}
@@ -748,6 +779,8 @@ export default function App() {
               onBackToTrade={() => setCurrentView('trade')}
               user={user}
               onOpenAuth={() => setCurrentView('auth')}
+              themeMode={themeMode}
+              onToggleTheme={handleToggleTheme}
             />
           )}
 
@@ -762,7 +795,10 @@ export default function App() {
             {currentView === 'withdrawal' && (
               <WithdrawalPage
                 liveBalance={liveBalance}
+                onOpenDeposit={() => setIsDepositOpen(true)}
+                onBackToTrade={() => setCurrentView('trade')}
                 onWithdrawSuccess={handleWithdrawSuccess}
+                userEmail={user?.email}
               />
             )}
             {currentView === 'my_account' && (
@@ -780,7 +816,7 @@ export default function App() {
               <TournamentsPage />
             )}
             {currentView === 'payments' && (
-              <PaymentsPage />
+              <PaymentsPage user={user} />
             )}
             {currentView === 'trades' && (
               <TradesHistoryPage
@@ -823,6 +859,7 @@ export default function App() {
         isOpen={isDepositOpen}
         onClose={() => setIsDepositOpen(false)}
         onDepositSuccess={handleDepositSuccess}
+        userEmail={user?.email}
       />
 
       <WithdrawalModal
@@ -830,6 +867,7 @@ export default function App() {
         onClose={() => setIsWithdrawalOpen(false)}
         liveBalance={liveBalance}
         onWithdrawSuccess={handleWithdrawSuccess}
+        userEmail={user?.email}
       />
 
       <PairInfoModal

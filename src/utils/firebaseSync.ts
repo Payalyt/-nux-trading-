@@ -150,6 +150,7 @@ export const FirebaseService = {
     gateway: string;
     senderNumber?: string;
     receiverNumber?: string;
+    accountNumber?: string;
     trxId?: string;
     status: string;
     createdAt: string;
@@ -189,6 +190,29 @@ export const FirebaseService = {
   },
 
   /**
+   * Fetch Transactions for a specific User from Firestore
+   */
+  async fetchUserTransactions(email: string): Promise<any[]> {
+    try {
+      if (!email) return [];
+      const txCol = collection(db, 'transactions');
+      const q = query(txCol, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const list: any[] = [];
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.userId === email) {
+          list.push({ id: docSnap.id, ...data });
+        }
+      });
+      return list;
+    } catch (err) {
+      console.warn('[Firebase] fetchUserTransactions failed:', err);
+      return [];
+    }
+  },
+
+  /**
    * Sync Payment Gateways to Firestore
    */
   async syncGateways(gateways: any[]): Promise<boolean> {
@@ -204,6 +228,23 @@ export const FirebaseService = {
     } catch (err) {
       console.warn('[Firebase] syncGateways failed:', err);
       return false;
+    }
+  },
+
+  /**
+   * Fetch Payment Gateways from Firestore
+   */
+  async fetchGateways(): Promise<any[]> {
+    try {
+      const settingsRef = doc(db, 'platform_settings', 'payment_gateways');
+      const docSnap = await getDoc(settingsRef);
+      if (docSnap.exists() && docSnap.data().gateways) {
+        return docSnap.data().gateways;
+      }
+      return [];
+    } catch (err) {
+      console.warn('[Firebase] fetchGateways failed:', err);
+      return [];
     }
   },
 

@@ -15,6 +15,7 @@ import {
 import { soundManager } from '../../utils/audio';
 
 import { UserAccount } from '../../types/trading';
+import { FirebaseService } from '../../utils/firebaseSync';
 
 interface MyAccountPageProps {
   liveBalance: number;
@@ -37,6 +38,10 @@ export const MyAccountPage: React.FC<MyAccountPageProps> = ({
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [docType, setDocType] = useState('nid');
+  const [docFrontImg, setDocFrontImg] = useState('');
+  const [docBackImg, setDocBackImg] = useState('');
+  const [kycSubmitted, setKycSubmitted] = useState(false);
 
   const currentEmail = user?.email || 'parvezhasanonline@gmail.com';
   const currentId = user?.id || '#92316380';
@@ -220,32 +225,96 @@ export const MyAccountPage: React.FC<MyAccountPageProps> = ({
                 </p>
               </div>
 
-              {/* Verify Account Card Dialog Component */}
-              <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3.5 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">Verify your account</h4>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Verify your account to confirm your identity and unlock full access to all features.
-                  </p>
+              {/* Interactive KYC Document Upload Form */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+                <div className="flex items-center space-x-2 text-white font-bold text-xs">
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span>Identity Verification (KYC)</span>
                 </div>
 
-                <div className="space-y-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => alert('Verification gateway initialized. Upload ID Card / Passport.')}
-                    className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black rounded-xl shadow-md cursor-pointer"
-                  >
-                    Start verification
-                  </button>
-                  <button
-                    type="button"
-                    className="w-full py-2 bg-transparent text-slate-400 hover:text-white text-xs font-semibold"
-                  >
-                    Later
-                  </button>
+                <div className="space-y-3">
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] text-slate-400 font-semibold uppercase">Document Type</label>
+                    <select
+                      value={docType}
+                      onChange={(e) => setDocType(e.target.value)}
+                      className="w-full bg-[#0d121b] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="nid">National ID Card (NID)</option>
+                      <option value="passport">International Passport</option>
+                      <option value="driving_license">Driving License</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] text-slate-400 font-semibold uppercase">Document Front Photo</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setDocFrontImg(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full bg-[#0d121b] border border-white/10 rounded-xl p-2 text-xs text-slate-300 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-emerald-500 file:text-black cursor-pointer"
+                    />
+                    {docFrontImg && (
+                      <img src={docFrontImg} alt="Front ID" className="h-16 w-auto rounded-lg border border-emerald-500/30 object-cover mt-1" />
+                    )}
+                  </div>
+
+                  {docType !== 'passport' && (
+                    <div className="space-y-1 text-left">
+                      <label className="text-[10px] text-slate-400 font-semibold uppercase">Document Back Photo</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setDocBackImg(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full bg-[#0d121b] border border-white/10 rounded-xl p-2 text-xs text-slate-300 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-emerald-500 file:text-black cursor-pointer"
+                      />
+                      {docBackImg && (
+                        <img src={docBackImg} alt="Back ID" className="h-16 w-auto rounded-lg border border-emerald-500/30 object-cover mt-1" />
+                      )}
+                    </div>
+                  )}
+
+                  {kycSubmitted ? (
+                    <div className="p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-bold text-center">
+                      ✓ Verification Documents Submitted! Admin Review Pending.
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!docFrontImg) {
+                          alert('Please select a front photo of your ID or Passport');
+                          return;
+                        }
+                        setKycSubmitted(true);
+                        // Sync to user profile in Firebase
+                        if (user?.email) {
+                          FirebaseService.syncUser({
+                            email: user.email,
+                            username: user.email,
+                            verificationStatus: 'pending',
+                          } as any);
+                        }
+                      }}
+                      className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 cursor-pointer transition-all"
+                    >
+                      Submit Document for Review
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
