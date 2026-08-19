@@ -12,7 +12,6 @@ interface AccountProfileModalProps {
   user?: UserAccount | null;
   onLogout?: () => void;
   onOpenAuth?: (mode: 'login' | 'register') => void;
-  onOpenAdmin?: () => void;
 }
 
 export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
@@ -25,7 +24,6 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
   user,
   onLogout,
   onOpenAuth,
-  onOpenAdmin,
 }) => {
   if (!isOpen) return null;
 
@@ -126,20 +124,6 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  {user.role === 'admin' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        if (onOpenAdmin) onOpenAdmin();
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center space-x-1 transition-all cursor-pointer mr-2"
-                      title="Open Admin Panel"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Admin Panel</span>
-                    </button>
-                  )}
                   {onLogout && (
                     <button
                       type="button"

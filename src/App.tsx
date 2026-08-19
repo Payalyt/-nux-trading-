@@ -17,6 +17,7 @@ import {
 } from './utils/marketData';
 import { soundManager } from './utils/audio';
 import confetti from 'canvas-confetti';
+import { FirebaseService } from './utils/firebaseSync';
 
 // Components
 import { Header } from './components/Header';
@@ -51,7 +52,6 @@ import { TradesHistoryPage } from './components/pages/TradesHistoryPage';
 import { AnalyticsPage } from './components/pages/AnalyticsPage';
 import { AuthPage } from './components/pages/AuthPage';
 import { HomePage } from './components/pages/HomePage';
-import { AdminPanelPage } from './components/pages/AdminPanelPage';
 
 export default function App() {
   // User Account Session (No auto-login without explicit register/login)
@@ -154,12 +154,23 @@ export default function App() {
   const handleAuthSuccess = (userData: UserAccount) => {
     setUser(userData);
     localStorage.setItem('qx_user_session', JSON.stringify(userData));
-    if ((userData as any).role === 'admin') {
-      setCurrentView('admin_panel');
-    } else {
-      setCurrentView('trade');
-    }
+    setCurrentView('trade');
     setIsAuthModalOpen(false);
+
+    // Sync user data directly to Firebase Firestore
+    FirebaseService.syncUser({
+      username: userData.email,
+      email: userData.email,
+      fullName: userData.name,
+      phone: (userData as any).phone || '',
+      role: userData.role || 'user',
+      balance: liveBalance,
+      demoBalance: demoBalance,
+      accountStatus: 'active',
+      verificationStatus: 'verified',
+      createdAt: new Date().toISOString()
+    });
+
     setNotifications((prev) => [
       {
         id: `auth-${Date.now()}`,
@@ -191,7 +202,39 @@ export default function App() {
     ]);
   };
 
-  // 7. Notifications
+  // 7. Notifications & Platform Controls
+  const [platformControls, setPlatformControls] = useState<{
+    siteTitle?: string;
+    noticeBannerText?: string;
+    showNoticeBanner?: boolean;
+    maintenanceMode?: boolean;
+    maintenanceMessage?: string;
+    tradingPayoutPercentage?: number;
+    minTradeAmount?: number;
+    maxTradeAmount?: number;
+    defaultDemoBalance?: number;
+  }>({
+    siteTitle: 'Quotex Pro Web Trader',
+    noticeBannerText: '🚀 Instant Automated Deposits & 24/7 Fast Withdrawals via bKash, Nagad, USDT TRC-20 & Crypto!',
+    showNoticeBanner: true,
+    maintenanceMode: false,
+    tradingPayoutPercentage: 87,
+    minTradeAmount: 1,
+    maxTradeAmount: 5000
+  });
+
+  useEffect(() => {
+    // Fetch public settings from server
+    fetch('/api/public/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.platformControls) {
+          setPlatformControls(prev => ({ ...prev, ...data.platformControls }));
+        }
+      })
+      .catch(err => console.warn('Could not fetch public settings', err));
+  }, []);
+
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: 'notif-1',
@@ -326,9 +369,15 @@ export default function App() {
               soundManager.playLoss();
             }
 
-            // Record in completed trades
+            // Record in completed trades and sync with Firebase Firestore
             setCompletedTrades((prev) => [settledTrade, ...prev]);
             setLatestSettledTrade(settledTrade);
+            FirebaseService.syncTrade({
+              ...settledTrade,
+              userEmail: user?.email || 'guest@demo.trade',
+              userName: user?.name || 'Trader',
+              resolvedAt: new Date().toISOString()
+            });
           });
         }
 
@@ -420,8 +469,25 @@ export default function App() {
 
   // Handle Deposit Success
   const handleDepositSuccess = (amount: number) => {
-    setLiveBalance((b) => b + amount);
+    const newBal = liveBalance + amount;
+    setLiveBalance(newBal);
     setAccountType('LIVE');
+
+    if (user?.email) {
+      FirebaseService.updateUserBalance(user.email, newBal, 'live');
+      FirebaseService.syncTransaction({
+        id: `DEP-${Date.now()}`,
+        userId: user.email,
+        userName: user.name,
+        type: 'deposit',
+        amount,
+        currency: 'USD',
+        gateway: 'Online Gateway',
+        status: 'approved',
+        createdAt: new Date().toISOString()
+      });
+    }
+
     setNotifications((prev) => [
       {
         id: 'dep-' + Date.now(),
@@ -437,7 +503,24 @@ export default function App() {
 
   // Handle Withdrawal Success
   const handleWithdrawSuccess = (amount: number) => {
-    setLiveBalance((b) => Math.max(0, b - amount));
+    const newBal = Math.max(0, liveBalance - amount);
+    setLiveBalance(newBal);
+
+    if (user?.email) {
+      FirebaseService.updateUserBalance(user.email, newBal, 'live');
+      FirebaseService.syncTransaction({
+        id: `WTH-${Date.now()}`,
+        userId: user.email,
+        userName: user.name,
+        type: 'withdrawal',
+        amount,
+        currency: 'USD',
+        gateway: 'Online Gateway',
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+    }
+
     setNotifications((prev) => [
       {
         id: 'wth-' + Date.now(),
@@ -489,6 +572,22 @@ export default function App() {
       id="quotex-trading-application"
       className="flex flex-col h-screen w-screen bg-[#0a0d14] text-slate-100 overflow-hidden font-sans select-none"
     >
+      {/* Top Broadcast Notice Marquee Bar */}
+      {platformControls.showNoticeBanner && platformControls.noticeBannerText && (
+        <div className="bg-gradient-to-r from-emerald-600/90 via-cyan-600/90 to-blue-600/90 text-white text-[11px] font-bold py-1 px-4 flex items-center justify-between shadow-md z-40 border-b border-white/10 shrink-0">
+          <div className="flex items-center space-x-2 truncate">
+            <span className="px-1.5 py-0.2 rounded bg-black/40 text-[9px] font-black uppercase tracking-wider text-amber-300">ANNOUNCEMENT</span>
+            <span className="truncate">{platformControls.noticeBannerText}</span>
+          </div>
+          <button 
+            onClick={() => setPlatformControls(prev => ({ ...prev, showNoticeBanner: false }))}
+            className="text-white/80 hover:text-white text-xs ml-3 shrink-0 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {currentView === 'home' ? (
         <HomePage
           onStartTrading={() => {
@@ -694,12 +793,6 @@ export default function App() {
                 completedTrades={completedTrades}
               />
             )}
-            {currentView === 'admin_panel' && (
-              <AdminPanelPage
-                user={user}
-                onLogout={handleLogout}
-              />
-            )}
           </div>
         </div>
       )}
@@ -775,10 +868,6 @@ export default function App() {
           setIsProfileOpen(false);
           setAuthModalMode(mode);
           setIsAuthModalOpen(true);
-        }}
-        onOpenAdmin={() => {
-          setIsProfileOpen(false);
-          setCurrentView('admin_panel');
         }}
       />
 

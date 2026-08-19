@@ -43,7 +43,7 @@ export interface TransactionRecord {
 export interface PaymentGatewayConfig {
   id: string;
   name: string;
-  category: 'mobile_banking' | 'bank' | 'crypto' | 'epay';
+  category: 'mobile_banking' | 'bank' | 'crypto' | 'epay' | 'card';
   icon: string;
   active: boolean;
   sendMoneyNumber: string;
@@ -55,7 +55,7 @@ export interface PaymentGatewayConfig {
   minWithdraw: number;
   maxWithdraw: number;
   bonusPercent: number;
-  conversionRate: number; // 1 USD = X BDT
+  conversionRate: number; // 1 USD = X Local Currency (BDT, etc)
   allowSendMoney: boolean;
   allowMerchant: boolean;
   allowCashOut: boolean;
@@ -71,6 +71,31 @@ export interface PaymentGatewayConfig {
     network: string;
     qrCodeUrl?: string;
   };
+  cardDetails?: {
+    publishableKey?: string;
+    merchantId?: string;
+    gatewayType?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PlatformControls {
+  siteTitle: string;
+  noticeBannerText: string;
+  showNoticeBanner: boolean;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  allowRegistration: boolean;
+  requireKycForWithdrawal: boolean;
+  tradingPayoutPercentage: number;
+  minTradeAmount: number;
+  maxTradeAmount: number;
+  defaultDemoBalance: number;
+  defaultSignupBonus: number;
+  liveSignalsEnabled: boolean;
+  signalAccuracyRate: number;
+  vipTelegramUrl: string;
 }
 
 export interface SupportSettings {
@@ -88,6 +113,7 @@ export interface SystemSettings {
   currencyRates: Record<string, number>;
   support: SupportSettings;
   paymentGateways: PaymentGatewayConfig[];
+  platformControls?: PlatformControls;
   updatedAt?: string;
 }
 
@@ -275,6 +301,97 @@ export class FileDatabase {
             cryptoDetails: {
               walletAddress: '0x71C8364437a90977A14bC9d3FeD40B326bB8e293',
               network: 'BNB Smart Chain (BEP20)',
+            },
+          },
+          {
+            id: 'bitcoin',
+            name: 'Bitcoin (BTC)',
+            category: 'crypto',
+            icon: '₿',
+            active: true,
+            sendMoneyNumber: '',
+            merchantNumber: '',
+            cashOutNumber: '',
+            instruction: 'Send BTC to the company Bitcoin wallet address below. Requires 1 network confirmation.',
+            minDeposit: 20,
+            maxDeposit: 100000,
+            minWithdraw: 20,
+            maxWithdraw: 50000,
+            bonusPercent: 50,
+            conversionRate: 1,
+            allowSendMoney: true,
+            allowMerchant: false,
+            allowCashOut: false,
+            cryptoDetails: {
+              walletAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+              network: 'Bitcoin Mainnet',
+            },
+          },
+          {
+            id: 'binance-pay',
+            name: 'Binance Pay',
+            category: 'crypto',
+            icon: '🟡',
+            active: true,
+            sendMoneyNumber: '89421095',
+            merchantNumber: '89421095',
+            cashOutNumber: '',
+            instruction: 'Pay with Binance Pay ID / Pay QR. Enter your Binance Pay Order ID or Nickname.',
+            minDeposit: 10,
+            maxDeposit: 50000,
+            minWithdraw: 10,
+            maxWithdraw: 25000,
+            bonusPercent: 50,
+            conversionRate: 1,
+            allowSendMoney: true,
+            allowMerchant: true,
+            allowCashOut: false,
+            cryptoDetails: {
+              walletAddress: '89421095',
+              network: 'Binance Pay ID',
+            },
+          },
+          {
+            id: 'perfect-money',
+            name: 'Perfect Money',
+            category: 'epay',
+            icon: '🅿️',
+            active: true,
+            sendMoneyNumber: 'U38914821',
+            merchantNumber: 'U38914821',
+            cashOutNumber: '',
+            instruction: 'Transfer USD to our Perfect Money account U38914821 and enter batch number.',
+            minDeposit: 10,
+            maxDeposit: 10000,
+            minWithdraw: 10,
+            maxWithdraw: 5000,
+            bonusPercent: 30,
+            conversionRate: 1,
+            allowSendMoney: true,
+            allowMerchant: true,
+            allowCashOut: false,
+          },
+          {
+            id: 'stripe-card',
+            name: 'Visa / MasterCard (Card)',
+            category: 'card',
+            icon: '💳',
+            active: true,
+            sendMoneyNumber: '',
+            merchantNumber: '',
+            cashOutNumber: '',
+            instruction: 'Deposit using international Visa, MasterCard, or Amex card with instant 3D-Secure approval.',
+            minDeposit: 15,
+            maxDeposit: 10000,
+            minWithdraw: 15,
+            maxWithdraw: 5000,
+            bonusPercent: 30,
+            conversionRate: 1,
+            allowSendMoney: false,
+            allowMerchant: true,
+            allowCashOut: false,
+            cardDetails: {
+              gatewayType: 'Stripe Global Card Processing',
             },
           },
         ];
@@ -495,9 +612,30 @@ export class FileDatabase {
   // --- Settings Management ---
   static getSettings(): SystemSettings {
     this.init();
+    const defaultControls: PlatformControls = {
+      siteTitle: 'Quotex Pro Web Trader',
+      noticeBannerText: '🚀 Instant Automated Deposits & 24/7 Fast Withdrawals via bKash, Nagad, USDT TRC-20 & Crypto!',
+      showNoticeBanner: true,
+      maintenanceMode: false,
+      maintenanceMessage: 'System is temporarily under scheduled maintenance. Please check back shortly.',
+      allowRegistration: true,
+      requireKycForWithdrawal: false,
+      tradingPayoutPercentage: 87,
+      minTradeAmount: 1,
+      maxTradeAmount: 5000,
+      defaultDemoBalance: 10000,
+      defaultSignupBonus: 0,
+      liveSignalsEnabled: true,
+      signalAccuracyRate: 94.2,
+      vipTelegramUrl: 'https://t.me/QuotexSignalsVIP'
+    };
+
     try {
       const content = fs.readFileSync(path.join(DB_DIR, 'settings.json'), 'utf-8');
       const settings = JSON.parse(content) as SystemSettings;
+      if (!settings.platformControls) {
+        settings.platformControls = defaultControls;
+      }
       return settings;
     } catch {
       return {
@@ -509,9 +647,10 @@ export class FileDatabase {
           whatsappUrl: 'https://wa.me/8801700000000',
           supportEmail: 'support@nux-trading.com',
           liveChatUrl: 'https://tawk.to',
-          noticeBanner: '24/7 Automated Deposits & Fast Withdrawals',
+          noticeBanner: '🚀 Instant Automated Deposits & 24/7 Fast Withdrawals via bKash, Nagad & Crypto!',
           showNoticeBanner: true,
         },
+        platformControls: defaultControls,
         paymentGateways: [],
         updatedAt: new Date().toISOString(),
       };
@@ -523,6 +662,68 @@ export class FileDatabase {
     settings.updatedAt = new Date().toISOString();
     fs.writeFileSync(path.join(DB_DIR, 'settings.json'), JSON.stringify(settings, null, 2), 'utf-8');
     return settings;
+  }
+
+  // --- Payment Gateways CRUD ---
+  static getAllGateways(): PaymentGatewayConfig[] {
+    const settings = this.getSettings();
+    return settings.paymentGateways || [];
+  }
+
+  static getActiveGateways(): PaymentGatewayConfig[] {
+    const all = this.getAllGateways();
+    return all.filter(g => g.active !== false);
+  }
+
+  static getGatewayById(id: string): PaymentGatewayConfig | null {
+    const all = this.getAllGateways();
+    return all.find(g => g.id.toLowerCase() === id.toLowerCase()) || null;
+  }
+
+  static saveGateway(gw: PaymentGatewayConfig): PaymentGatewayConfig {
+    const settings = this.getSettings();
+    const gateways = settings.paymentGateways || [];
+    const index = gateways.findIndex(g => g.id.toLowerCase() === gw.id.toLowerCase());
+
+    gw.updatedAt = new Date().toISOString();
+    if (!gw.createdAt) {
+      gw.createdAt = new Date().toISOString();
+    }
+
+    if (index >= 0) {
+      gateways[index] = { ...gateways[index], ...gw };
+    } else {
+      gateways.push(gw);
+    }
+
+    settings.paymentGateways = gateways;
+    this.saveSettings(settings);
+    return gw;
+  }
+
+  static deleteGateway(id: string): boolean {
+    const settings = this.getSettings();
+    const gateways = settings.paymentGateways || [];
+    const initialLen = gateways.length;
+    settings.paymentGateways = gateways.filter(g => g.id.toLowerCase() !== id.toLowerCase());
+    
+    if (settings.paymentGateways.length < initialLen) {
+      this.saveSettings(settings);
+      return true;
+    }
+    return false;
+  }
+
+  static toggleGateway(id: string, active?: boolean): PaymentGatewayConfig | null {
+    const settings = this.getSettings();
+    const gateways = settings.paymentGateways || [];
+    const target = gateways.find(g => g.id.toLowerCase() === id.toLowerCase());
+    if (!target) return null;
+
+    target.active = active !== undefined ? active : !target.active;
+    target.updatedAt = new Date().toISOString();
+    this.saveSettings(settings);
+    return target;
   }
 
   // --- Audit Logs ---

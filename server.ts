@@ -12,39 +12,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Initialize file-based database & ensure default admin
+  // Initialize database
   FileDatabase.init();
-  if (FileDatabase.countUsers() === 0) {
-    const adminHash = bcrypt.hashSync('Admin123!', 10);
-    const defaultAdmin: UserRecord = {
-      username: 'admin',
-      fullName: 'Chief System Administrator',
-      passwordHash: adminHash,
-      role: 'admin',
-      balance: 10000,
-      demoBalance: 10000,
-      createdAt: new Date().toISOString()
-    };
-    FileDatabase.saveUser(defaultAdmin);
-    console.log('[Server] Initialized default admin user: admin / Admin123!');
-  }
-
-  // Ensure payalyt52@gmail.com is an admin
-  if (!FileDatabase.userExists('payalyt52@gmail.com')) {
-    const payalHash = bcrypt.hashSync('11111111', 10);
-    const payalAdmin: UserRecord = {
-      username: 'payalyt52@gmail.com',
-      fullName: 'Payal Admin',
-      phone: '+8801700000000',
-      passwordHash: payalHash,
-      role: 'admin',
-      balance: 5000,
-      demoBalance: 10000,
-      createdAt: new Date().toISOString()
-    };
-    FileDatabase.saveUser(payalAdmin);
-    console.log('[Server] Initialized admin user: payalyt52@gmail.com / 11111111');
-  }
 
   app.use(express.json());
   app.use(cookieParser());
@@ -78,30 +47,48 @@ async function startServer() {
     });
   };
 
-  const requireAdmin = (req: any, res: any, next: any) => {
-    authenticateToken(req, res, () => {
-      if (req.user?.role !== 'admin' && req.user?.role !== 'superadmin') {
-        return res.status(403).json({ error: 'Forbidden: Administrator privileges required' });
-      }
-      next();
-    });
-  };
-
   // ==========================================
   // 1. PUBLIC ENDPOINTS
   // ==========================================
 
-  // Get Public Gateway Configurations and Support Settings
+  // Get Public Gateway Configurations, Support and Platform Settings
   app.get('/api/public/settings', (req, res) => {
     try {
       const settings = FileDatabase.getSettings();
       return res.json({
         support: settings.support,
-        paymentGateways: settings.paymentGateways.filter(g => g.active),
-        currencyRates: settings.currencyRates || { USD: 1, BDT: 125 }
+        paymentGateways: settings.paymentGateways.filter(g => g.active !== false),
+        currencyRates: settings.currencyRates || { USD: 1, BDT: 125 },
+        platformControls: settings.platformControls
       });
     } catch (err: any) {
       return res.status(500).json({ error: 'Failed to retrieve public settings' });
+    }
+  });
+
+  // Get All Active Payment Gateways for Deposit/Withdrawal
+  app.get(['/api/gateways', '/api/public/gateways'], (req, res) => {
+    try {
+      const activeGateways = FileDatabase.getActiveGateways();
+      return res.json({
+        gateways: activeGateways,
+        count: activeGateways.length
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to retrieve payment gateways' });
+    }
+  });
+
+  // Get Single Gateway Details
+  app.get('/api/gateways/:id', (req, res) => {
+    try {
+      const gw = FileDatabase.getGatewayById(req.params.id);
+      if (!gw) {
+        return res.status(404).json({ error: 'Payment gateway not found' });
+      }
+      return res.json({ gateway: gw });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to retrieve gateway details' });
     }
   });
 
@@ -331,8 +318,8 @@ async function startServer() {
       const username = req.user.username;
       const { amount, gateway, paymentType, senderNumber, trxId, userNote, bonusAmount } = req.body;
 
-      if (!amount || amount < 5) {
-        return res.status(400).json({ error: 'Minimum deposit amount is $5' });
+      if (!amount || amount < 100) {
+        return res.status(400).json({ error: 'Minimum deposit amount is $100' });
       }
 
       if (!gateway) {
@@ -451,290 +438,6 @@ async function startServer() {
       return res.json({ message: 'Demo practice balance reset to $10,000.00', demoBalance: user?.demoBalance || 10000 });
     } catch (err: any) {
       return res.status(500).json({ error: 'Failed to reset demo balance' });
-    }
-  });
-
-  // ==========================================
-  // 4. ADMIN USER MANAGEMENT ENDPOINTS
-  // ==========================================
-
-  // Admin: Get All Users
-  app.get('/api/admin/users', requireAdmin, (req: any, res: any) => {
-    try {
-      const allUsers = FileDatabase.getAllUsers();
-      const safeUsers = allUsers.map(({ passwordHash, ...u }) => u);
-      return res.json({ users: safeUsers });
-    } catch (err) {
-      console.error('[Get Users Error]', err);
-      return res.status(500).json({ error: 'Failed to retrieve users' });
-    }
-  });
-
-  // Admin: Create User
-  app.post('/api/admin/users', requireAdmin, async (req: any, res: any) => {
-    try {
-      const { username, password, role, phone, fullName, balance, demoBalance } = req.body;
-      if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
-      }
-
-      const cleanUsername = username.trim().toLowerCase();
-      if (FileDatabase.userExists(cleanUsername)) {
-        return res.status(409).json({ error: 'User already exists' });
-      }
-
-      const passwordHash = await bcrypt.hash(password, 10);
-      const newUser: UserRecord = {
-        username: cleanUsername,
-        passwordHash,
-        role: role === 'admin' ? 'admin' : 'user',
-        phone: phone ? phone.trim() : '',
-        fullName: fullName ? fullName.trim() : cleanUsername,
-        balance: Number(balance) || 0,
-        demoBalance: Number(demoBalance) || 10000,
-        accountStatus: 'active',
-        verificationStatus: 'verified',
-        createdAt: new Date().toISOString()
-      };
-
-      FileDatabase.saveUser(newUser);
-      FileDatabase.addAuditLog(req.user.username, 'CREATE_USER', `Created user ${cleanUsername} with initial balance $${newUser.balance}`);
-
-      const { passwordHash: _, ...safeUser } = newUser;
-      return res.status(201).json({
-        message: 'User created successfully',
-        user: safeUser
-      });
-    } catch (err: any) {
-      console.error('[Create User Error]', err);
-      return res.status(500).json({ error: 'Internal server error while creating user' });
-    }
-  });
-
-  // Admin: Update User (Details, Role, Password, Verification)
-  app.put('/api/admin/users/:username', requireAdmin, async (req: any, res: any) => {
-    try {
-      const targetUsername = req.params.username.trim().toLowerCase();
-      const { fullName, phone, role, password, accountStatus, verificationStatus } = req.body;
-
-      const user = FileDatabase.getUser(targetUsername);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      if (fullName !== undefined) user.fullName = fullName.trim();
-      if (phone !== undefined) user.phone = phone.trim();
-      if (role && (role === 'user' || role === 'admin')) user.role = role;
-      if (accountStatus) user.accountStatus = accountStatus;
-      if (verificationStatus) user.verificationStatus = verificationStatus;
-      if (password && password.trim().length >= 6) {
-        user.passwordHash = await bcrypt.hash(password.trim(), 10);
-      }
-
-      FileDatabase.saveUser(user);
-      FileDatabase.addAuditLog(req.user.username, 'UPDATE_USER', `Updated details for ${targetUsername}`);
-
-      const { passwordHash: _, ...safeUser } = user;
-      return res.json({
-        message: 'User updated successfully',
-        user: safeUser
-      });
-    } catch (err: any) {
-      console.error('[Update User Error]', err);
-      return res.status(500).json({ error: 'Internal server error while updating user' });
-    }
-  });
-
-  // Admin: Direct Balance Adjustment
-  app.put('/api/admin/users/:username/balance', requireAdmin, (req: any, res: any) => {
-    try {
-      const targetUsername = req.params.username.trim().toLowerCase();
-      const { liveBalance, demoBalance, adjustmentAmount, adjustmentType, reason } = req.body;
-
-      const user = FileDatabase.getUser(targetUsername);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      let updatedUser: UserRecord | null = null;
-
-      if (liveBalance !== undefined) {
-        updatedUser = FileDatabase.updateUserBalance(targetUsername, Number(liveBalance), demoBalance !== undefined ? Number(demoBalance) : undefined, true);
-        FileDatabase.addAuditLog(req.user.username, 'SET_BALANCE', `Set ${targetUsername} live balance to $${liveBalance}. Note: ${reason || 'Admin adjustment'}`);
-      } else if (adjustmentAmount !== undefined) {
-        const delta = adjustmentType === 'debit' ? -Math.abs(Number(adjustmentAmount)) : Math.abs(Number(adjustmentAmount));
-        updatedUser = FileDatabase.updateUserBalance(targetUsername, delta, undefined, false);
-        FileDatabase.addAuditLog(req.user.username, 'ADJUST_BALANCE', `${adjustmentType === 'debit' ? 'Debited' : 'Credited'} $${adjustmentAmount} to ${targetUsername}. Note: ${reason || 'Admin balance adjustment'}`);
-      }
-
-      if (!updatedUser) {
-        return res.status(500).json({ error: 'Failed to update balance' });
-      }
-
-      const { passwordHash: _, ...safeUser } = updatedUser;
-      return res.json({
-        message: `Balance updated for ${targetUsername}`,
-        user: safeUser
-      });
-    } catch (err: any) {
-      console.error('[Balance Adjustment Error]', err);
-      return res.status(500).json({ error: 'Internal server error during balance adjustment' });
-    }
-  });
-
-  // Admin: Delete User
-  app.delete('/api/admin/users/:username', requireAdmin, (req: any, res: any) => {
-    try {
-      const targetUsername = req.params.username.trim().toLowerCase();
-      const requesterUsername = req.user.username;
-
-      if (targetUsername === requesterUsername) {
-        return res.status(400).json({ error: 'Action denied: An admin cannot delete their own account file.' });
-      }
-
-      if (!FileDatabase.userExists(targetUsername)) {
-        return res.status(404).json({ error: 'User file not found' });
-      }
-
-      const success = FileDatabase.deleteUser(targetUsername);
-      if (success) {
-        FileDatabase.addAuditLog(req.user.username, 'DELETE_USER', `Deleted user account file for ${targetUsername}`);
-        return res.json({ message: `Successfully deleted user file for ${targetUsername}` });
-      } else {
-        return res.status(500).json({ error: 'Failed to delete user file' });
-      }
-    } catch (err) {
-      console.error('[Delete User Error]', err);
-      return res.status(500).json({ error: 'Internal server error while deleting user' });
-    }
-  });
-
-  // ==========================================
-  // 5. ADMIN DEPOSIT & WITHDRAWAL TRANSACTIONS
-  // ==========================================
-
-  // Admin: Get All Transactions
-  app.get('/api/admin/transactions', requireAdmin, (req: any, res: any) => {
-    try {
-      const { status, type, search } = req.query;
-      let txs = FileDatabase.getTransactions();
-
-      if (status && status !== 'all') {
-        txs = txs.filter(t => t.status === status);
-      }
-      if (type && type !== 'all') {
-        txs = txs.filter(t => t.type === type);
-      }
-      if (search) {
-        const q = String(search).toLowerCase().trim();
-        txs = txs.filter(t => 
-          t.id.toLowerCase().includes(q) || 
-          t.userId.toLowerCase().includes(q) || 
-          (t.senderNumber && t.senderNumber.toLowerCase().includes(q)) || 
-          (t.receiverNumber && t.receiverNumber.toLowerCase().includes(q)) || 
-          (t.trxId && t.trxId.toLowerCase().includes(q)) || 
-          (t.userName && t.userName.toLowerCase().includes(q))
-        );
-      }
-
-      return res.json({ transactions: txs });
-    } catch (err: any) {
-      console.error('[Admin Transactions Error]', err);
-      return res.status(500).json({ error: 'Failed to retrieve transactions' });
-    }
-  });
-
-  // Admin: Approve or Reject a Deposit/Withdrawal Request
-  app.put('/api/admin/transactions/:id/status', requireAdmin, (req: any, res: any) => {
-    try {
-      const txId = req.params.id;
-      const { status, adminNote } = req.body;
-
-      if (!status || !['approved', 'rejected', 'completed', 'pending'].includes(status)) {
-        return res.status(400).json({ error: 'Invalid transaction status provided' });
-      }
-
-      const result = FileDatabase.updateTransactionStatus(txId, status, req.user.username, adminNote);
-
-      if (result.error || !result.transaction) {
-        return res.status(404).json({ error: result.error || 'Transaction not found' });
-      }
-
-      FileDatabase.addAuditLog(
-        req.user.username,
-        `TRANSACTION_${status.toUpperCase()}`,
-        `${status.toUpperCase()} ${result.transaction.type} #${result.transaction.id} for user ${result.transaction.userId} ($${result.transaction.amount}). Note: ${adminNote || 'Processed'}`
-      );
-
-      return res.json({
-        message: `Transaction ${txId} successfully marked as ${status}`,
-        transaction: result.transaction,
-        updatedUserBalance: result.user?.balance
-      });
-    } catch (err: any) {
-      console.error('[Admin Transaction Status Error]', err);
-      return res.status(500).json({ error: 'Internal server error while updating transaction status' });
-    }
-  });
-
-  // ==========================================
-  // 6. ADMIN PAYMENT GATEWAYS & SETTINGS
-  // ==========================================
-
-  // Admin: Get All System Settings
-  app.get('/api/admin/settings', requireAdmin, (req: any, res: any) => {
-    try {
-      const settings = FileDatabase.getSettings();
-      return res.json({ settings });
-    } catch (err: any) {
-      return res.status(500).json({ error: 'Failed to get system settings' });
-    }
-  });
-
-  // Admin: Save System Settings (Payment Gateways, Numbers, Support Links)
-  app.put('/api/admin/settings', requireAdmin, (req: any, res: any) => {
-    try {
-      const { support, paymentGateways, currencyRates } = req.body;
-      const current = FileDatabase.getSettings();
-
-      if (support) {
-        current.support = {
-          ...current.support,
-          ...support
-        };
-      }
-
-      if (paymentGateways && Array.isArray(paymentGateways)) {
-        current.paymentGateways = paymentGateways;
-      }
-
-      if (currencyRates) {
-        current.currencyRates = {
-          ...current.currencyRates,
-          ...currencyRates
-        };
-      }
-
-      const saved = FileDatabase.saveSettings(current);
-      FileDatabase.addAuditLog(req.user.username, 'UPDATE_SETTINGS', 'Updated payment gateway numbers, credentials and support links');
-
-      return res.json({
-        message: 'System & payment settings updated successfully!',
-        settings: saved
-      });
-    } catch (err: any) {
-      console.error('[Save Settings Error]', err);
-      return res.status(500).json({ error: 'Failed to update system settings' });
-    }
-  });
-
-  // Admin: Audit Logs
-  app.get('/api/admin/audit-logs', requireAdmin, (req: any, res: any) => {
-    try {
-      const logs = FileDatabase.getAuditLogs();
-      return res.json({ auditLogs: logs });
-    } catch (err: any) {
-      return res.status(500).json({ error: 'Failed to fetch audit logs' });
     }
   });
 

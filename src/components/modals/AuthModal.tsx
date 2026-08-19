@@ -17,6 +17,7 @@ import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { SocialAuthModal } from './SocialAuthModal';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
+import { FirebaseService } from '../../utils/firebaseSync';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -94,6 +95,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         role: res.data.user.role,
         phone: res.data.user.phone,
       };
+
+      // Persist directly to Firebase Firestore
+      FirebaseService.syncUser({
+        username: user.email,
+        email: user.email,
+        fullName: user.name,
+        phone: user.phone || '',
+        role: user.role || 'user',
+        balance: res.data.user.balance || 0,
+        demoBalance: res.data.user.demoBalance || 10000,
+        accountStatus: 'active',
+        verificationStatus: 'verified',
+        createdAt: res.data.user.createdAt || new Date().toISOString()
+      });
+
       onAuthSuccess(user);
       onClose();
     } catch (err: any) {
@@ -159,6 +175,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         role: res.data.user.role || 'user',
         phone: phone.trim(),
       };
+
+      // Persist registered email and profile directly to Firebase Firestore
+      FirebaseService.syncUser({
+        username: user.email,
+        email: user.email,
+        fullName: user.name,
+        phone: user.phone || '',
+        role: user.role || 'user',
+        balance: 0,
+        demoBalance: 10000,
+        accountStatus: 'active',
+        verificationStatus: 'verified',
+        createdAt: new Date().toISOString()
+      });
+
       onAuthSuccess(user);
       onClose();
     } catch (err: any) {

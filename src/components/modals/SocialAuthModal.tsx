@@ -3,6 +3,7 @@ import { X, Check, ShieldCheck, ArrowRight, User } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
+import { FirebaseService } from '../../utils/firebaseSync';
 
 interface SocialAuthModalProps {
   isOpen: boolean;
@@ -80,6 +81,19 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
         role: res.data.user.role || 'user',
         provider
       };
+
+      // Sync social user to Firebase Firestore
+      FirebaseService.syncUser({
+        username: user.email,
+        email: user.email,
+        fullName: user.name,
+        role: user.role,
+        balance: res.data.user.balance || 0,
+        demoBalance: res.data.user.demoBalance || 10000,
+        accountStatus: 'active',
+        verificationStatus: 'verified',
+        createdAt: res.data.user.createdAt || new Date().toISOString()
+      });
 
       onSuccess(user);
       onClose();

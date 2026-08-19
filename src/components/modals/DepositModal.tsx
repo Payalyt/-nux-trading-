@@ -40,7 +40,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
   
   // Payment Form States
   const [paymentType, setPaymentType] = useState<'send_money' | 'merchant' | 'cash_out'>('send_money');
-  const [amount, setAmount] = useState<number>(50);
+  const [amount, setAmount] = useState<number>(100);
   const [senderNumber, setSenderNumber] = useState<string>('');
   const [trxId, setTrxId] = useState<string>('');
   const [promoCode, setPromoCode] = useState<string>('PROMO50');
@@ -57,7 +57,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({
       setErrorMessage(null);
       apiClient.get('/api/public/settings').then((res) => {
         if (res.ok && res.data?.paymentGateways) {
-          setGateways(res.data.paymentGateways);
+          setGateways(res.data.paymentGateways.map((g: any) => ({
+            ...g,
+            minDeposit: Math.max(100, g.minDeposit || 100)
+          })));
         }
       }).catch((err) => {
         console.error('Error loading dynamic gateway settings:', err);
@@ -77,7 +80,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
       sendMoneyNumber: '01700000001',
       merchantNumber: '01700000002',
       cashOutNumber: '01700000003',
-      minDeposit: 10,
+      minDeposit: 100,
       maxDeposit: 5000,
       bonusPercent: 50,
       conversionRate: 125,
@@ -94,7 +97,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
       sendMoneyNumber: '01800000001',
       merchantNumber: '01800000002',
       cashOutNumber: '01800000003',
-      minDeposit: 10,
+      minDeposit: 100,
       maxDeposit: 5000,
       bonusPercent: 50,
       conversionRate: 125,
@@ -109,7 +112,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
       category: 'popular',
       icon: 'https://i.postimg.cc/ryRwMszC/unnamed.png',
       sendMoneyNumber: '01900000001',
-      minDeposit: 10,
+      minDeposit: 100,
       maxDeposit: 3000,
       bonusPercent: 40,
       conversionRate: 125,
@@ -121,7 +124,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
       name: 'USDT (TRC-20)',
       category: 'crypto',
       icon: '₮',
-      minDeposit: 10,
+      minDeposit: 100,
       maxDeposit: 50000,
       bonusPercent: 50,
       conversionRate: 1,
@@ -131,13 +134,13 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
   const filteredOptions = displayGateways.filter((opt) => {
     if (activeCategory === 'popular') return opt.category === 'popular' || opt.category === 'mobile_banking';
-    if (activeCategory === 'epay') return opt.category === 'epay' || opt.category === 'mobile_banking';
+    if (activeCategory === 'epay') return opt.category === 'epay' || opt.category === 'card';
     if (activeCategory === 'crypto') return opt.category === 'crypto';
     if (activeCategory === 'bank') return opt.category === 'bank';
     return true;
   });
 
-  const presetAmounts = [10, 20, 50, 100, 250, 500, 1000];
+  const presetAmounts = [100, 250, 500, 1000, 2500, 5000];
   const bonusRate = selectedMethod ? (selectedMethod.bonusPercent || 50) / 100 : 0.5;
   const bonusAmount = bonusApplied ? amount * bonusRate : 0;
   const totalCredited = amount + bonusAmount;
@@ -161,6 +164,12 @@ export const DepositModal: React.FC<DepositModalProps> = ({
   const handleExecuteDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (amount < 100) {
+      setErrorMessage('Minimum deposit amount is $100.00');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -298,6 +307,21 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                   <span className="uppercase tracking-wider">CRYPTO</span>
                 </div>
                 <span className="text-[10px] opacity-80 font-mono-nums">USDT / BTC</span>
+              </button>
+
+              <button
+                onClick={() => setActiveCategory('epay')}
+                className={`w-full p-3 rounded-xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                  activeCategory === 'epay'
+                    ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 font-black'
+                    : 'text-slate-300 hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <CreditCard className="w-4 h-4" />
+                  <span className="uppercase tracking-wider">E-PAY & CARDS</span>
+                </div>
+                <span className="text-[10px] opacity-80 font-mono-nums">Global</span>
               </button>
 
               <button

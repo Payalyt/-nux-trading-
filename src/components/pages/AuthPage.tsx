@@ -23,6 +23,7 @@ import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { SocialAuthModal } from '../modals/SocialAuthModal';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
+import { FirebaseService } from '../../utils/firebaseSync';
 
 interface AuthPageProps {
   initialMode?: 'login' | 'register';
@@ -101,6 +102,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         role: res.data.user.role,
         phone: res.data.user.phone,
       };
+
+      // Persist directly to Firebase Firestore
+      FirebaseService.syncUser({
+        username: user.email,
+        email: user.email,
+        fullName: user.name,
+        phone: user.phone || '',
+        role: user.role || 'user',
+        balance: res.data.user.balance || 0,
+        demoBalance: res.data.user.demoBalance || 10000,
+        accountStatus: 'active',
+        verificationStatus: 'verified',
+        createdAt: res.data.user.createdAt || new Date().toISOString()
+      });
+
       onAuthSuccess(user);
     } catch (err: any) {
       setError(formatErrorMessage(err, 'Account not available or invalid credentials.'));
@@ -165,6 +181,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         role: res.data.user.role || 'user',
         phone: phone.trim(),
       };
+
+      // Persist registered email and profile directly to Firebase Firestore
+      FirebaseService.syncUser({
+        username: user.email,
+        email: user.email,
+        fullName: user.name,
+        phone: user.phone || '',
+        role: user.role || 'user',
+        balance: 0,
+        demoBalance: 10000,
+        accountStatus: 'active',
+        verificationStatus: 'verified',
+        createdAt: new Date().toISOString()
+      });
+
       onAuthSuccess(user);
     } catch (err: any) {
       setError(formatErrorMessage(err, 'Registration failed.'));
@@ -240,7 +271,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 <DollarSign className="w-5 h-5" />
               </div>
               <div>
-                <div className="font-extrabold text-sm text-white">$10 Min Deposit</div>
+                <div className="font-extrabold text-sm text-white">$100 Min Deposit</div>
                 <div className="text-[11px] text-slate-400">Trade from $1 minimum stake</div>
               </div>
             </div>

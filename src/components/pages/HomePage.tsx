@@ -140,13 +140,13 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <div>
               <div className="flex items-center space-x-1.5">
-                <span className="font-black text-base sm:text-lg tracking-tight text-white">QUOTEX</span>
-                <span className="hidden xs:inline text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  OFFICIAL
+                <span className="font-black text-base sm:text-lg tracking-tight text-white">NUX</span>
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  TRADING
                 </span>
               </div>
-              <span className="hidden sm:block text-[9px] font-bold text-slate-400 tracking-wider uppercase -mt-0.5">
-                Innovation Trading Platform
+              <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase -mt-0.5 block">
+                Innovation Trading
               </span>
             </div>
           </div>
@@ -232,7 +232,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Hero Badge */}
           <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold shadow-inner">
             <Sparkles className="w-3.5 h-3.5 animate-spin-slow" />
-            <span>Next-Gen High Frequency Binary Trading Platform</span>
+            <span>Next-Gen High Frequency Binary Trading</span>
             <span className="px-1.5 py-0.5 rounded bg-emerald-500 text-black text-[10px] font-black uppercase">
               v3.8
             </span>
@@ -240,7 +240,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Main Title */}
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-[1.15] max-w-4xl mx-auto">
-            Innovative Platform for <br />
+            Innovative Trading for <br />
             <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
               Smart Trading & Investments
             </span>
@@ -281,7 +281,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400 pt-4">
             <div className="flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>$10 Minimum Deposit</span>
+              <span>$100 Minimum Deposit</span>
             </div>
             <div className="flex items-center space-x-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -309,7 +309,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
               </div>
               <div className="text-center text-xs font-mono text-slate-400 pb-4">
-                Quotex Live Terminal • EUR/USD OTC (92% Payout) • Live Trading Mode
+                NUX Live Terminal • EUR/USD OTC (92% Payout) • Live Trading Mode
               </div>
 
               {/* Chart Visual Simulation */}
@@ -523,7 +523,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="text-center space-y-3">
             <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-emerald-400 text-xs font-bold uppercase">
               <Zap className="w-3.5 h-3.5" />
-              <span>Platform Advantages</span>
+              <span>Trading Advantages</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white">
               Engineered for Speed, Precision & Transparency
@@ -563,7 +563,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <h3 className="text-base font-bold text-white">0% Deposit & Withdrawal Fees</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Keep 100% of your earnings. Quotex does not charge any fee on deposits or payouts.
+                Keep 100% of your earnings. NUX Trading does not charge any fee on deposits or payouts.
               </p>
             </div>
 
@@ -648,7 +648,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <h3 className="text-lg font-bold text-white">Deposit & Profit</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Fund from just $10, place trades with up to 98% returns, and withdraw your earnings instantly.
+              Fund from $100, place trades with up to 98% returns, and withdraw your earnings instantly.
             </p>
           </div>
         </div>
@@ -714,7 +714,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             Frequently Asked Questions
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-            Everything you need to know about trading on Quotex.
+            Everything you need to know about trading on NUX Trading.
           </p>
         </div>
 
@@ -752,7 +752,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="py-16 px-4 sm:px-8 bg-gradient-to-br from-emerald-950/40 via-[#0a0e17] to-teal-950/40 border-t border-white/10 text-center">
         <div className="max-w-4xl mx-auto space-y-6">
           <h2 className="text-3xl sm:text-5xl font-black text-white">
-            Ready to Start Earning with Quotex?
+            Ready to Start Earning with NUX Trading?
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto">
             Join over 4,000,000 active traders today. Claim a 50% bonus on your first deposit or practice with $10,000 demo funds.
@@ -786,10 +786,10 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-black font-black">
-                Q
+                N
               </div>
               <div>
-                <div className="font-extrabold text-sm text-white">QUOTEX TRADING</div>
+                <div className="font-extrabold text-sm text-white">NUX TRADING</div>
                 <div className="text-[10px] text-slate-500">Official High-Performance Broker</div>
               </div>
             </div>
@@ -807,7 +807,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <p>
               <strong className="text-slate-300">Risk Warning:</strong> Trading financial instruments and binary options involves substantial risk and may lead to the loss of all invested capital. Before you begin trading, ensure you fully understand the risks involved and consider your investment objectives.
             </p>
-            <p>© 2026 Quotex. All rights reserved. Registered & Protected Financial Platform.</p>
+            <p>© 2026 NUX Trading. All rights reserved. Registered & Protected Financial Trading.</p>
           </div>
         </div>
       </footer>
