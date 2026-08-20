@@ -355,3 +355,10 @@ div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nt
 div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > aside#left-sidebar-navigation:nth-of-type(1) > div:nth-of-type(1) > button#nav-tab-support:nth-of-type(6) {
   display: none !important;
 }
+
+/* Hide new elements selected by the user */
+div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > button:nth-of-type(1),
+div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(2),
+div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(1) {
+  display: none !important;
+}

@@ -26,10 +26,12 @@ import {
   ExternalLink,
   Layers,
   Activity,
-  UserCheck
+  UserCheck,
+  Download
 } from 'lucide-react';
 import { Asset, UserAccount } from '../../types/trading';
 import { soundManager } from '../../utils/audio';
+import { usePWA } from '../../hooks/usePWA';
 
 interface HomePageProps {
   onStartTrading: () => void;
@@ -46,6 +48,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   user,
   assets = [],
 }) => {
+  const { promptInstall } = usePWA();
   // Live ticking prices for the hero & asset tables
   const [livePrices, setLivePrices] = useState<Record<string, { price: number; change: number; dir: 'up' | 'down' }>>({
     'EUR/USD': { price: 1.0845, change: +0.24, dir: 'up' },
@@ -100,8 +103,8 @@ export const HomePage: React.FC<HomePageProps> = ({
       a: 'The minimum deposit to start live trading on Quotex is only $10 (or equivalent in your local currency). The minimum investment amount per individual trade is just $1.',
     },
     {
-      q: 'Is the $10,000 Demo Account really free?',
-      a: 'Yes, 100% free! Every user receives an instant $10,000 reloadable practice balance upon registration or in 1-click preview mode. You can refill it back to $10,000 whenever needed without any fees.',
+      q: 'Is account registration free?',
+      a: 'Yes, 100% free! You can register instantly and start trading immediately after a deposit.',
     },
     {
       q: 'How fast are withdrawal requests processed?',
@@ -185,6 +188,13 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Right CTA Actions */}
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+          <button
+            onClick={promptInstall}
+            className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-black tracking-wide rounded-xl shadow-lg transition-all cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>INSTALL APP</span>
+          </button>
           {user ? (
             <button
               onClick={onStartTrading}
@@ -246,7 +256,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Subtitle */}
           <p className="text-sm sm:text-base md:text-lg text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
             Trade more than 400+ assets with up to <strong className="text-white font-bold">98% payout rate</strong>. 
-            Test your strategies with a complimentary <strong className="text-emerald-400 font-bold">$10,000 Demo account</strong> in 1 click.
+            Start trading on a secure and advanced real platform instantly.
           </p>
 
           {/* Hero CTAs */}
@@ -270,7 +280,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/15 font-bold text-sm rounded-2xl transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-lg"
             >
               <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" />
-              <span>Practice on $10,000 Demo</span>
+              <span>Start Trading Now</span>
             </button>
           </div>
 
@@ -410,8 +420,8 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Average Withdrawal</div>
           </div>
           <div className="space-y-1">
-            <div className="text-2xl sm:text-4xl font-black font-mono-nums text-amber-400">$10,000</div>
-            <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Free Demo Practice</div>
+            <div className="text-2xl sm:text-4xl font-black font-mono-nums text-amber-400">Real</div>
+            <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Trading Environment</div>
           </div>
         </div>
       </section>
@@ -632,9 +642,9 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="w-10 h-10 rounded-full bg-emerald-500 text-black font-black text-sm flex items-center justify-center shadow-lg">
               2
             </div>
-            <h3 className="text-lg font-bold text-white">Practice on $10k Demo</h3>
+            <h3 className="text-lg font-bold text-white">Secure Trading</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Test indicators and hone your strategy risk-free using your replenishable $10,000 demo portfolio.
+              Test indicators and execute your strategy directly in your live portfolio.
             </p>
           </div>
 
@@ -752,7 +762,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             Ready to Start Earning with NUX Trading?
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto">
-            Join over 4,000,000 active traders today. Claim a 50% bonus on your first deposit or practice with $10,000 demo funds.
+            Join over 4,000,000 active traders today. Claim a 50% bonus on your first deposit.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <button

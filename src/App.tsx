@@ -53,8 +53,13 @@ import { AnalyticsPage } from './components/pages/AnalyticsPage';
 import { AuthPage } from './components/pages/AuthPage';
 import { HomePage } from './components/pages/HomePage';
 import { AdminDashboard } from './components/pages/AdminDashboard';
+import { usePWA } from './hooks/usePWA';
+import { Download, X } from 'lucide-react';
+import { PWAInstallModal } from './components/modals/PWAInstallModal';
 
 export default function App() {
+  const { promptInstall, showFallbackModal, setShowFallbackModal } = usePWA();
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
   // User Account Session (No auto-login without explicit register/login)
   const [user, setUser] = useState<UserAccount | null>(() => {
     localStorage.removeItem('qx_user_session');
@@ -73,7 +78,7 @@ export default function App() {
 
   // 2. Account & Balances State (persisted to localStorage)
   const [accountType, setAccountType] = useState<AccountType>(() => {
-    return (localStorage.getItem('qx_account_type') as AccountType) || 'DEMO';
+    return (localStorage.getItem('qx_account_type') as AccountType) || 'LIVE';
   });
 
   const [demoBalance, setDemoBalance] = useState<number>(() => {
@@ -121,9 +126,9 @@ export default function App() {
 
   useEffect(() => {
     if (!user) {
-      setAccountType('DEMO');
+      setAccountType('LIVE');
     }
-    localStorage.setItem('qx_account_type', user ? accountType : 'DEMO');
+    localStorage.setItem('qx_account_type', user ? accountType : 'LIVE');
   }, [accountType, user]);
 
   useEffect(() => {
@@ -673,6 +678,41 @@ export default function App() {
         </div>
       )}
 
+      {/* PWA Install Banner */}
+      {showInstallBanner && (
+        <div className="bg-emerald-600 text-white text-xs font-bold py-2 px-4 flex items-center justify-between shadow-lg z-40 shrink-0 border-b border-emerald-500/20">
+          <div className="flex items-center space-x-3 truncate">
+            <div className="p-1.5 bg-black/20 rounded-lg shrink-0">
+              <Download className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-sm tracking-tight text-white">NUX Trading App is ready</span>
+              <span className="text-[10px] text-emerald-100 font-medium hidden sm:block">Install it now for a faster experience & offline access!</span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 shrink-0">
+            <button 
+              onClick={promptInstall}
+              className="px-4 py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 font-black rounded-lg shadow-sm active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+            >
+              INSTALL APP
+            </button>
+            <button 
+              onClick={() => setShowInstallBanner(false)}
+              className="p-1.5 text-emerald-200 hover:text-white rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PWA Install Fallback Modal */}
+      <PWAInstallModal 
+        isOpen={showFallbackModal} 
+        onClose={() => setShowFallbackModal(false)} 
+      />
+
       {currentView === 'home' ? (
         <HomePage
           onStartTrading={() => {
@@ -717,7 +757,7 @@ export default function App() {
           {/* 1. Top Navigation Bar */}
           <Header
             platformName={platformSettings.platformName}
-            accountType={!user ? 'DEMO' : accountType}
+            accountType={accountType}
             setAccountType={setAccountType}
             demoBalance={demoBalance}
             liveBalance={liveBalance}
@@ -815,8 +855,8 @@ export default function App() {
               <TradeExecutionPanel
                 asset={activeAsset}
                 currentPrice={activeCurrentPrice}
-                balance={(!user || accountType === 'DEMO') ? demoBalance : liveBalance}
-                accountType={!user ? 'DEMO' : accountType}
+                balance={liveBalance}
+                accountType={accountType}
                 tradeDuration={tradeDuration}
                 setTradeDuration={setTradeDuration}
                 investment={investment}

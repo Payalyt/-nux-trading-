@@ -811,7 +811,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     disabled={loading}
                     className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
                   >
-                    {loading ? 'Creating Account...' : 'Registration (Get $10,000 Demo)'}
+                    {loading ? 'Creating Account...' : 'Register Account'}
                   </button>
                 </form>
               )}
@@ -835,17 +835,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   </div>
                 </div>
               )}
-
-              {/* Quick Practice Mode switch */}
-              <div className="pt-2 text-center">
-                <button
-                  type="button"
-                  onClick={onBackToTrade}
-                  className="text-xs text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer"
-                >
-                  ⚡ Continue to Demo Practice Account without signing in
-                </button>
-              </div>
 
             </div>
           </div>

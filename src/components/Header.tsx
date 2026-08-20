@@ -31,8 +31,10 @@ import {
   Home,
   Sun,
   Moon,
-  CandlestickChart
+  CandlestickChart,
+  Download
 } from 'lucide-react';
+import { usePWA } from '../hooks/usePWA';
 
 interface HeaderProps {
   platformName?: string;
@@ -90,6 +92,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [tempDemoInput, setTempDemoInput] = useState<number | null>(null);
   const [tempLiveInput, setTempLiveInput] = useState<number | null>(null);
+
+  const { promptInstall } = usePWA();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const currentBalance = accountType === 'DEMO' ? demoBalance : liveBalance;
@@ -162,6 +166,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right: Controls, Account Selector & Action Buttons */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* PWA Install Button */}
+          <button
+            onClick={promptInstall}
+            className="hidden lg:flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-black transition-all shadow-lg cursor-pointer tracking-wide"
+            title="Install App"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>INSTALL APP</span>
+          </button>
+
           {/* Audio Sound Toggle (Desktop only) */}
           <button
             id="btn-toggle-sound"
@@ -354,86 +368,6 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     </div>
                   </div>
-                )}
-
-                {/* Demo Account Option */}
-                <div className="space-y-1 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
-                  <div
-                    onClick={() => {
-                      setAccountType('DEMO');
-                    }}
-                    className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
-                      accountType === 'DEMO' ? 'bg-emerald-500/10 border border-emerald-500/30' : 'hover:bg-white/5'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center space-x-1.5">
-                        <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                        <span className="text-xs font-bold text-white">Demo Practice</span>
-                      </div>
-                      <div className="text-xs font-mono-nums font-semibold text-slate-400 mt-0.5">
-                        ${demoBalance.toFixed(2)}
-                      </div>
-                    </div>
-                    {accountType === 'DEMO' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-                  </div>
-
-                  <div className="pt-2 px-1 space-y-1.5" onClick={(e) => e.stopPropagation()}>
-                    <div className="text-[9px] font-black tracking-wider text-slate-400 uppercase">Change Demo Balance:</div>
-                    <div className="flex items-center space-x-1">
-                      <span className="text-slate-400 font-mono text-xs">$</span>
-                      <input
-                        type="number"
-                        placeholder="Amount"
-                        defaultValue={demoBalance}
-                        onBlur={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val) && val >= 0 && onChangeDemoBalance) {
-                            onChangeDemoBalance(val);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            const val = parseFloat((e.target as HTMLInputElement).value);
-                            if (!isNaN(val) && val >= 0 && onChangeDemoBalance) {
-                              onChangeDemoBalance(val);
-                            }
-                          }
-                        }}
-                        className="w-full bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-xs text-amber-400 font-mono focus:outline-none focus:border-amber-500/50"
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {[1000, 5000, 10000].map((v) => (
-                        <button
-                          key={v}
-                          onClick={() => {
-                            if (onChangeDemoBalance) {
-                              onChangeDemoBalance(v);
-                            }
-                          }}
-                          className="px-1.5 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded text-[9px] font-mono transition-colors cursor-pointer"
-                        >
-                          ${v}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reset Demo Balance Button */}
-                {accountType === 'DEMO' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onResetDemo();
-                      setShowAccountDropdown(false);
-                    }}
-                    className="w-full mt-1 py-2 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-semibold text-slate-300 flex items-center justify-center space-x-1.5 transition-colors border border-white/5"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Refill Demo ($10,000.00)</span>
-                  </button>
                 )}
 
                 {/* Auth links inside dropdown */}

@@ -55,7 +55,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
     { id: 'tournaments', label: 'Tournaments' }
   ];
 
-  const currentBalance = (!_user || accountType === 'DEMO') ? demoBalance : liveBalance;
+  const currentBalance = liveBalance;
 
   return (
     <div className="flex flex-col bg-[#0e131d] border-b border-white/10 shrink-0 select-none z-30">
@@ -122,7 +122,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
           {/* Balance Badge */}
           <div className="text-right">
             <div className="text-[8px] sm:text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
-              {_user ? (accountType === 'DEMO' ? 'Demo' : 'Live') : 'Demo'}
+              'LIVE'
             </div>
             <div className="text-xs sm:text-sm font-mono-nums font-extrabold text-white">
               ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
