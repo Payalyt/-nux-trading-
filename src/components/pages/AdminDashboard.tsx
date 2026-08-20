@@ -283,13 +283,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       // If deposit or bonus, add to user balance in Firestore
       if ((tx.type === 'deposit' || tx.type === 'bonus') && tx.userId) {
-        const targetUser = users.find(u => u.email === tx.userId || u.id === tx.userId);
+        // Try finding user first from state, then directly from Firestore for 100% accuracy
+        let targetUser = users.find(u => 
+          (u.email || '').toLowerCase() === (tx.userId || '').toLowerCase() || 
+          (u.id || '').toLowerCase() === (tx.userId || '').toLowerCase()
+        );
+
+        // Fetch directly from Firestore to ensure we have the most accurate and fresh data
+        const freshUser = await FirebaseService.getUser(tx.userId);
+        if (freshUser) {
+          targetUser = freshUser;
+        }
+
         if (targetUser) {
           const currentBal = Number(targetUser.balance || 0);
           const addedAmt = Number(tx.amount || 0);
           const bonusAmt = Number(tx.bonus || 0);
           const totalAdd = addedAmt + bonusAmt;
-          await FirebaseService.updateUserBalance(targetUser.email, currentBal + totalAdd, 'live');
+          
+          const success = await FirebaseService.updateUserBalance(targetUser.email || tx.userId, currentBal + totalAdd, 'live');
+          if (success) {
+            console.log(`[Admin] Balance of $${totalAdd} added successfully to ${targetUser.email}`);
+          } else {
+            // Fallback: directly sync user object if updateUserBalance fails
+            await FirebaseService.syncUser({
+              ...targetUser,
+              balance: currentBal + totalAdd,
+              lastUpdated: new Date().toISOString()
+            });
+          }
+        } else {
+          // If the user document was never created in Firestore, let's create it now with the deposit balance!
+          await FirebaseService.syncUser({
+            username: tx.userId,
+            email: tx.userId,
+            fullName: tx.userId.split('@')[0],
+            role: 'user',
+            balance: Number(tx.amount || 0) + Number(tx.bonus || 0),
+            demoBalance: 10000,
+            accountStatus: 'active',
+            verificationStatus: 'verified',
+            createdAt: new Date().toISOString()
+          });
+          console.log(`[Admin] Created new user document in Firestore with approved deposit balance for ${tx.userId}`);
         }
       }
 
@@ -297,6 +333,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       loadAdminData();
       setTimeout(() => setActionMessage(''), 4000);
     } catch (err) {
+      console.error('Approve failed:', err);
       alert('Failed to approve transaction');
     }
   };
@@ -308,11 +345,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       
       // If withdrawal is rejected, refund the user balance
       if (tx.type === 'withdrawal' && tx.userId) {
-        const targetUser = users.find(u => u.email === tx.userId || u.id === tx.userId);
+        let targetUser = users.find(u => 
+          (u.email || '').toLowerCase() === (tx.userId || '').toLowerCase() || 
+          (u.id || '').toLowerCase() === (tx.userId || '').toLowerCase()
+        );
+
+        const freshUser = await FirebaseService.getUser(tx.userId);
+        if (freshUser) {
+          targetUser = freshUser;
+        }
+
         if (targetUser) {
           const currentBal = Number(targetUser.balance || 0);
           const refundedAmt = Number(tx.amount || 0);
-          await FirebaseService.updateUserBalance(targetUser.email, currentBal + refundedAmt, 'live');
+          
+          const success = await FirebaseService.updateUserBalance(targetUser.email || tx.userId, currentBal + refundedAmt, 'live');
+          if (!success) {
+            await FirebaseService.syncUser({
+              ...targetUser,
+              balance: currentBal + refundedAmt,
+              lastUpdated: new Date().toISOString()
+            });
+          }
         }
       }
 

@@ -127,7 +127,7 @@ export const FirebaseService = {
         payload.demoBalance = newBalance;
       }
 
-      await updateDoc(userRef, payload);
+      await setDoc(userRef, payload, { merge: true });
       return true;
     } catch (err) {
       console.warn('[Firebase] updateUserBalance failed:', err);
