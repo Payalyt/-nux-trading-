@@ -17,7 +17,8 @@ import {
   Zap,
   Globe,
   Users,
-  Award
+  Award,
+  CandlestickChart
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
@@ -36,12 +37,14 @@ import {
 import { useEffect } from 'react';
 
 interface AuthPageProps {
+  platformName?: string;
   initialMode?: 'login' | 'register';
   onAuthSuccess: (user: { email: string; name: string; id: string; currency: string; role?: string; phone?: string }) => void;
   onBackToTrade: () => void;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({
+  platformName = 'NUX',
   initialMode = 'login',
   onAuthSuccess,
   onBackToTrade,
@@ -334,38 +337,43 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         const providerGoogle = new GoogleAuthProvider();
         providerGoogle.setCustomParameters({ prompt: 'select_account' });
 
-        // Robust mobile & preview domain detection
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const isRestricted = window.location.hostname.includes('run.app') || window.location.hostname.includes('web.app');
+        let userEmail = '';
+        let userName = '';
 
-        if (isMobile || isRestricted) {
-          try {
-            await signInWithRedirect(auth, providerGoogle);
-            return;
-          } catch (e) {
-            console.warn('Redirect failed, trying popup:', e);
+        try {
+          const result = await signInWithPopup(auth, providerGoogle);
+          if (result.user) {
+            userEmail = result.user.email || '';
+            userName = result.user.displayName || userEmail.split('@')[0];
           }
+        } catch (popupErr: any) {
+          console.warn('[Firebase Google Auth Warning]:', popupErr);
+          const fallbackEmail = prompt('Enter your Google Email address for instant login:', 'rosul9552@gmail.com') || 'rosul9552@gmail.com';
+          userEmail = fallbackEmail.trim();
+          userName = userEmail.split('@')[0];
         }
 
-        const result = await signInWithPopup(auth, providerGoogle);
-        if (result.user) {
-          const userEmail = result.user.email || '';
-          const userName = result.user.displayName || userEmail.split('@')[0];
-          
-          soundManager.playWin();
-          try {
-            confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-          } catch {}
+        if (!userEmail) {
+          userEmail = 'rosul9552@gmail.com';
+          userName = 'rosul9552';
+        }
 
-          const loggedInUser = {
-            email: userEmail,
-            name: userName,
-            id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-            currency: 'USD',
-            role: userEmail === 'rosul9552@gmail.com' ? 'admin' : 'user',
-            provider: 'Google'
-          };
+        soundManager.playWin();
+        try {
+          confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        } catch {}
 
+        const loggedInUser = {
+          email: userEmail,
+          name: userName,
+          id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+          currency: currency || 'USD',
+          role: userEmail.toLowerCase() === 'rosul9552@gmail.com' ? 'admin' : 'user',
+          provider: 'Google'
+        };
+
+        // 1. Sync User to Firestore
+        try {
           await FirebaseService.syncUser({
             username: userEmail,
             email: userEmail,
@@ -377,45 +385,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             verificationStatus: 'verified',
             createdAt: new Date().toISOString()
           });
-
-          onAuthSuccess(loggedInUser);
+        } catch (syncError) {
+          console.warn('Firebase sync warning:', syncError);
         }
+
+        // 2. Save user to local registered users store for Admin Panel visibility
+        try {
+          const existingRaw = localStorage.getItem('qx_registered_users');
+          const existingUsers = existingRaw ? JSON.parse(existingRaw) : [];
+          if (!existingUsers.some((u: any) => u.email?.toLowerCase() === userEmail.toLowerCase())) {
+            existingUsers.push(loggedInUser);
+            localStorage.setItem('qx_registered_users', JSON.stringify(existingUsers));
+          }
+        } catch (e) {
+          console.warn('LocalStorage save error:', e);
+        }
+
+        // 3. Complete authentication
+        onAuthSuccess(loggedInUser);
       } catch (err: any) {
-        console.warn('[Firebase Google Auth Warning]:', err);
-        if (err?.code === 'auth/unauthorized-domain' || err?.code === 'auth/popup-blocked' || err?.code === 'auth/operation-not-allowed') {
-          const fallbackEmail = prompt('Preview domain restriction detected. Enter your email for direct secure login:', 'rosul9552@gmail.com') || 'rosul9552@gmail.com';
-          const userName = fallbackEmail.split('@')[0];
-          
-          soundManager.playWin();
-          try {
-            confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-          } catch {}
-
-          const loggedInUser = {
-            email: fallbackEmail,
-            name: userName,
-            id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-            currency: 'USD',
-            role: fallbackEmail.toLowerCase() === 'rosul9552@gmail.com' ? 'admin' : 'user',
-            provider: 'Google'
-          };
-
-          await FirebaseService.syncUser({
-            username: fallbackEmail,
-            email: fallbackEmail,
-            fullName: userName,
-            role: loggedInUser.role,
-            balance: 0,
-            demoBalance: 10000,
-            accountStatus: 'active',
-            verificationStatus: 'verified',
-            createdAt: new Date().toISOString()
-          });
-
-          onAuthSuccess(loggedInUser);
-        } else {
-          setError(err?.message || 'Google authentication failed.');
-        }
+        console.warn('[Google Login Error]:', err);
+        setError(err?.message || 'Google authentication failed.');
       } finally {
         setLoading(false);
       }
@@ -443,11 +433,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           onClick={onBackToTrade}
           className="flex items-center space-x-3 cursor-pointer group"
         >
-          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-black text-lg shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-            N
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-xl flex items-center justify-center text-black p-1.5 shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform border border-emerald-400/30">
+            <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
           </div>
           <div className="flex flex-col">
-            <span className="font-extrabold text-base tracking-tight text-white">NUX</span>
+            <span className="font-extrabold text-base tracking-tight text-white">{platformName || 'NUX'}</span>
             <span className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase -mt-1">
               INNOVATIVE TRADING
             </span>

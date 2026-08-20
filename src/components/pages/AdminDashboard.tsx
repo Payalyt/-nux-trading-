@@ -82,7 +82,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const fetchedTx = await FirebaseService.fetchTransactions();
       const fetchedGateways = await FirebaseService.fetchGateways();
       
-      setUsers(fetchedUsers);
+      // Merge Firestore users with local registered users
+      let combinedUsers = [...fetchedUsers];
+      try {
+        const localRaw = localStorage.getItem('qx_registered_users');
+        const localList = localRaw ? JSON.parse(localRaw) : [];
+        localList.forEach((lu: any) => {
+          const emailVal = (lu.email || '').toLowerCase();
+          if (emailVal && !combinedUsers.some((u: any) => (u.email || u.username || '').toLowerCase() === emailVal)) {
+            combinedUsers.push({
+              id: emailVal.replace(/[^a-zA-Z0-9_-]/g, '_'),
+              email: emailVal,
+              username: emailVal,
+              fullName: lu.name || emailVal.split('@')[0],
+              role: lu.role || 'user',
+              balance: 0,
+              demoBalance: 10000,
+              accountStatus: 'active',
+              verificationStatus: 'verified',
+              createdAt: new Date().toISOString()
+            });
+          }
+        });
+      } catch (e) {
+        console.warn('Local users merge error:', e);
+      }
+
+      setUsers(combinedUsers);
       setTransactions(fetchedTx);
       
       if (fetchedGateways && fetchedGateways.length > 0) {
@@ -161,7 +187,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             category: 'bank',
             icon: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png',
             active: true,
-            sendMoneyNumber: 'A/C: 1234567890 (NUX Trading Ltd, Bank Asia)',
+            sendMoneyNumber: 'A/C: 1234567890 (NUX Trading Ltd)',
             merchantNumber: '',
             cashOutNumber: '',
             instruction: 'Deposit to company bank account and upload reference receipt.',

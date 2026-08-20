@@ -29,7 +29,8 @@ import {
   ShieldCheck,
   Home,
   Sun,
-  Moon
+  Moon,
+  CandlestickChart
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -117,23 +118,24 @@ export const Header: React.FC<HeaderProps> = ({
       >
         {/* Left: Mobile Menu Hamburger + Logo */}
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button - 3 Line Hamburger Menu */}
           <button
             onClick={() => setShowMobileMenu(true)}
-            className="flex lg:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 active:scale-95 transition-all"
-            title="Open Mobile Navigation"
+            className="flex lg:hidden p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 active:scale-95 transition-all shadow-md shadow-emerald-500/10 shrink-0 items-center justify-center gap-1.5"
+            title="Open Mobile Menu"
+            aria-label="Open Navigation Menu"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
           </button>
 
           {/* Logo & Brand Identity */}
           <div 
             onClick={onGoToHome}
-            className="flex items-center gap-2 cursor-pointer group"
-            title="NUX Home"
+            className="flex items-center gap-2.5 cursor-pointer group"
+            title={`${platformName} Home`}
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-black text-base sm:text-lg shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-              {platformName[0].toUpperCase()}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-xl flex items-center justify-center text-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform p-1.5 border border-emerald-400/30">
+              <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">{platformName}</span>
@@ -410,8 +412,8 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-black text-lg shadow-md">
-                    {platformName[0].toUpperCase()}
+                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-black p-1 shadow-md">
+                    <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
                   </div>
                   <span className="font-extrabold text-base text-white">{platformName}</span>
                 </div>

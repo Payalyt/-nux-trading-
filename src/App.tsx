@@ -230,12 +230,21 @@ export default function App() {
 
     setUser(finalUserData);
     localStorage.setItem('qx_user_session', JSON.stringify(finalUserData));
-    
-    if (isAdmin) {
-      setCurrentView('admin');
-    } else {
-      setCurrentView('trade');
+
+    // Save to local registered users store so admin panel sees all registered emails
+    try {
+      const existingRaw = localStorage.getItem('qx_registered_users');
+      const existingUsers = existingRaw ? JSON.parse(existingRaw) : [];
+      if (!existingUsers.some((u: any) => u.email?.toLowerCase() === finalUserData.email.toLowerCase())) {
+        existingUsers.push(finalUserData);
+        localStorage.setItem('qx_registered_users', JSON.stringify(existingUsers));
+      }
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
     }
+    
+    // Always navigate directly to the trading account dashboard ('trade')
+    setCurrentView('trade');
     setIsAuthModalOpen(false);
 
     // Sync user data directly to Firebase Firestore
