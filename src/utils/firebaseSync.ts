@@ -46,24 +46,55 @@ export const FirebaseService = {
       const sanitizedId = emailValue.replace(/[^a-zA-Z0-9_-]/g, '_');
       const userRef = doc(db, 'users', sanitizedId);
 
+      // Fetch existing user data first to avoid overwriting existing balance with login default 0
+      const snap = await getDoc(userRef);
+      const existingData = snap.exists() ? snap.data() : null;
+
+      let finalBalance = typeof user.balance === 'number' ? user.balance : 0;
+      let finalDemoBalance = typeof user.demoBalance === 'number' ? user.demoBalance : 10000;
+
+      if (existingData) {
+        if (typeof existingData.balance === 'number') {
+          // If the new balance is 0 and existing balance is NOT 0, keep the existing one (prevents login reset)
+          if (user.balance === 0 && existingData.balance !== 0) {
+            finalBalance = existingData.balance;
+          } else if (user.balance !== undefined) {
+            finalBalance = user.balance;
+          } else {
+            finalBalance = existingData.balance;
+          }
+        }
+        
+        if (typeof existingData.demoBalance === 'number') {
+          // If new demo balance is 10000 and existing demo balance is not 10000, keep existing (prevents login reset)
+          if (user.demoBalance === 10000 && existingData.demoBalance !== 10000) {
+            finalDemoBalance = existingData.demoBalance;
+          } else if (user.demoBalance !== undefined) {
+            finalDemoBalance = user.demoBalance;
+          } else {
+            finalDemoBalance = existingData.demoBalance;
+          }
+        }
+      }
+
       const userPayload = {
         email: emailValue,
-        username: user.username || emailValue,
-        fullName: user.fullName || emailValue.split('@')[0],
-        phone: user.phone || '',
-        role: user.role || 'user',
-        balance: typeof user.balance === 'number' ? user.balance : 0,
-        demoBalance: typeof user.demoBalance === 'number' ? user.demoBalance : 10000,
-        accountStatus: user.accountStatus || 'active',
-        verificationStatus: user.verificationStatus || 'verified',
-        createdAt: user.createdAt || new Date().toISOString(),
+        username: user.username || (existingData ? existingData.username : null) || emailValue,
+        fullName: user.fullName || (existingData ? existingData.fullName : null) || emailValue.split('@')[0],
+        phone: user.phone || (existingData ? existingData.phone : null) || '',
+        role: user.role || (existingData ? existingData.role : null) || 'user',
+        balance: finalBalance,
+        demoBalance: finalDemoBalance,
+        accountStatus: user.accountStatus || (existingData ? existingData.accountStatus : null) || 'active',
+        verificationStatus: user.verificationStatus || (existingData ? existingData.verificationStatus : null) || 'verified',
+        createdAt: user.createdAt || (existingData ? existingData.createdAt : null) || new Date().toISOString(),
         syncedAt: serverTimestamp(),
         lastUpdated: new Date().toISOString()
       };
 
       await setDoc(userRef, userPayload, { merge: true });
 
-      console.log(`[Firebase] User ${emailValue} successfully saved to Firestore 'users' collection`);
+      console.log(`[Firebase] User ${emailValue} synced/merged successfully. Final balance: ${finalBalance}`);
       return true;
     } catch (err) {
       console.warn('[Firebase] syncUser failed:', err);

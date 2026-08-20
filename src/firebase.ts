@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getAnalytics, Analytics } from "firebase/analytics";
 
@@ -15,6 +15,11 @@ export const firebaseConfig = {
 
 // Initialize Firebase App safely (singleton)
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Enable robust HTTP long polling to guarantee seamless Firestore connectivity in sandboxed iframes/proxies
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
+
 export const auth = getAuth(app);
 export const analytics: Analytics | null = typeof window !== 'undefined' ? getAnalytics(app) : null;
