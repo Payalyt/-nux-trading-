@@ -697,30 +697,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     {loading ? 'Logging In...' : 'Log In to NUX'}
                   </button>
 
-                  {/* Admin Quick Credentials Card */}
-                  <div className="mt-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-400">
-                        <Shield className="w-4 h-4" />
-                        <span>Admin Panel Credentials</span>
-                      </div>
-                      <span className="text-[9px] bg-emerald-500 text-black px-1.5 py-0.5 rounded font-black">ADMIN</span>
-                    </div>
-                    <div className="text-[11px] text-slate-300 space-y-0.5 font-mono">
-                      <div><strong className="text-slate-400">Email:</strong> rosul9552@gmail.com</div>
-                      <div><strong className="text-slate-400">Password:</strong> admin123</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmail('rosul9552@gmail.com');
-                        setPassword('admin123');
-                      }}
-                      className="w-full py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Fill Admin Credentials
-                    </button>
-                  </div>
+
                 </form>
               ) : (
                 /* REGISTRATION FORM */

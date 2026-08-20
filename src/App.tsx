@@ -813,7 +813,7 @@ export default function App() {
       ) : (
         /* Subpages with Quotex SubHeader */
         <div className={`flex flex-col h-full w-full ${themeMode === 'light' ? 'bg-[#f4f6f9]' : 'bg-[#0a0d14]'}`}>
-          {currentView !== 'auth' && (
+          {currentView !== 'auth' && currentView !== 'admin' && (
             <QuotexSubHeader
               platformName={platformSettings.platformName}
               currentPage={currentView}
