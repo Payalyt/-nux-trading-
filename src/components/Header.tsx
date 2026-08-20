@@ -113,29 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleHardReload = async () => {
-    setIsRefreshing(true);
-    soundManager.playClick();
-    try {
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        for (const reg of regs) {
-          await reg.unregister();
-        }
-      }
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        for (const key of keys) {
-          await caches.delete(key);
-        }
-      }
-    } catch (err) {
-      console.error('[HardReload] Error clearing cache:', err);
-    }
-    window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
-  };
 
   const handleMobileNav = (page: string) => {
     soundManager.playClick();
@@ -200,18 +178,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>INSTALL APP</span>
           </button>
 
-          {/* Real-time Update / Cache Clear Reload Button (Visible on both Mobile and Desktop) */}
-          <button
-            id="btn-hard-reload"
-            onClick={handleHardReload}
-            disabled={isRefreshing}
-            className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer active:scale-95 shadow-md shadow-emerald-500/5 shrink-0 ${isRefreshing ? 'animate-pulse' : ''}`}
-            title="Update & Refresh Platform"
-          >
-            <RotateCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline text-[11px] font-bold">Update Platform</span>
-            <span className="sm:hidden text-[10px] font-black">UPDATE</span>
-          </button>
+
 
           {/* Audio Sound Toggle (Desktop only) */}
           <button

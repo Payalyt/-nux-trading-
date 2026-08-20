@@ -23,6 +23,7 @@ interface WithdrawalPageProps {
   onWithdrawSuccess: (amount: number) => void;
   onBackToTrade: () => void;
   userEmail?: string;
+  balanceLocked?: boolean;
 }
 
 export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
@@ -31,6 +32,7 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
   onWithdrawSuccess,
   onBackToTrade,
   userEmail,
+  balanceLocked,
 }) => {
   const [amount, setAmount] = useState<number>(Math.min(50, liveBalance > 0 ? liveBalance : 50));
   const [method, setMethod] = useState<string>('bkash');
@@ -111,6 +113,14 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
   const handleExecuteWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatusMessage(null);
+
+    if (balanceLocked) {
+      setStatusMessage({
+        type: 'error',
+        text: 'Your account balance is locked by administrator. Withdrawals are restricted.'
+      });
+      return;
+    }
 
     if (amount > liveBalance) {
       setStatusMessage({

@@ -492,6 +492,12 @@ export default function App() {
 
   // 9. Trade Execution Handler
   const handlePlaceTrade = (type: 'CALL' | 'PUT') => {
+    if (user?.balanceLocked) {
+      soundManager.playLoss();
+      alert('Your account balance is locked by the administrator. Trading and withdrawals are restricted.');
+      return;
+    }
+
     const currentBalance = accountType === 'DEMO' ? demoBalance : liveBalance;
 
     if (currentBalance < investment) {
@@ -906,6 +912,7 @@ export default function App() {
                 onBackToTrade={() => setCurrentView('trade')}
                 onWithdrawSuccess={handleWithdrawSuccess}
                 userEmail={user?.email}
+                balanceLocked={!!user?.balanceLocked}
               />
             )}
             {currentView === 'my_account' && (
@@ -975,6 +982,7 @@ export default function App() {
         liveBalance={liveBalance}
         onWithdrawSuccess={handleWithdrawSuccess}
         userEmail={user?.email}
+        balanceLocked={!!user?.balanceLocked}
       />
 
       <PairInfoModal

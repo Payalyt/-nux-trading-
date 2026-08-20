@@ -10,6 +10,7 @@ interface WithdrawalModalProps {
   liveBalance: number;
   onWithdrawSuccess: (amount: number) => void;
   userEmail?: string;
+  balanceLocked?: boolean;
 }
 
 export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
@@ -18,6 +19,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   liveBalance,
   onWithdrawSuccess,
   userEmail,
+  balanceLocked,
 }) => {
   const [gateways, setGateways] = useState<any[]>([]);
   const [selectedGateway, setSelectedGateway] = useState<any | null>(null);
@@ -66,6 +68,11 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (balanceLocked) {
+      setErrorMsg('Your account balance is locked by administrator. Withdrawals are restricted.');
+      return;
+    }
 
     if (amount > liveBalance) {
       setErrorMsg(`Withdrawal amount (${amount}) exceeds available live balance (${liveBalance.toFixed(2)}).`);
