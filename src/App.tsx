@@ -211,6 +211,11 @@ export default function App() {
     return initial;
   });
 
+  const currentPricesRef = useRef(currentPrices);
+  useEffect(() => {
+    currentPricesRef.current = currentPrices;
+  }, [currentPrices]);
+
   // Theme State (Dark vs Light)
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('qx_theme_mode') as 'dark' | 'light') || 'dark';
@@ -445,7 +450,7 @@ export default function App() {
 
         if (expiring.length > 0) {
           expiring.forEach((trade) => {
-            const finalPrice = currentPrices[trade.assetId] || trade.openPrice;
+            const finalPrice = currentPricesRef.current[trade.assetId] || trade.openPrice;
             const isWon =
               (trade.type === 'CALL' && finalPrice > trade.openPrice) ||
               (trade.type === 'PUT' && finalPrice < trade.openPrice);
@@ -500,7 +505,7 @@ export default function App() {
     }, 450);
 
     return () => clearInterval(tickInterval);
-  }, [openAssets, timeframeMs, currentPrices]);
+  }, [openAssets, timeframeMs]);
 
   // 9. Trade Execution Handler
   const handlePlaceTrade = (type: 'CALL' | 'PUT') => {
@@ -874,7 +879,7 @@ export default function App() {
               <TradeExecutionPanel
                 asset={activeAsset}
                 currentPrice={activeCurrentPrice}
-                balance={liveBalance}
+                balance={accountType === 'DEMO' ? demoBalance : liveBalance}
                 accountType={accountType}
                 tradeDuration={tradeDuration}
                 setTradeDuration={setTradeDuration}

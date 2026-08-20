@@ -261,6 +261,28 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
+          {/* Quick Live/Demo Toggle Pill */}
+          {user && (
+            <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-0.5 gap-0.5 shadow-inner">
+              <button
+                onClick={() => setAccountType('LIVE')}
+                className={`px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider transition-all cursor-pointer ${
+                  accountType === 'LIVE' ? 'bg-emerald-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                LIVE
+              </button>
+              <button
+                onClick={() => setAccountType('DEMO')}
+                className={`px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider transition-all cursor-pointer ${
+                  accountType === 'DEMO' ? 'bg-amber-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                DEMO
+              </button>
+            </div>
+          )}
+
           {/* Account Selector Pill & Dropdown (Ultra-Clear on Mobile & Desktop) */}
           <div className="relative shrink-0">
             <button
@@ -313,6 +335,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <div
                       onClick={() => {
                         setAccountType('LIVE');
+                        setShowAccountDropdown(false);
                       }}
                       className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
                         accountType === 'LIVE' ? 'bg-emerald-500/10 border border-emerald-500/30' : 'hover:bg-white/5'
@@ -370,6 +393,44 @@ export const Header: React.FC<HeaderProps> = ({
                           </button>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Demo Account Option */}
+                {user && (
+                  <div className="space-y-1 bg-white/[0.02] p-2.5 rounded-xl border border-white/5 mt-1">
+                    <div
+                      onClick={() => {
+                        setAccountType('DEMO');
+                        setShowAccountDropdown(false);
+                      }}
+                      className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                        accountType === 'DEMO' ? 'bg-amber-500/10 border border-amber-500/30' : 'hover:bg-white/5'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                          <span className="text-xs font-bold text-white">Demo Account (Practice)</span>
+                        </div>
+                        <div className="text-xs font-mono-nums font-semibold text-slate-400 mt-0.5">
+                          ${demoBalance.toFixed(2)}
+                        </div>
+                      </div>
+                      {accountType === 'DEMO' && <CheckCircle className="w-4 h-4 text-amber-400" />}
+                    </div>
+
+                    <div className="pt-2 px-1 flex items-center justify-between">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onResetDemo();
+                        }}
+                        className="w-full py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        Refill Demo ($10,000)
+                      </button>
                     </div>
                   </div>
                 )}
