@@ -1,13 +1,17 @@
 import React from 'react';
-import { Share, PlusSquare, X } from 'lucide-react';
+import { Share, PlusSquare, X, MoreVertical } from 'lucide-react';
+import { DeviceType } from '../../hooks/usePWA';
 
 interface PWAInstallModalProps {
   isOpen: boolean;
   onClose: () => void;
+  deviceType?: DeviceType;
 }
 
-export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClose }) => {
+export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClose, deviceType = 'desktop' }) => {
   if (!isOpen) return null;
+
+  const isIOS = deviceType === 'ios';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -36,11 +40,15 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
           <div className="bg-black/30 rounded-xl p-4 text-left border border-white/5 space-y-4">
             <div className="flex items-start space-x-3">
               <div className="shrink-0 pt-0.5">
-                <Share className="w-5 h-5 text-blue-400" />
+                {isIOS ? <Share className="w-5 h-5 text-blue-400" /> : <MoreVertical className="w-5 h-5 text-blue-400" />}
               </div>
               <div>
-                <div className="text-xs font-bold text-white mb-0.5">1. Tap the Share button</div>
-                <div className="text-[11px] text-slate-400 leading-tight">Locate the share icon in your browser menu or at the bottom of your screen.</div>
+                <div className="text-xs font-bold text-white mb-0.5">
+                  1. Tap the {isIOS ? 'Share' : 'Browser Menu (3 dots)'} button
+                </div>
+                <div className="text-[11px] text-slate-400 leading-tight">
+                  Locate the {isIOS ? 'share icon' : 'menu icon'} in your browser menu.
+                </div>
               </div>
             </div>
 
@@ -49,8 +57,12 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                 <PlusSquare className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <div className="text-xs font-bold text-white mb-0.5">2. Tap 'Add to Home Screen'</div>
-                <div className="text-[11px] text-slate-400 leading-tight">Scroll down the share menu and select "Add to Home Screen".</div>
+                <div className="text-xs font-bold text-white mb-0.5">
+                  2. Tap {isIOS ? "'Add to Home Screen'" : "'Install app'"}
+                </div>
+                <div className="text-[11px] text-slate-400 leading-tight">
+                  Scroll down the menu and select "{isIOS ? 'Add to Home Screen' : 'Install app'}".
+                </div>
               </div>
             </div>
           </div>
@@ -66,3 +78,4 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
     </div>
   );
 };
+

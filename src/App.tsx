@@ -58,7 +58,7 @@ import { Download, X } from 'lucide-react';
 import { PWAInstallModal } from './components/modals/PWAInstallModal';
 
 export default function App() {
-  const { promptInstall, showFallbackModal, setShowFallbackModal } = usePWA();
+  const { promptInstall, showFallbackModal, setShowFallbackModal, deviceType } = usePWA();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   // User Account Session (No auto-login without explicit register/login)
   const [user, setUser] = useState<UserAccount | null>(() => {
@@ -711,6 +711,7 @@ export default function App() {
       <PWAInstallModal 
         isOpen={showFallbackModal} 
         onClose={() => setShowFallbackModal(false)} 
+        deviceType={deviceType}
       />
 
       {currentView === 'home' ? (
