@@ -231,6 +231,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         ...managingUser,
         balance: isNaN(newBal) ? Number(managingUser.balance || 0) : newBal,
         bonus: isNaN(newBonus) ? Number(managingUser.bonus || 0) : newBonus,
+        forceBalance: true,
         lastUpdated: new Date().toISOString()
       };
 
@@ -251,7 +252,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const newStatus = user.accountStatus === 'blocked' ? 'active' : 'blocked';
       await FirebaseService.syncUser({
         ...user,
-        accountStatus: newStatus
+        accountStatus: newStatus,
+        forceBalance: true
       });
       setActionMessage(`User ${user.email} is now ${newStatus}`);
       loadAdminData();
@@ -266,7 +268,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const newLockState = !user.balanceLocked;
       await FirebaseService.syncUser({
         ...user,
-        balanceLocked: newLockState
+        balanceLocked: newLockState,
+        forceBalance: true
       });
       setActionMessage(`Balance for ${user.email} is now ${newLockState ? 'LOCKED (Withdrawal & Trading restricted)' : 'UNLOCKED'}`);
       loadAdminData();

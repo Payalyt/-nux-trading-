@@ -152,8 +152,32 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    
+    // Disable caching for service worker and main html files to ensure immediate updates across any custom domains
+    app.use((req, res, next) => {
+      const url = req.url;
+      if (url === '/' || url.endsWith('.html') || url.endsWith('sw.js') || url.includes('manifest.json')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+      } else {
+        // Cache compiled static assets with hashed filenames
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+      next();
+    });
+
+    app.use(express.static(distPath, {
+      etag: true,
+      lastModified: true
+    }));
+
     app.get('*all', (req, res) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

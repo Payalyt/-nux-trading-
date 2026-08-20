@@ -36,9 +36,13 @@ export const FirebaseService = {
     role?: string;
     balance?: number;
     demoBalance?: number;
+    bonus?: number;
     accountStatus?: string;
+    balanceLocked?: boolean;
     verificationStatus?: string;
     createdAt?: string;
+    forceBalance?: boolean;
+    [key: string]: any;
   }): Promise<boolean> {
     try {
       const emailValue = (user.email || user.username || '').trim().toLowerCase();
@@ -46,7 +50,7 @@ export const FirebaseService = {
       const sanitizedId = emailValue.replace(/[^a-zA-Z0-9_-]/g, '_');
       const userRef = doc(db, 'users', sanitizedId);
 
-      // Fetch existing user data first to avoid overwriting existing balance with login default 0
+      // Fetch existing user data first
       const snap = await getDoc(userRef);
       const existingData = snap.exists() ? snap.data() : null;
 
@@ -54,47 +58,59 @@ export const FirebaseService = {
       let finalDemoBalance = typeof user.demoBalance === 'number' ? user.demoBalance : 10000;
 
       if (existingData) {
-        if (typeof existingData.balance === 'number') {
-          // If the new balance is 0 and existing balance is NOT 0, keep the existing one (prevents login reset)
-          if (user.balance === 0 && existingData.balance !== 0) {
-            finalBalance = existingData.balance;
-          } else if (user.balance !== undefined) {
-            finalBalance = user.balance;
-          } else {
-            finalBalance = existingData.balance;
+        if (user.forceBalance) {
+          // If forceBalance is true (admin action, deposit approval, balance edit), respect user.balance directly
+          finalBalance = typeof user.balance === 'number' ? user.balance : (typeof existingData.balance === 'number' ? existingData.balance : 0);
+          finalDemoBalance = typeof user.demoBalance === 'number' ? user.demoBalance : (typeof existingData.demoBalance === 'number' ? existingData.demoBalance : 10000);
+        } else {
+          // Standard login sync: prevent login default 0 from overwriting existing non-zero balance
+          if (typeof existingData.balance === 'number') {
+            if (user.balance === 0 && existingData.balance !== 0) {
+              finalBalance = existingData.balance;
+            } else if (user.balance !== undefined) {
+              finalBalance = user.balance;
+            } else {
+              finalBalance = existingData.balance;
+            }
           }
-        }
-        
-        if (typeof existingData.demoBalance === 'number') {
-          // If new demo balance is 10000 and existing demo balance is not 10000, keep existing (prevents login reset)
-          if (user.demoBalance === 10000 && existingData.demoBalance !== 10000) {
-            finalDemoBalance = existingData.demoBalance;
-          } else if (user.demoBalance !== undefined) {
-            finalDemoBalance = user.demoBalance;
-          } else {
-            finalDemoBalance = existingData.demoBalance;
+          
+          if (typeof existingData.demoBalance === 'number') {
+            if (user.demoBalance === 10000 && existingData.demoBalance !== 10000) {
+              finalDemoBalance = existingData.demoBalance;
+            } else if (user.demoBalance !== undefined) {
+              finalDemoBalance = user.demoBalance;
+            } else {
+              finalDemoBalance = existingData.demoBalance;
+            }
           }
         }
       }
 
       const userPayload = {
+        ...existingData,
+        ...user,
         email: emailValue,
         username: user.username || (existingData ? existingData.username : null) || emailValue,
         fullName: user.fullName || (existingData ? existingData.fullName : null) || emailValue.split('@')[0],
-        phone: user.phone || (existingData ? existingData.phone : null) || '',
+        phone: user.phone !== undefined ? user.phone : (existingData ? existingData.phone : ''),
         role: user.role || (existingData ? existingData.role : null) || 'user',
         balance: finalBalance,
         demoBalance: finalDemoBalance,
+        bonus: user.bonus !== undefined ? user.bonus : (existingData && existingData.bonus !== undefined ? existingData.bonus : 0),
         accountStatus: user.accountStatus || (existingData ? existingData.accountStatus : null) || 'active',
+        balanceLocked: user.balanceLocked !== undefined ? user.balanceLocked : (existingData && existingData.balanceLocked !== undefined ? existingData.balanceLocked : false),
         verificationStatus: user.verificationStatus || (existingData ? existingData.verificationStatus : null) || 'verified',
         createdAt: user.createdAt || (existingData ? existingData.createdAt : null) || new Date().toISOString(),
         syncedAt: serverTimestamp(),
         lastUpdated: new Date().toISOString()
       };
 
+      // Remove internal helper property if present
+      delete userPayload.forceBalance;
+
       await setDoc(userRef, userPayload, { merge: true });
 
-      console.log(`[Firebase] User ${emailValue} synced/merged successfully. Final balance: ${finalBalance}`);
+      console.log(`[Firebase] User ${emailValue} synced/merged successfully. Final balance: ${finalBalance}, locked: ${userPayload.balanceLocked}, status: ${userPayload.accountStatus}`);
       return true;
     } catch (err) {
       console.warn('[Firebase] syncUser failed:', err);
