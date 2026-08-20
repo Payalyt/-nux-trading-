@@ -448,7 +448,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       </header>
 
       {/* Main Content Split Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-12 items-center justify-center gap-8 lg:gap-16 z-10">
+      <div className="flex-1 flex flex-col md:flex-row max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 lg:p-12 items-center justify-center gap-6 md:gap-8 lg:gap-16 z-10">
         
         {/* Left Side: Brand Value Proposition & Trust Badges */}
         <div className="flex-1 space-y-6 max-w-lg hidden md:block">
