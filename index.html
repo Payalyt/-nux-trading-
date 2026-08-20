@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>NUX • Web Trading Platform</title>
     <!-- Suppress benign browser extension fetch override errors -->
     <script>
@@ -29,7 +29,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-[#12161f] text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] antialiased select-none overflow-hidden h-screen w-screen">
+  <body class="bg-[#12161f] text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] antialiased select-none overflow-hidden h-[100dvh] w-full min-h-[100dvh] max-h-[100dvh]">
     <div id="root" class="h-full w-full"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

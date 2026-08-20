@@ -7,6 +7,7 @@ import {
   Eye, 
   EyeOff, 
   CheckCircle2, 
+  Shield,
   ShieldCheck, 
   TrendingUp, 
   Sparkles, 
@@ -337,75 +338,68 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         const providerGoogle = new GoogleAuthProvider();
         providerGoogle.setCustomParameters({ prompt: 'select_account' });
 
-        let userEmail = '';
-        let userName = '';
-
         try {
           const result = await signInWithPopup(auth, providerGoogle);
-          if (result.user) {
-            userEmail = result.user.email || '';
-            userName = result.user.displayName || userEmail.split('@')[0];
+          if (result.user && result.user.email) {
+            const userEmail = result.user.email;
+            const userName = result.user.displayName || userEmail.split('@')[0];
+
+            soundManager.playWin();
+            try {
+              confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+            } catch {}
+
+            const loggedInUser = {
+              email: userEmail,
+              name: userName,
+              id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+              currency: currency || 'USD',
+              role: userEmail.toLowerCase() === 'rosul9552@gmail.com' ? 'admin' : 'user',
+              provider: 'Google'
+            };
+
+            // 1. Sync User to Firestore
+            try {
+              await FirebaseService.syncUser({
+                username: userEmail,
+                email: userEmail,
+                fullName: userName,
+                role: loggedInUser.role,
+                balance: 0,
+                demoBalance: 10000,
+                accountStatus: 'active',
+                verificationStatus: 'verified',
+                createdAt: new Date().toISOString()
+              });
+            } catch (syncError) {
+              console.warn('Firebase sync warning:', syncError);
+            }
+
+            // 2. Save user to local registered users store
+            try {
+              const existingRaw = localStorage.getItem('qx_registered_users');
+              const existingUsers = existingRaw ? JSON.parse(existingRaw) : [];
+              if (!existingUsers.some((u: any) => u.email?.toLowerCase() === userEmail.toLowerCase())) {
+                existingUsers.push(loggedInUser);
+                localStorage.setItem('qx_registered_users', JSON.stringify(existingUsers));
+              }
+            } catch (e) {
+              console.warn('LocalStorage save error:', e);
+            }
+
+            // 3. Complete authentication
+            onAuthSuccess(loggedInUser);
+            return;
           }
         } catch (popupErr: any) {
-          console.warn('[Firebase Google Auth Warning]:', popupErr);
-          const fallbackEmail = prompt('Enter your Google Email address for instant login:', 'rosul9552@gmail.com') || 'rosul9552@gmail.com';
-          userEmail = fallbackEmail.trim();
-          userName = userEmail.split('@')[0];
+          console.warn('[Firebase Google Auth Popup info]:', popupErr);
+          // If popup is blocked/closed, open dedicated Google Account Selector Modal
+          setSocialProvider('Google');
+          return;
         }
-
-        if (!userEmail) {
-          userEmail = 'rosul9552@gmail.com';
-          userName = 'rosul9552';
-        }
-
-        soundManager.playWin();
-        try {
-          confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-        } catch {}
-
-        const loggedInUser = {
-          email: userEmail,
-          name: userName,
-          id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-          currency: currency || 'USD',
-          role: userEmail.toLowerCase() === 'rosul9552@gmail.com' ? 'admin' : 'user',
-          provider: 'Google'
-        };
-
-        // 1. Sync User to Firestore
-        try {
-          await FirebaseService.syncUser({
-            username: userEmail,
-            email: userEmail,
-            fullName: userName,
-            role: loggedInUser.role,
-            balance: 0,
-            demoBalance: 10000,
-            accountStatus: 'active',
-            verificationStatus: 'verified',
-            createdAt: new Date().toISOString()
-          });
-        } catch (syncError) {
-          console.warn('Firebase sync warning:', syncError);
-        }
-
-        // 2. Save user to local registered users store for Admin Panel visibility
-        try {
-          const existingRaw = localStorage.getItem('qx_registered_users');
-          const existingUsers = existingRaw ? JSON.parse(existingRaw) : [];
-          if (!existingUsers.some((u: any) => u.email?.toLowerCase() === userEmail.toLowerCase())) {
-            existingUsers.push(loggedInUser);
-            localStorage.setItem('qx_registered_users', JSON.stringify(existingUsers));
-          }
-        } catch (e) {
-          console.warn('LocalStorage save error:', e);
-        }
-
-        // 3. Complete authentication
-        onAuthSuccess(loggedInUser);
       } catch (err: any) {
         console.warn('[Google Login Error]:', err);
-        setError(err?.message || 'Google authentication failed.');
+        setSocialProvider('Google');
       } finally {
         setLoading(false);
       }
@@ -702,6 +696,31 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   >
                     {loading ? 'Logging In...' : 'Log In to NUX'}
                   </button>
+
+                  {/* Admin Quick Credentials Card */}
+                  <div className="mt-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-400">
+                        <Shield className="w-4 h-4" />
+                        <span>Admin Panel Credentials</span>
+                      </div>
+                      <span className="text-[9px] bg-emerald-500 text-black px-1.5 py-0.5 rounded font-black">ADMIN</span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 space-y-0.5 font-mono">
+                      <div><strong className="text-slate-400">Email:</strong> rosul9552@gmail.com</div>
+                      <div><strong className="text-slate-400">Password:</strong> admin123</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail('rosul9552@gmail.com');
+                        setPassword('admin123');
+                      }}
+                      className="w-full py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Fill Admin Credentials
+                    </button>
+                  </div>
                 </form>
               ) : (
                 /* REGISTRATION FORM */

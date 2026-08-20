@@ -243,8 +243,13 @@ export default function App() {
       console.warn('LocalStorage save error:', e);
     }
     
-    // Always navigate directly to the trading account dashboard ('trade')
-    setCurrentView('trade');
+    // If admin (rosul9552@gmail.com or role === 'admin'), route directly to the Admin Panel ('admin')
+    // Otherwise route regular users to the trading account dashboard ('trade')
+    if (isAdmin) {
+      setCurrentView('admin');
+    } else {
+      setCurrentView('trade');
+    }
     setIsAuthModalOpen(false);
 
     // Sync user data directly to Firebase Firestore
@@ -631,7 +636,7 @@ export default function App() {
   return (
     <div 
       id="quotex-trading-application"
-      className={`flex flex-col h-screen w-screen transition-colors duration-200 overflow-hidden font-sans select-none ${
+      className={`flex flex-col h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] transition-colors duration-200 overflow-hidden font-sans select-none ${
         themeMode === 'light' ? 'bg-[#f4f6f9] text-slate-900 light-theme' : 'bg-[#0a0d14] text-slate-100 dark-theme'
       }`}
     >

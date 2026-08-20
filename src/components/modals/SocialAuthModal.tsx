@@ -10,7 +10,8 @@ interface SocialAuthModalProps {
   isOpen: boolean;
   provider: 'Google' | 'Facebook' | 'VK' | null;
   onClose: () => void;
-  onSuccess: (user: any) => void;
+  onSuccess?: (user: any) => void;
+  onAuthSuccess?: (user: any) => void;
   currency?: string;
 }
 
@@ -19,11 +20,17 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
   provider,
   onClose,
   onSuccess,
+  onAuthSuccess,
   currency = 'USD'
 }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const triggerSuccess = (user: any) => {
+    if (onSuccess) onSuccess(user);
+    if (onAuthSuccess) onAuthSuccess(user);
+  };
 
   useEffect(() => {
     if (provider) {
@@ -74,7 +81,7 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
             createdAt: new Date().toISOString()
           });
 
-          onSuccess(user);
+          triggerSuccess(user);
         }
       } catch (err: any) {
         console.error('Redirect result error:', err);
@@ -167,7 +174,7 @@ export const SocialAuthModal: React.FC<SocialAuthModalProps> = ({
         console.warn('LocalStorage save error:', e);
       }
 
-      onSuccess(user);
+      triggerSuccess(user);
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Social authentication error.');

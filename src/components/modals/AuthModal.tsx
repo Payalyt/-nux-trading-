@@ -117,12 +117,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (!loggedInUser) {
         const fsUser = await FirebaseService.getUser(cleanEmail);
         if (fsUser) {
+          const isAdmin = cleanEmail === 'rosul9552@gmail.com' || fsUser.role === 'admin';
           loggedInUser = {
             email: cleanEmail,
             name: fsUser.fullName || cleanEmail.split('@')[0],
             id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
             currency: 'USD',
-            role: fsUser.role || 'user',
+            role: isAdmin ? 'admin' : (fsUser.role || 'user'),
             phone: fsUser.phone || '',
           };
         }
@@ -130,12 +131,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       if (!loggedInUser) {
         if (password.length >= 6) {
+          const isAdmin = cleanEmail === 'rosul9552@gmail.com';
           loggedInUser = {
             email: cleanEmail,
             name: cleanEmail.split('@')[0],
             id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
             currency: 'USD',
-            role: 'user',
+            role: isAdmin ? 'admin' : 'user',
             phone: '',
           };
         } else {
