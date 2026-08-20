@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 
-export const MarketPage: React.FC = () => {
+export const MarketPage: React.FC<{ onBackToTrade?: () => void }> = ({ onBackToTrade }) => {
   const [activeCodeModal, setActiveCodeModal] = useState<string | null>(null);
   const [promoInput, setPromoInput] = useState('');
   const [codeSuccess, setCodeSuccess] = useState(false);
@@ -77,14 +77,26 @@ export const MarketPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#0b0f17] overflow-y-auto p-6 md:p-8 space-y-8 text-slate-200">
+    <div className="flex-1 bg-[#0b0f17] overflow-y-auto p-6 md:p-8 space-y-6 text-slate-200">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        <div className="flex items-center justify-between">
+        {/* Premium Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/5 gap-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Market & Promo Store</h2>
-            <p className="text-xs text-slate-400">Activate risk-free trades, deposit bonuses and booster codes</p>
+            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-emerald-400" />
+              <span>Market & Promo Store</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">Activate risk-free trades, deposit bonuses, and booster codes</p>
           </div>
+          {onBackToTrade && (
+            <button
+              onClick={onBackToTrade}
+              className="self-start sm:self-auto px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold transition-all cursor-pointer"
+            >
+              ← Back to Trading Chart
+            </button>
+          )}
         </div>
 
         {/* 6 Grid Cards */}

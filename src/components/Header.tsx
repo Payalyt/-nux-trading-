@@ -55,6 +55,8 @@ interface HeaderProps {
   onNavigatePage?: (page: string) => void;
   themeMode?: 'dark' | 'light';
   onToggleTheme?: () => void;
+  onChangeDemoBalance?: (amount: number) => void;
+  onChangeLiveBalance?: (amount: number) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -78,12 +80,16 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigatePage,
   themeMode = 'dark',
   onToggleTheme,
+  onChangeDemoBalance,
+  onChangeLiveBalance,
 }) => {
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(soundManager.isEnabled());
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [tempDemoInput, setTempDemoInput] = useState<number | null>(null);
+  const [tempLiveInput, setTempLiveInput] = useState<number | null>(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const currentBalance = accountType === 'DEMO' ? demoBalance : liveBalance;
@@ -138,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-xl flex items-center justify-center text-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform p-1.5 border border-emerald-400/30">
               <CandlestickChart className="w-4 h-4 sm:w-5 sm:h-5 text-black stroke-[2.5]" />
             </div>
-            <span className="hidden md:inline-block font-extrabold text-sm sm:text-base tracking-tight text-white">{platformName}</span>
+            <span className="hidden md:inline-block font-extrabold text-sm sm:text-base tracking-tight text-white">NUX Trading</span>
           </div>
         </div>
 
@@ -285,48 +291,134 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Live Account Option */}
                 {user && (
-                  <div
-                    onClick={() => {
-                      setAccountType('LIVE');
-                      setShowAccountDropdown(false);
-                    }}
-                    className={`p-3 rounded-xl flex items-center justify-between cursor-pointer transition-colors ${
-                      accountType === 'LIVE' ? 'bg-emerald-500/10 border border-emerald-500/30' : 'hover:bg-white/5'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center space-x-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                        <span className="text-xs font-bold text-white">Live Account</span>
+                  <div className="space-y-1 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
+                    <div
+                      onClick={() => {
+                        setAccountType('LIVE');
+                      }}
+                      className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                        accountType === 'LIVE' ? 'bg-emerald-500/10 border border-emerald-500/30' : 'hover:bg-white/5'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                          <span className="text-xs font-bold text-white">Live Account</span>
+                        </div>
+                        <div className="text-xs font-mono-nums font-semibold text-slate-400 mt-0.5">
+                          ${liveBalance.toFixed(2)}
+                        </div>
                       </div>
-                      <div className="text-xs font-mono-nums font-semibold text-slate-400 mt-0.5">
-                        ${liveBalance.toFixed(2)}
+                      {accountType === 'LIVE' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                    </div>
+
+                    <div className="pt-2 px-1 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="text-[9px] font-black tracking-wider text-slate-400 uppercase">Change Live Balance:</div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-slate-400 font-mono text-xs">$</span>
+                        <input
+                          type="number"
+                          placeholder="Amount"
+                          defaultValue={liveBalance}
+                          onBlur={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val) && val >= 0 && onChangeLiveBalance) {
+                              onChangeLiveBalance(val);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const val = parseFloat((e.target as HTMLInputElement).value);
+                              if (!isNaN(val) && val >= 0 && onChangeLiveBalance) {
+                                onChangeLiveBalance(val);
+                              }
+                            }
+                          }}
+                          className="w-full bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-xs text-emerald-400 font-mono focus:outline-none focus:border-emerald-500/50"
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {[100, 500, 1000].map((v) => (
+                          <button
+                            key={v}
+                            onClick={() => {
+                              if (onChangeLiveBalance) {
+                                onChangeLiveBalance(liveBalance + v);
+                              }
+                            }}
+                            className="px-1.5 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded text-[9px] font-mono transition-colors cursor-pointer"
+                          >
+                            +{v}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    {accountType === 'LIVE' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
                   </div>
                 )}
 
                 {/* Demo Account Option */}
-                <div
-                  onClick={() => {
-                    setAccountType('DEMO');
-                    setShowAccountDropdown(false);
-                  }}
-                  className={`p-3 rounded-xl flex items-center justify-between cursor-pointer transition-colors ${
-                    accountType === 'DEMO' ? 'bg-emerald-500/10 border border-emerald-500/30' : 'hover:bg-white/5'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center space-x-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                      <span className="text-xs font-bold text-white">Demo Practice</span>
+                <div className="space-y-1 bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
+                  <div
+                    onClick={() => {
+                      setAccountType('DEMO');
+                    }}
+                    className={`p-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
+                      accountType === 'DEMO' ? 'bg-emerald-500/10 border border-emerald-500/30' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span className="text-xs font-bold text-white">Demo Practice</span>
+                      </div>
+                      <div className="text-xs font-mono-nums font-semibold text-slate-400 mt-0.5">
+                        ${demoBalance.toFixed(2)}
+                      </div>
                     </div>
-                    <div className="text-xs font-mono-nums font-semibold text-slate-400 mt-0.5">
-                      ${demoBalance.toFixed(2)}
+                    {accountType === 'DEMO' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                  </div>
+
+                  <div className="pt-2 px-1 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="text-[9px] font-black tracking-wider text-slate-400 uppercase">Change Demo Balance:</div>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-slate-400 font-mono text-xs">$</span>
+                      <input
+                        type="number"
+                        placeholder="Amount"
+                        defaultValue={demoBalance}
+                        onBlur={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val) && val >= 0 && onChangeDemoBalance) {
+                            onChangeDemoBalance(val);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = parseFloat((e.target as HTMLInputElement).value);
+                            if (!isNaN(val) && val >= 0 && onChangeDemoBalance) {
+                              onChangeDemoBalance(val);
+                            }
+                          }
+                        }}
+                        className="w-full bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-xs text-amber-400 font-mono focus:outline-none focus:border-amber-500/50"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {[1000, 5000, 10000].map((v) => (
+                        <button
+                          key={v}
+                          onClick={() => {
+                            if (onChangeDemoBalance) {
+                              onChangeDemoBalance(v);
+                            }
+                          }}
+                          className="px-1.5 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded text-[9px] font-mono transition-colors cursor-pointer"
+                        >
+                          ${v}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  {accountType === 'DEMO' && <CheckCircle className="w-4 h-4 text-emerald-400" />}
                 </div>
 
                 {/* Reset Demo Balance Button */}
@@ -428,7 +520,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-black p-1 shadow-md">
                     <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
                   </div>
-                  <span className="font-extrabold text-base text-white">{platformName}</span>
+                  <span className="font-extrabold text-base text-white">Navigation Menu</span>
                 </div>
                 <button
                   onClick={() => setShowMobileMenu(false)}
@@ -520,14 +612,6 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <History className="w-4 h-4 text-blue-400" />
                   <span>Trade History</span>
-                </button>
-
-                <button
-                  onClick={() => handleMobileNav('analytics')}
-                  className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl hover:bg-white/5 hover:text-white transition-colors"
-                >
-                  <BarChart3 className="w-4 h-4 text-emerald-400" />
-                  <span>Analytics</span>
                 </button>
 
                 <button

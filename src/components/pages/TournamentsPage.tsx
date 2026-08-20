@@ -11,9 +11,11 @@ import {
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 
-export const TournamentsPage: React.FC = () => {
+export const TournamentsPage: React.FC<{ themeMode?: 'dark' | 'light'; onBackToTrade?: () => void }> = ({ themeMode = 'dark', onBackToTrade }) => {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [registeredIds, setRegisteredIds] = useState<string[]>([]);
+  const [modalTitle, setModalTitle] = useState<string | null>(null);
+  const [modalText, setModalText] = useState<string | null>(null);
 
   const activeTournaments = [
     {
@@ -77,9 +79,36 @@ export const TournamentsPage: React.FC = () => {
     setRegisteredIds((prev) => [...prev, id]);
   };
 
+  const isLight = themeMode === 'light';
+
   return (
-    <div className="flex-1 bg-[#0b0f17] overflow-y-auto p-6 md:p-8 space-y-8 text-slate-200">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className={`flex-1 overflow-y-auto p-6 md:p-8 space-y-6 transition-colors duration-200 ${
+      isLight ? 'bg-[#f4f6f9] text-slate-800' : 'bg-[#0b0f17] text-slate-200'
+    }`}>
+      {/* Premium Page Header */}
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-white/5 gap-4">
+        <div>
+          <h2 className={`text-xl font-black tracking-tight flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            <Trophy className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span>Trading Tournaments & Competitions</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">Compete with global traders in real-time to claim major cash prize pools</p>
+        </div>
+        {onBackToTrade && (
+          <button
+            onClick={onBackToTrade}
+            className={`self-start sm:self-auto px-4 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isLight 
+                ? 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-sm' 
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-white'
+            }`}
+          >
+            ← Back to Trading Chart
+          </button>
+        )}
+      </div>
+
+      <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Featured High-Impact Tournament Banner */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/30 p-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
@@ -124,7 +153,8 @@ export const TournamentsPage: React.FC = () => {
             <button
               onClick={() => {
                 soundManager.playWin();
-                alert('Congratulations! You are pre-registered for the $50,000 World Trading Championship!');
+                setModalTitle('Pre-Registration Confirmed 🏆');
+                setModalText('Congratulations! You are pre-registered for the $50,000 World Trading Championship. Live updates will start when the round begins!');
               }}
               className="px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5 cursor-pointer"
             >
@@ -136,17 +166,19 @@ export const TournamentsPage: React.FC = () => {
         {/* Header & Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Trading Tournaments</h2>
+            <h2 className={`text-lg font-bold ${isLight ? 'text-slate-950' : 'text-white'}`}>Trading Tournaments</h2>
             <p className="text-xs text-slate-400">Compete with global traders and win real cash prize pools</p>
           </div>
 
-          <div className="flex items-center space-x-1 bg-[#121722] border border-white/10 p-1 rounded-xl">
+          <div className={`flex items-center space-x-1 p-1 rounded-xl border ${
+            isLight ? 'bg-slate-200/60 border-slate-300' : 'bg-[#121722] border-white/10'
+          }`}>
             <button
               onClick={() => setActiveTab('active')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'active'
                   ? 'bg-emerald-500 text-black shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  : `${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'}`
               }`}
             >
               ACTIVE (3)
@@ -156,7 +188,7 @@ export const TournamentsPage: React.FC = () => {
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'completed'
                   ? 'bg-emerald-500 text-black shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  : `${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'}`
               }`}
             >
               COMPLETED
@@ -177,7 +209,11 @@ export const TournamentsPage: React.FC = () => {
               return (
                 <div
                   key={t.id}
-                  className="bg-[#121722] border border-white/10 rounded-2xl p-6 flex flex-col justify-between space-y-6 shadow-xl hover:border-emerald-500/30 transition-all relative overflow-hidden"
+                  className={`border rounded-2xl p-6 flex flex-col justify-between space-y-6 shadow-xl transition-all relative overflow-hidden ${
+                    isLight 
+                      ? 'bg-white border-slate-200 hover:border-emerald-500/50 shadow-slate-200/30' 
+                      : 'bg-[#121722] border-white/10 hover:border-emerald-500/30'
+                  }`}
                 >
                   {/* Countdown Badge */}
                   <div className="flex items-center justify-between">
@@ -190,24 +226,24 @@ export const TournamentsPage: React.FC = () => {
 
                   {/* Title & Prize */}
                   <div className="space-y-4">
-                    <h4 className="text-base font-extrabold text-white">{t.title}</h4>
+                    <h4 className={`text-base font-extrabold ${isLight ? 'text-slate-900' : 'text-white'}`}>{t.title}</h4>
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
-                      <div className="p-3 bg-white/5 border border-white/5 rounded-xl">
-                        <div className="text-[11px] text-slate-400">Entry fee</div>
-                        <div className="text-sm font-bold font-mono-nums text-white mt-0.5">
+                      <div className={`p-3 border rounded-xl ${isLight ? 'bg-slate-100/70 border-slate-200/50' : 'bg-white/5 border-white/5'}`}>
+                        <div className={`text-[11px] font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Entry fee</div>
+                        <div className={`text-sm font-black font-mono-nums mt-0.5 ${isLight ? 'text-slate-900' : 'text-white'}`}>
                           {t.entryFee === 0 ? 'FREE' : `${t.entryFee} $`}
                         </div>
                       </div>
 
-                      <div className="p-3 bg-white/5 border border-white/5 rounded-xl">
-                        <div className="text-[11px] text-slate-400">Duration</div>
-                        <div className="text-sm font-bold text-white mt-0.5">{t.duration}</div>
+                      <div className={`p-3 border rounded-xl ${isLight ? 'bg-slate-100/70 border-slate-200/50' : 'bg-white/5 border-white/5'}`}>
+                        <div className={`text-[11px] font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Duration</div>
+                        <div className={`text-sm font-black mt-0.5 ${isLight ? 'text-slate-900' : 'text-white'}`}>{t.duration}</div>
                       </div>
                     </div>
 
                     <div className="pt-1">
-                      <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                      <div className={`text-[11px] uppercase tracking-wider font-bold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                         Prize Pool
                       </div>
                       <div className="text-2xl font-black font-mono-nums text-emerald-400">
@@ -220,7 +256,10 @@ export const TournamentsPage: React.FC = () => {
                   <div className="pt-2 flex items-center space-x-2">
                     <button
                       type="button"
-                      onClick={() => alert(`Details for ${t.title}: Top 20 traders share the $${t.prizePool} pool.`)}
+                      onClick={() => {
+                        setModalTitle(`${t.title} - Details`);
+                        setModalText(`Compete with global traders! The top 20 participants with the highest profit percentage will split the total $${t.prizePool} cash prize pool dynamically. No commission or fees apply.`);
+                      }}
                       className="px-3 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                     >
                       Details ℹ
@@ -245,29 +284,40 @@ export const TournamentsPage: React.FC = () => {
             completedTournaments.map((t) => (
               <div
                 key={t.id}
-                className="bg-[#121722] border border-white/10 rounded-2xl p-6 space-y-4 shadow-xl opacity-90"
+                className={`border rounded-2xl p-6 space-y-4 shadow-xl transition-all ${
+                  isLight 
+                    ? 'bg-white border-slate-200 shadow-slate-200/30 text-slate-800' 
+                    : 'bg-[#121722] border-white/10 shadow-black/20 text-slate-300'
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded bg-white/10 text-slate-400 text-[10px] font-bold uppercase">
+                  <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                    isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400'
+                  }`}>
                     FINISHED
                   </span>
                   <Trophy className="w-4 h-4 text-slate-500" />
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="text-base font-bold text-white">{t.title}</h4>
-                  <div className="text-xs text-slate-400">
-                    Prize Pool: <strong className="text-emerald-400 font-mono-nums">{t.prizePool} $</strong>
+                  <h4 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{t.title}</h4>
+                  <div className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Prize Pool: <strong className="text-emerald-500 dark:text-emerald-400 font-mono-nums">{t.prizePool} $</strong>
                   </div>
-                  <div className="text-xs text-slate-400">
-                    Winner: <strong className="text-amber-300">{t.winner}</strong>
+                  <div className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Winner: <strong className="text-amber-600 dark:text-amber-300">{t.winner}</strong>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => alert(`Leaderboard results for ${t.title} archive.`)}
-                  className="w-full py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold rounded-xl"
+                  onClick={() => {
+                    setModalTitle(`${t.title} - Final Standings`);
+                    setModalText(`The final standing rankings for ${t.title} are archived. Payouts have been successfully distributed to the winners' live balances. Winner: ${t.winner}.`);
+                  }}
+                  className={`w-full py-2 text-xs font-bold rounded-xl transition-colors ${
+                    isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-slate-300'
+                  }`}
                 >
                   View Final Standings
                 </button>
@@ -277,6 +327,36 @@ export const TournamentsPage: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Modern Premium Modal Dialogue */}
+      {modalText && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className={`w-full max-w-md border rounded-2xl p-6 space-y-4 shadow-2xl relative animate-scale-up ${
+            isLight ? 'bg-white border-slate-200' : 'bg-[#121620] border-white/10'
+          }`}>
+            <div className="flex items-center space-x-3 text-emerald-500 dark:text-emerald-400">
+              <Trophy className="w-6 h-6 text-emerald-500 dark:text-emerald-400 shrink-0" />
+              <h3 className={`text-base font-black tracking-tight ${isLight ? 'text-slate-950' : 'text-white'}`}>{modalTitle || 'Tournament Notification'}</h3>
+            </div>
+            
+            <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+              {modalText}
+            </p>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => {
+                  setModalTitle(null);
+                  setModalText(null);
+                }}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-colors cursor-pointer shadow-lg shadow-emerald-500/10"
+              >
+                Got it, thanks
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

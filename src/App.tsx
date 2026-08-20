@@ -446,6 +446,7 @@ export default function App() {
             // Play sound and add confetti on win
             if (isWon) {
               soundManager.playWin();
+              soundManager.speak(`Trade won on ${trade.assetSymbol}. You earned ${(returnAmount).toFixed(0)} dollars.`);
               try {
                 confetti({
                   particleCount: 75,
@@ -462,6 +463,7 @@ export default function App() {
               }
             } else {
               soundManager.playLoss();
+              soundManager.speak(`Trade closed on ${trade.assetSymbol}.`);
             }
 
             // Record in completed trades and sync with Firebase Firestore
@@ -505,6 +507,7 @@ export default function App() {
     }
 
     soundManager.playTradePlaced();
+    soundManager.speak(`${type === 'CALL' ? 'Up' : 'Down'} trade placed on ${activeAsset.symbol} with ${investment} dollars.`);
 
     const now = Date.now();
     const newTrade: Trade = {
@@ -560,6 +563,20 @@ export default function App() {
   const handleResetDemo = () => {
     soundManager.playWin();
     setDemoBalance(10000);
+  };
+
+  const handleChangeDemoBalance = (amount: number) => {
+    setDemoBalance(amount);
+    if (user?.email) {
+      FirebaseService.updateUserBalance(user.email, amount, 'demo');
+    }
+  };
+
+  const handleChangeLiveBalance = (amount: number) => {
+    setLiveBalance(amount);
+    if (user?.email) {
+      FirebaseService.updateUserBalance(user.email, amount, 'live');
+    }
   };
 
   // Handle Deposit Success
@@ -729,6 +746,8 @@ export default function App() {
             onNavigatePage={(page) => setCurrentView(page as any)}
             themeMode={themeMode}
             onToggleTheme={handleToggleTheme}
+            onChangeDemoBalance={handleChangeDemoBalance}
+            onChangeLiveBalance={handleChangeLiveBalance}
           />
 
           {/* 2. Main Middle Workspace: Sidebar + Sentiment + Chart Area + Execution Panel */}
@@ -857,13 +876,13 @@ export default function App() {
               />
             )}
             {currentView === 'market' && (
-              <MarketPage />
+              <MarketPage onBackToTrade={() => setCurrentView('trade')} />
             )}
             {currentView === 'tournaments' && (
-              <TournamentsPage />
+              <TournamentsPage themeMode={themeMode} onBackToTrade={() => setCurrentView('trade')} />
             )}
             {currentView === 'payments' && (
-              <PaymentsPage user={user} />
+              <PaymentsPage user={user} onBackToTrade={() => setCurrentView('trade')} />
             )}
             {currentView === 'trades' && (
               <TradesHistoryPage

@@ -173,7 +173,24 @@ export const WithdrawalPage: React.FC<WithdrawalPageProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-[#0b0f17] overflow-y-auto p-6 md:p-8 space-y-8 text-slate-200">
+    <div className="flex-1 bg-[#0b0f17] overflow-y-auto p-6 md:p-8 space-y-6 text-slate-200">
+      {/* Premium Page Header */}
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/5 gap-4">
+        <div>
+          <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+            <ArrowDownToLine className="w-5 h-5 text-emerald-400" />
+            <span>Fund Payouts & Withdrawals</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">Submit your profit payouts directly to your accounts with 0% brokerage fee</p>
+        </div>
+        <button
+          onClick={onBackToTrade}
+          className="self-start sm:self-auto px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold transition-all cursor-pointer"
+        >
+          ← Back to Trading Chart
+        </button>
+      </div>
+
       {/* Top Main Columns Grid */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         

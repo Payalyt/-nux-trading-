@@ -145,9 +145,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                   TRADING
                 </span>
               </div>
-              <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase -mt-0.5 block">
-                Innovation Trading
-              </span>
             </div>
           </div>
 

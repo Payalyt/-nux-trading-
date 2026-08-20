@@ -52,8 +52,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
     { id: 'trades', label: 'Trades' },
     { id: 'my_account', label: 'My account' },
     { id: 'market', label: 'Market' },
-    { id: 'tournaments', label: 'Tournaments' },
-    { id: 'analytics', label: 'Analytics' }
+    { id: 'tournaments', label: 'Tournaments' }
   ];
 
   const currentBalance = (!_user || accountType === 'DEMO') ? demoBalance : liveBalance;
@@ -72,12 +71,8 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
               <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
             </div>
             <div className="flex flex-col">
-              <div className="flex items-center space-x-1.5">
-                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">{platformName}</span>
-                <span className="hidden sm:inline text-white/20">•</span>
-                <span className="hidden sm:inline text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-                  TRADING PLATFORM
-                </span>
+              <div className="flex items-center">
+                <span className="hidden md:inline-block font-extrabold text-sm sm:text-base tracking-tight text-white">NUX Trading</span>
               </div>
             </div>
           </div>

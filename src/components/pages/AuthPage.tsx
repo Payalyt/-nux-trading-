@@ -431,7 +431,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
           </div>
           <div className="flex flex-col">
-            <span className="font-extrabold text-base tracking-tight text-white">{platformName || 'NUX'}</span>
+            <span className="font-extrabold text-base tracking-tight text-white">NUX Trading</span>
             <span className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase -mt-1">
               INNOVATIVE TRADING
             </span>

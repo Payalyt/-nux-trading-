@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { FirebaseService } from '../../utils/firebaseSync';
 
-export const PaymentsPage: React.FC<{ user?: any }> = ({ user }) => {
+export const PaymentsPage: React.FC<{ user?: any; onBackToTrade?: () => void }> = ({ user, onBackToTrade }) => {
   const [filterType, setFilterType] = useState<'all' | 'deposits' | 'withdrawals'>('all');
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -42,13 +42,31 @@ export const PaymentsPage: React.FC<{ user?: any }> = ({ user }) => {
   });
 
   return (
-    <div className="flex-1 bg-[#0b0f17] overflow-y-auto p-6 md:p-8 space-y-8 text-slate-200">
+    <div className="flex-1 bg-[#0b0f17] overflow-y-auto p-6 md:p-8 space-y-6 text-slate-200">
       <div className="max-w-7xl mx-auto space-y-6">
         
+        {/* Premium Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/5 gap-4">
+          <div>
+            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-emerald-400" />
+              <span>Payments & Transaction History</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">Complete real-time statement of all deposits and withdrawal requests</p>
+          </div>
+          {onBackToTrade && (
+            <button
+              onClick={onBackToTrade}
+              className="self-start sm:self-auto px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold transition-all cursor-pointer"
+            >
+              ← Back to Trading Chart
+            </button>
+          )}
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Payment & Transaction History</h2>
-            <p className="text-xs text-slate-400">Complete statement of all balance deposits and withdrawal requests</p>
+            <h3 className="text-sm font-bold text-slate-300">Transaction Records</h3>
           </div>
 
           <div className="flex items-center space-x-2">

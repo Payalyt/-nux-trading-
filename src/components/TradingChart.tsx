@@ -224,7 +224,8 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     }
 
     // Vertical grid lines and time markers
-    const timeStep = Math.max(1, Math.floor(visibleCandles.length / 7));
+    const maxLabels = Math.max(3, Math.floor(chartWidth / 85));
+    const timeStep = Math.max(1, Math.ceil(visibleCandles.length / maxLabels));
     for (let i = 0; i < visibleCandles.length; i += timeStep) {
       const x = getX(i);
       ctx.beginPath();
@@ -235,7 +236,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
       const candle = visibleCandles[i];
       const d = new Date(candle.time);
       const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = themeMode === 'light' ? '#334155' : '#94a3b8';
       ctx.font = '10px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
       ctx.fillText(timeStr, x, mainHeight + 18);
@@ -771,10 +772,10 @@ export const TradingChart: React.FC<TradingChartProps> = ({
         <button
           id="btn-pair-info"
           onClick={onOpenPairInfoModal}
-          className="flex items-center space-x-1.5 px-3 py-1 bg-[#0d121b]/80 hover:bg-white/10 backdrop-blur-md rounded-lg border border-white/10 text-xs text-emerald-400 hover:text-emerald-300 transition-colors shadow-lg cursor-pointer"
+          className="flex items-center space-x-1.5 px-3 py-1 bg-[#0d121b]/80 hover:bg-white/10 backdrop-blur-md rounded-lg border border-white/10 text-xs text-emerald-400 hover:text-emerald-300 transition-colors shadow-lg cursor-pointer animate-pulse"
         >
-          <Info className="w-3.5 h-3.5" />
-          <span className="font-semibold uppercase tracking-wider text-[10px]">PAIR INFORMATION</span>
+          <Info className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="font-semibold uppercase tracking-wider text-[10px] text-emerald-400">PAIR INFORMATION</span>
         </button>
       </div>
 
@@ -800,10 +801,31 @@ export const TradingChart: React.FC<TradingChartProps> = ({
           </button>
 
           {showDrawingMenu && (
-            <div className="absolute bottom-11 left-0 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 w-44 space-y-1">
-              <div className="text-[11px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">
-                Drawing Tools
+            <div className="absolute bottom-11 left-0 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 w-48 space-y-1">
+              <div className="text-[11px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider border-b border-white/5 pb-1 mb-1">
+                Drawing & Zoom
               </div>
+              <button
+                onClick={() => {
+                  setZoomLevel((z) => Math.min(2.5, z * 1.15));
+                  setShowDrawingMenu(false);
+                }}
+                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-white/5 flex items-center space-x-2 text-emerald-400"
+              >
+                <ZoomIn className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-semibold">Zoom In (Chart)</span>
+              </button>
+              <button
+                onClick={() => {
+                  setZoomLevel((z) => Math.max(0.4, z * 0.85));
+                  setShowDrawingMenu(false);
+                }}
+                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-white/5 flex items-center space-x-2 text-rose-400"
+              >
+                <ZoomOut className="w-3.5 h-3.5 text-rose-400" />
+                <span className="font-semibold">Zoom Out (Chart)</span>
+              </button>
+              <div className="border-t border-white/5 my-1 pt-1"></div>
               {(['none', 'trendline', 'horizontal', 'ray', 'fibonacci'] as DrawingToolType[]).map((tool) => (
                 <button
                   key={tool}

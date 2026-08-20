@@ -170,6 +170,22 @@ class SoundManager {
       // Ignore
     }
   }
+
+  public speak(text: string) {
+    if (!this.enabled) return;
+    try {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        // Cancel ongoing voices to prevent queuing delay
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.05;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (err) {
+      console.warn('Text to speech failed:', err);
+    }
+  }
 }
 
 export const soundManager = new SoundManager();

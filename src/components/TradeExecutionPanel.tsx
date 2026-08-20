@@ -365,7 +365,11 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
                   return (
                     <div
                       key={trade.id}
-                      className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-2 shadow-sm"
+                      className={`p-3 rounded-xl border space-y-2 shadow-md transition-all ${
+                        isProfitable 
+                          ? 'bg-emerald-500/5 border-emerald-500/30 shadow-emerald-500/5' 
+                          : 'bg-rose-500/5 border-rose-500/30 shadow-rose-500/5'
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-1.5">
@@ -650,7 +654,11 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
                   return (
                     <div
                       key={trade.id}
-                      className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2.5 shadow-sm"
+                      className={`p-3.5 rounded-2xl border space-y-2.5 shadow-md transition-all ${
+                        isProfitable 
+                          ? 'bg-emerald-500/5 border-emerald-500/30 shadow-emerald-500/5' 
+                          : 'bg-rose-500/5 border-rose-500/30 shadow-rose-500/5'
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">

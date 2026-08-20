@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             id="nav-tab-home"
             onClick={onGoToHome}
-            className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-300 opacity-40 hover:opacity-100 hover:text-emerald-400 transition-all cursor-pointer"
+            className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-700 dark:text-slate-300 opacity-80 hover:opacity-100 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all cursor-pointer"
             title="Quotex Homepage"
           >
             <Home className="w-5 h-5 mb-0.5" />
@@ -64,8 +64,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setActiveTab('trade')}
           className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all cursor-pointer ${
             activeTab === 'trade'
-              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
-              : 'opacity-40 hover:opacity-100 text-slate-300'
+              ? 'bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
+              : 'opacity-80 hover:opacity-100 text-slate-700 dark:text-slate-300'
           }`}
           title="Trade Dashboard"
         >
@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           id="nav-tab-account"
           onClick={onOpenProfile}
-          className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-300 opacity-40 hover:opacity-100 transition-all cursor-pointer"
+          className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-700 dark:text-slate-300 opacity-80 hover:opacity-100 transition-all cursor-pointer"
           title="Account Profile"
         >
           <User className="w-5 h-5 mb-0.5" />
@@ -88,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           id="nav-tab-tournaments"
           onClick={onOpenTournaments}
-          className="relative flex flex-col items-center justify-center p-2 rounded-xl text-slate-300 opacity-40 hover:opacity-100 transition-all cursor-pointer"
+          className="relative flex flex-col items-center justify-center p-2 rounded-xl text-slate-700 dark:text-slate-300 opacity-80 hover:opacity-100 transition-all cursor-pointer"
           title="Tournaments"
         >
           <Trophy className="w-5 h-5 mb-0.5" />
@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           id="nav-tab-market"
           onClick={onOpenMarket}
-          className="relative flex flex-col items-center justify-center p-2 rounded-xl text-slate-300 opacity-40 hover:opacity-100 transition-all cursor-pointer"
+          className="relative flex flex-col items-center justify-center p-2 rounded-xl text-slate-700 dark:text-slate-300 opacity-80 hover:opacity-100 transition-all cursor-pointer"
           title="Promo Market"
         >
           <ShoppingBag className="w-5 h-5 mb-0.5" />
@@ -116,10 +116,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           id="nav-tab-support"
           onClick={onOpenSupport}
-          className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-300 opacity-40 hover:opacity-100 transition-all cursor-pointer"
+          className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-700 dark:text-slate-300 opacity-80 hover:opacity-100 transition-all cursor-pointer"
           title="Support Help"
         >
-          <HelpCircle className="w-5 h-5 mb-0.5" />
+          <LifeBuoy className="w-5 h-5 mb-0.5" />
           <span className="text-[9px] font-bold tracking-wider uppercase">HELP</span>
         </button>
       </div>
@@ -131,10 +131,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           href="https://t.me"
           target="_blank"
           rel="noreferrer"
-          className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-400 opacity-40 hover:opacity-100 hover:text-sky-400 transition-all cursor-pointer"
+          className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-700 dark:text-slate-300 opacity-80 hover:opacity-100 hover:text-sky-500 dark:hover:text-sky-400 transition-all cursor-pointer"
           title="Join Us on Telegram"
         >
-          <Send className="w-4 h-4 mb-0.5 text-sky-400" />
+          <Send className="w-4 h-4 mb-0.5 text-sky-500 dark:text-sky-400" />
           <span className="text-[8px] font-bold uppercase">JOIN</span>
         </a>
 
