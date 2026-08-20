@@ -106,10 +106,22 @@ export default function App() {
           localStorage.setItem('qx_demo_balance', String(data.demoBalance));
         }
         
-        // Also update user state if role or name changes
-        if (data.role && data.role !== user.role) {
-           setUser(prev => prev ? { ...prev, role: data.role } : prev);
-        }
+        // Also update user state if role, balanceLocked, or status changes
+        setUser(prev => {
+          if (!prev) return prev;
+          const newLocked = data.balanceLocked !== undefined ? data.balanceLocked : prev.balanceLocked;
+          const newRole = data.role || prev.role;
+          const newStatus = data.accountStatus || prev.accountStatus;
+          if (prev.balanceLocked !== newLocked || prev.role !== newRole || prev.accountStatus !== newStatus) {
+            return {
+              ...prev,
+              balanceLocked: newLocked,
+              role: newRole,
+              accountStatus: newStatus
+            };
+          }
+          return prev;
+        });
         
         // Handle blocked status
         if (data.accountStatus === 'blocked') {

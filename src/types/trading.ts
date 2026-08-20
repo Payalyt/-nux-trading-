@@ -143,4 +143,6 @@ export interface UserAccount {
   currency: string;
   isVerified?: boolean;
   role?: string;
+  balanceLocked?: boolean;
+  accountStatus?: string;
 }
