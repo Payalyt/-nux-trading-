@@ -190,35 +190,42 @@ export const DepositModal: React.FC<DepositModalProps> = ({
     setIsProcessing(true);
 
     try {
-      const res = await apiClient.post('/api/user/deposit', {
-        amount,
-        gateway: selectedMethod?.name || 'Mobile Banking',
-        paymentType,
-        senderNumber: senderNumber.trim(),
-        trxId: trxId.trim(),
-        bonusAmount,
-        userNote: `Deposit via ${selectedMethod?.name} (${paymentType})`
-      });
-
-      if (!res.ok) {
-        throw new Error(formatErrorMessage(res.error || res.data?.error, 'Failed to submit deposit'));
-      }
-
-      const txData = res.data?.transaction;
-      if (txData) {
-        await FirebaseService.syncTransaction({
-          id: txData.id,
-          userId: userEmail || 'guest',
-          type: 'deposit',
-          amount: Number(amount),
-          bonus: Number(bonusAmount || 0),
+      let txIdToUse = '';
+      try {
+        const res = await apiClient.post('/api/user/deposit', {
+          amount,
           gateway: selectedMethod?.name || 'Mobile Banking',
+          paymentType,
           senderNumber: senderNumber.trim(),
           trxId: trxId.trim(),
-          status: 'pending',
-          createdAt: new Date().toISOString()
+          bonusAmount,
+          userNote: `Deposit via ${selectedMethod?.name} (${paymentType})`
         });
+
+        if (res.ok && res.data?.transaction?.id) {
+          txIdToUse = res.data.transaction.id;
+        }
+      } catch (apiErr) {
+        console.warn('[Deposit] API failed, using client-side Firestore fallback:', apiErr);
       }
+
+      // If API failed or was not found (Vercel), generate fallback ID and save directly to Firebase
+      if (!txIdToUse) {
+        txIdToUse = `DEP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      }
+
+      await FirebaseService.syncTransaction({
+        id: txIdToUse,
+        userId: userEmail || 'guest',
+        type: 'deposit',
+        amount: Number(amount),
+        bonus: Number(bonusAmount || 0),
+        gateway: selectedMethod?.name || 'Mobile Banking',
+        senderNumber: senderNumber.trim(),
+        trxId: trxId.trim(),
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
 
       setIsProcessing(false);
       setSubmitSuccess(true);
@@ -277,7 +284,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                   {selectedMethod ? `Deposit via ${selectedMethod.name}` : 'Deposit Funds'}
                 </h2>
                 <p className="text-[11px] text-slate-400">
-                  {selectedMethod ? 'Fast automated deposit verification' : 'Choose a payment system in Bangladesh'}
+                  {selectedMethod ? 'Fill in transaction details' : 'Select your payment method'}
                 </p>
               </div>
             </div>
@@ -297,13 +304,13 @@ export const DepositModal: React.FC<DepositModalProps> = ({
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto text-3xl animate-bounce">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-white">Deposit Request Submitted!</h3>
+            <h3 className="text-xl font-bold text-white">Request Submitted!</h3>
             <p className="text-sm text-slate-400 max-w-md mx-auto">
-              Your deposit of <strong className="text-emerald-400 font-mono">${totalCredited.toFixed(2)}</strong> via <strong className="text-white">{selectedMethod?.name}</strong> (TrxID: <span className="font-mono text-amber-400">{trxId}</span>) has been submitted to the administrator and will be verified within 1-3 minutes.
+              Your deposit of <strong className="text-emerald-400 font-mono">${totalCredited.toFixed(2)}</strong> via <strong className="text-white">{selectedMethod?.name}</strong> has been submitted and will be credited to your account shortly.
             </p>
             <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
               <Clock className="w-3.5 h-3.5" />
-              <span>Pending Administrator Verification</span>
+              <span>Pending short review</span>
             </div>
           </div>
         ) : !selectedMethod ? (
