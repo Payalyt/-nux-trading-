@@ -114,7 +114,9 @@ export const FirebaseService = {
    */
   async updateUserBalance(username: string, newBalance: number, type: 'live' | 'demo' = 'live'): Promise<boolean> {
     try {
-      const sanitizedId = username.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const emailValue = (username || '').trim().toLowerCase();
+      if (!emailValue) return false;
+      const sanitizedId = emailValue.replace(/[^a-zA-Z0-9_-]/g, '_');
       const userRef = doc(db, 'users', sanitizedId);
       
       const payload: any = {
@@ -367,7 +369,8 @@ export const FirebaseService = {
    */
   listenToUser(username: string, callback: (data: any) => void): () => void {
     if (!username) return () => {};
-    const sanitizedId = username.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const emailValue = (username || '').trim().toLowerCase();
+    const sanitizedId = emailValue.replace(/[^a-zA-Z0-9_-]/g, '_');
     const userRef = doc(db, 'users', sanitizedId);
     return onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
