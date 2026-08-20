@@ -431,67 +431,57 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           </div>
         ) : (
           /* Step 2: Method Payment Details & Form */
-          <form onSubmit={handleExecuteDeposit} className="p-6 overflow-y-auto space-y-5">
+          <form onSubmit={handleExecuteDeposit} className="p-4 sm:p-5 overflow-y-auto space-y-4">
             {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center space-x-2">
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center space-x-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
             {/* Selected Method Details Banner */}
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {selectedMethod.icon?.startsWith('http') ? (
-                    <img src={selectedMethod.icon} alt={selectedMethod.name} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                    <img src={selectedMethod.icon} alt={selectedMethod.name} className="w-full h-full object-contain p-0.5" referrerPolicy="no-referrer" />
                   ) : (
-                    <span className="text-2xl">{selectedMethod.icon || '💳'}</span>
+                    <span className="text-lg">{selectedMethod.icon || '💳'}</span>
                   )}
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-white">{selectedMethod.name}</h4>
-                  <p className="text-xs text-slate-400 font-mono-nums">
-                    Min deposit: ${selectedMethod.minDeposit || 10}.00 • Rate: 1 USD = {conversionRate} BDT
+                  <h4 className="font-bold text-white text-xs">{selectedMethod.name}</h4>
+                  <p className="text-[10px] text-slate-400 font-mono-nums">
+                    Min: ${selectedMethod.minDeposit} • 1$ = {conversionRate}৳
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedMethod(null)}
-                className="text-xs text-emerald-400 hover:underline font-semibold cursor-pointer"
+                className="text-[11px] text-emerald-400 hover:underline font-semibold cursor-pointer"
               >
-                Change method
+                Change Method
               </button>
             </div>
 
-            {/* Default Payment Type: Send Money / Personal */}
-            {selectedMethod.category !== 'crypto' && selectedMethod.category !== 'bank' && (
-              <div className="space-y-1.5">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-between">
-                  <span>Payment Type: Personal Send Money</span>
-                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/20">Instant Verification</span>
-                </div>
-              </div>
-            )}
-
             {/* Dynamic Recipient Number / Wallet Address Box */}
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-300">
+            <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="font-semibold text-slate-300">
                   {selectedMethod.category === 'crypto'
-                    ? 'Transfer to Crypto Wallet Address:'
+                    ? 'Transfer to Wallet:'
                     : selectedMethod.category === 'bank'
-                    ? 'Transfer to Bank Account Details:'
-                    : `Please ${paymentType.replace('_', ' ')} to our official ${selectedMethod.name} number:`}
+                    ? 'Bank Account:'
+                    : `Send payment to:`}
                 </span>
-                <span className="text-emerald-400 text-[10px] font-bold uppercase">Official Verified</span>
+                <span className="text-emerald-400 font-bold text-[9px] uppercase tracking-wider">Official Verified</span>
               </div>
 
               {selectedMethod.category === 'crypto' ? (
-                <div className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-white/10">
+                <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-xl border border-white/5">
                   <div className="overflow-hidden mr-2">
-                    <div className="text-[10px] text-slate-400 font-semibold">{selectedMethod.cryptoDetails?.network || 'TRC20'} Network</div>
+                    <div className="text-[9px] text-slate-400 font-semibold">{selectedMethod.cryptoDetails?.network || 'TRC20'} Network</div>
                     <div className="text-xs font-mono font-bold text-white truncate">
                       {selectedMethod.cryptoDetails?.walletAddress || 'TYDzsYUEpvnYmQx9zBqR1sF3N9G8Q2vVwX'}
                     </div>
@@ -499,71 +489,66 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCopy(selectedMethod.cryptoDetails?.walletAddress || 'TYDzsYUEpvnYmQx9zBqR1sF3N9G8Q2vVwX')}
-                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-lg flex items-center space-x-1 shrink-0"
+                    className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-[10px] rounded-lg flex items-center space-x-1 shrink-0 cursor-pointer"
                   >
-                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                     <span>{copied ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
               ) : selectedMethod.category === 'bank' ? (
-                <div className="p-3 bg-black/40 rounded-xl border border-white/10 space-y-1 text-xs font-mono">
+                <div className="p-3 bg-black/40 rounded-xl border border-white/5 space-y-1 text-[11px] font-mono">
                   <div className="text-white font-bold">{selectedMethod.bankDetails?.bankName || 'Islami Bank Bangladesh Ltd'}</div>
-                  <div className="text-slate-300">A/C Name: {selectedMethod.bankDetails?.accountName || 'NUX TRADING GLOBAL LTD'}</div>
+                  <div className="text-slate-300">A/C: {selectedMethod.bankDetails?.accountName || 'NUX TRADING GLOBAL LTD'}</div>
                   <div className="text-emerald-400 font-bold flex items-center justify-between">
-                    <span>A/C No: {selectedMethod.bankDetails?.accountNumber || '20501234567890'}</span>
+                    <span>No: {selectedMethod.bankDetails?.accountNumber || '20501234567890'}</span>
                     <button
                       type="button"
                       onClick={() => handleCopy(selectedMethod.bankDetails?.accountNumber || '20501234567890')}
-                      className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[10px]"
+                      className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[9px]"
                     >
-                      Copy A/C
+                      Copy
                     </button>
                   </div>
-                  <div className="text-slate-400 text-[11px]">{selectedMethod.bankDetails?.branch || 'Corporate Branch, Dhaka'}</div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-white/10">
+                <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-xl border border-white/5">
                   <div>
-                    <div className="text-[10px] text-slate-400 font-semibold uppercase">{paymentType.replace('_', ' ')} Number</div>
-                    <div className="text-base sm:text-lg font-mono font-black text-emerald-400 tracking-wider">
+                    <div className="text-[9px] text-slate-400 font-semibold uppercase">{paymentType.replace('_', ' ')} Number</div>
+                    <div className="text-sm sm:text-base font-mono font-bold text-emerald-400 tracking-wider">
                       {activeRecipientNumber || '01700000001'}
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleCopy(activeRecipientNumber || '01700000001')}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl flex items-center space-x-1.5 shrink-0 shadow-md shadow-emerald-500/20 cursor-pointer"
+                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-[10px] rounded-lg flex items-center space-x-1 shrink-0 cursor-pointer"
                   >
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    <span>{copied ? 'Copied!' : 'Copy Number'}</span>
+                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{copied ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
               )}
-
-              <p className="text-[11px] text-slate-400">
-                {selectedMethod.instruction || 'Send exact payment to the number above and enter your Transaction ID (TrxID) below.'}
-              </p>
             </div>
 
             {/* Deposit Amount */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="font-bold text-slate-300 uppercase tracking-wider">Deposit Amount ($ USD)</span>
-                <span className="text-emerald-400 font-bold font-mono-nums">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[11px]">
+                <span className="font-bold text-slate-300 uppercase tracking-wider">Amount ($ USD)</span>
+                <span className="text-emerald-400 font-bold">
                   ≈ ৳{amountBdt.toLocaleString()} BDT
                 </span>
               </div>
 
               {/* Amount Presets */}
-              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+              <div className="grid grid-cols-6 gap-1.5">
                 {presetAmounts.map((p) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => setAmount(p)}
-                    className={`py-2 rounded-xl text-xs font-bold font-mono-nums transition-all cursor-pointer ${
+                    className={`py-1.5 rounded-lg text-[10px] sm:text-xs font-bold font-mono transition-all cursor-pointer ${
                       amount === p
-                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 font-black'
+                        ? 'bg-emerald-500 text-black font-black'
                         : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
                     }`}
                   >
@@ -573,86 +558,81 @@ export const DepositModal: React.FC<DepositModalProps> = ({
               </div>
 
               {/* Custom Input */}
-              <div className="relative pt-1">
-                <DollarSign className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <div className="relative pt-0.5">
+                <DollarSign className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="number"
                   min={selectedMethod.minDeposit || 10}
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold font-mono-nums text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-4 py-2 text-xs font-bold font-mono text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
 
             {/* User Input: Sender Account & TrxID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Your Sender {selectedMethod.name} Number
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                  Sender Number
                 </label>
                 <input
                   type="text"
                   required
                   value={senderNumber}
                   onChange={(e) => setSenderNumber(e.target.value)}
-                  placeholder="e.g. 01712345678"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                  placeholder="e.g. 017xxxxxxxx"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Transaction ID (TrxID / Reference)
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                  TrxID / Ref
                 </label>
                 <input
                   type="text"
                   required
                   value={trxId}
                   onChange={(e) => setTrxId(e.target.value)}
-                  placeholder="e.g. 9J4K2L8M1N"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono uppercase focus:outline-none focus:border-emerald-500"
+                  placeholder="Transaction ID"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono uppercase focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
 
             {/* 50% Welcome Bonus Toggle */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/15 to-amber-500/15 border border-emerald-500/30 flex items-center justify-between shadow-lg">
-              <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-amber-500/10 border border-emerald-500/20 flex items-center justify-between text-[11px]">
+              <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
                   id="bonus-checkbox"
                   checked={bonusApplied}
                   onChange={(e) => setBonusApplied(e.target.checked)}
-                  className="accent-emerald-500 w-4 h-4 cursor-pointer"
+                  className="accent-emerald-500 w-3.5 h-3.5 cursor-pointer"
                 />
-                <div>
-                  <label htmlFor="bonus-checkbox" className="text-xs font-bold text-white cursor-pointer block">
-                    Apply {selectedMethod.bonusPercent || 50}% Welcome Bonus
-                  </label>
-                  <div className="text-[11px] text-emerald-400 font-bold font-mono-nums mt-0.5">
-                    Bonus: +${bonusAmount.toFixed(2)} USD (৳{(bonusAmount * conversionRate).toLocaleString('en-IN')} BDT)
-                  </div>
-                </div>
+                <label htmlFor="bonus-checkbox" className="font-bold text-slate-200 cursor-pointer">
+                  Get +{selectedMethod.bonusPercent || 50}% Bonus
+                </label>
               </div>
-              <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-emerald-500 text-black shadow-md">
-                {promoCode}
+              <span className="text-[9px] font-mono text-emerald-400 font-bold">
+                +${bonusAmount.toFixed(2)} USD (৳{(bonusAmount * conversionRate).toLocaleString('en-IN')})
               </span>
             </div>
 
-            {/* Summary Box */}
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2.5 text-xs font-mono-nums">
-              <div className="flex justify-between text-slate-300">
-                <span>Amount to Send in BDT (Taka):</span>
-                <span className="font-bold text-white text-sm">৳{amountBdt.toLocaleString('en-IN')} BDT</span>
+            {/* Compact Summary Box */}
+            <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-white/5 border border-white/10 text-center font-mono">
+              <div>
+                <div className="text-[9px] text-slate-400 uppercase font-sans">You Send</div>
+                <div className="text-xs font-bold text-white">৳{amountBdt.toLocaleString('en-IN')} BDT</div>
               </div>
-              <div className="flex justify-between text-emerald-400">
-                <span>Welcome Bonus ({selectedMethod.bonusPercent || 50}%):</span>
-                <span className="font-bold">+${bonusAmount.toFixed(2)} USD (৳{(bonusAmount * conversionRate).toLocaleString('en-IN')} BDT)</span>
+              <div className="border-x border-white/10">
+                <div className="text-[9px] text-slate-400 uppercase font-sans">Bonus</div>
+                <div className="text-xs font-bold text-emerald-400">+${bonusAmount.toFixed(0)}</div>
               </div>
-              <div className="border-t border-white/10 pt-2 flex justify-between text-sm font-bold text-white">
-                <span className="font-sans">Total Credited to Live Balance:</span>
-                <span className="text-emerald-400 font-mono font-black">${totalCredited.toFixed(2)} USD (৳{(totalCredited * conversionRate).toLocaleString('en-IN')} BDT)</span>
+              <div>
+                <div className="text-[9px] text-slate-400 uppercase font-sans">You Get</div>
+                <div className="text-xs font-bold text-emerald-400">${totalCredited.toFixed(2)}</div>
               </div>
             </div>
 
@@ -660,14 +640,14 @@ export const DepositModal: React.FC<DepositModalProps> = ({
             <button
               type="submit"
               disabled={isProcessing}
-              className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center space-x-2"
+              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center space-x-1.5"
             >
               {isProcessing ? (
-                <span>Submitting Deposit Request...</span>
+                <span>Submitting...</span>
               ) : (
                 <>
-                  <span>Submit Deposit Verification (${totalCredited.toFixed(2)})</span>
-                  <ArrowRight className="w-4 h-4 stroke-[3]" />
+                  <span>Confirm Deposit (${totalCredited.toFixed(2)})</span>
+                  <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
                 </>
               )}
             </button>
