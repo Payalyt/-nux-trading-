@@ -506,19 +506,19 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
       {/* ========================================================================= */}
       <div 
         id="trade-execution-mobile-dock"
-        className="flex lg:hidden flex-col w-full max-w-full overflow-hidden bg-[#0a0d14]/95 backdrop-blur-2xl border-t border-white/10 p-2.5 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))] select-none shrink-0 z-20 shadow-2xl"
+        className="flex lg:hidden flex-col w-full max-w-full overflow-hidden bg-[#0a0d14]/95 backdrop-blur-2xl border-t border-white/10 p-2 sm:p-2.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] select-none shrink-0 z-20 shadow-2xl"
       >
         {/* Active Trades Mini Alert Pill (if any active trades exist) */}
         {activeTrades.length > 0 && (
           <div 
             onClick={() => setIsMobileSheetOpen(true)}
-            className="mb-2 px-3 py-1.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs cursor-pointer active:scale-98 transition-all shadow-sm"
+            className="mb-1.5 sm:mb-2 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-emerald-500/15 border border-emerald-500/30 rounded-lg sm:rounded-xl flex items-center justify-between text-xs cursor-pointer active:scale-98 transition-all shadow-sm"
           >
             <div className="flex items-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <span className="font-extrabold text-emerald-400 font-mono-nums">{activeTrades.length} Active Trade{activeTrades.length > 1 ? 's' : ''}</span>
+              <span className="font-extrabold text-emerald-400 font-mono-nums text-[11px] sm:text-xs">{activeTrades.length} Active Trade{activeTrades.length > 1 ? 's' : ''}</span>
             </div>
-            <div className="flex items-center space-x-1 text-slate-300 text-[11px] font-semibold">
+            <div className="flex items-center space-x-1 text-slate-300 text-[10px] sm:text-[11px] font-semibold">
               <span>View details</span>
               <ChevronUp className="w-3.5 h-3.5" />
             </div>
@@ -526,70 +526,74 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
         )}
 
         {/* Row 1: Time Selector & Investment Stake Selector (Side-by-side) */}
-        <div className="grid grid-cols-2 gap-2 mb-2">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
           {/* Time Selector */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-1.5 flex items-center justify-between shadow-inner">
+          <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-xl p-1 sm:p-1.5 flex items-center justify-between shadow-inner">
             <button
               onClick={() => handleTimeAdjust(-15)}
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center text-xs font-bold active:scale-90 transition-all cursor-pointer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center text-xs font-bold active:scale-90 transition-all cursor-pointer"
               title="Decrease Time"
+              aria-label="Decrease Time"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
             <div className="flex flex-col items-center">
-              <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Time</span>
-              <span className="text-xs sm:text-sm font-black font-mono-nums text-white">{formatTimeDuration(tradeDuration)}</span>
+              <span className="text-[8px] sm:text-[9px] uppercase tracking-wider text-slate-400 font-bold leading-none mb-0.5">Time</span>
+              <span className="text-[11px] sm:text-sm font-black font-mono-nums text-white leading-none">{formatTimeDuration(tradeDuration)}</span>
             </div>
             <button
               onClick={() => handleTimeAdjust(15)}
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center text-xs font-bold active:scale-90 transition-all cursor-pointer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center text-xs font-bold active:scale-90 transition-all cursor-pointer"
               title="Increase Time"
+              aria-label="Increase Time"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
           {/* Investment Amount Selector */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-1.5 flex items-center justify-between shadow-inner">
+          <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-xl p-1 sm:p-1.5 flex items-center justify-between shadow-inner">
             <button
               onClick={() => handleInvestmentAdjust(-1)}
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center text-xs font-bold active:scale-90 transition-all cursor-pointer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center text-xs font-bold active:scale-90 transition-all cursor-pointer"
               title="Decrease Investment"
+              aria-label="Decrease Investment"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
             <div className="flex flex-col items-center">
-              <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Investment</span>
-              <span className="text-xs sm:text-sm font-black font-mono-nums text-emerald-400">${investment}</span>
+              <span className="text-[8px] sm:text-[9px] uppercase tracking-wider text-slate-400 font-bold leading-none mb-0.5">Investment</span>
+              <span className="text-[11px] sm:text-sm font-black font-mono-nums text-emerald-400 leading-none">${investment}</span>
             </div>
             <button
               onClick={() => handleInvestmentAdjust(1)}
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center text-xs font-bold active:scale-90 transition-all cursor-pointer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center text-xs font-bold active:scale-90 transition-all cursor-pointer"
               title="Increase Investment"
+              aria-label="Increase Investment"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
 
         {/* Row 2: Large Tactile UP and DOWN Execution Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
           {/* UP Button */}
           <button
             id="btn-mobile-trade-up"
             onClick={() => handleExecute('CALL')}
-            className="py-3 px-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:from-emerald-300 active:to-teal-200 active:scale-95 text-black font-black rounded-xl shadow-lg shadow-emerald-500/25 flex items-center justify-between cursor-pointer transition-all border border-emerald-300/30"
+            className="py-2.5 sm:py-3 px-3 sm:px-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:from-emerald-300 active:to-teal-200 active:scale-95 text-black font-black rounded-lg sm:rounded-xl shadow-lg shadow-emerald-500/25 flex items-center justify-between cursor-pointer transition-all border border-emerald-300/30"
           >
             <div className="text-left">
-              <div className="text-base sm:text-lg leading-none font-black uppercase tracking-wider flex items-center space-x-1">
+              <div className="text-sm sm:text-lg leading-none font-black uppercase tracking-wider flex items-center space-x-1">
                 <span>UP</span>
               </div>
-              <div className="text-[10px] font-black text-emerald-950 font-mono-nums mt-0.5">
+              <div className="text-[9px] sm:text-[10px] font-black text-emerald-950 font-mono-nums mt-0.5 leading-none">
                 +${netProfit.toFixed(2)} ({asset.payout}%)
               </div>
             </div>
-            <div className="w-7 h-7 rounded-full bg-black/20 flex items-center justify-center shadow-sm">
-              <ArrowUpRight className="w-4 h-4 text-black stroke-[3]" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/20 flex items-center justify-center shadow-sm shrink-0">
+              <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-black stroke-[3]" />
             </div>
           </button>
 
@@ -597,18 +601,18 @@ export const TradeExecutionPanel: React.FC<TradeExecutionPanelProps> = ({
           <button
             id="btn-mobile-trade-down"
             onClick={() => handleExecute('PUT')}
-            className="py-3 px-3.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 active:from-rose-300 active:to-red-400 active:scale-95 text-white font-black rounded-xl shadow-lg shadow-rose-500/25 flex items-center justify-between cursor-pointer transition-all border border-rose-300/30"
+            className="py-2.5 sm:py-3 px-3 sm:px-3.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 active:from-rose-300 active:to-red-400 active:scale-95 text-white font-black rounded-lg sm:rounded-xl shadow-lg shadow-rose-500/25 flex items-center justify-between cursor-pointer transition-all border border-rose-300/30"
           >
             <div className="text-left">
-              <div className="text-base sm:text-lg leading-none font-black uppercase tracking-wider flex items-center space-x-1">
+              <div className="text-sm sm:text-lg leading-none font-black uppercase tracking-wider flex items-center space-x-1">
                 <span>DOWN</span>
               </div>
-              <div className="text-[10px] font-black text-rose-100 font-mono-nums mt-0.5">
+              <div className="text-[9px] sm:text-[10px] font-black text-rose-100 font-mono-nums mt-0.5 leading-none">
                 +${netProfit.toFixed(2)} ({asset.payout}%)
               </div>
             </div>
-            <div className="w-7 h-7 rounded-full bg-black/30 flex items-center justify-center shadow-sm">
-              <ArrowDownRight className="w-4 h-4 text-white stroke-[3]" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/30 flex items-center justify-center shadow-sm shrink-0">
+              <ArrowDownRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[3]" />
             </div>
           </button>
         </div>

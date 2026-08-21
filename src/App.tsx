@@ -57,14 +57,35 @@ import { usePWA } from './hooks/usePWA';
 import { PWAFallbackToast } from './components/modals/PWAFallbackToast';
 import { Download, X } from 'lucide-react';
 
+import { 
+  saveUserSession, 
+  getUserSession, 
+  clearUserSession, 
+  getCurrentSessionId 
+} from './utils/cookies';
+
 export default function App() {
   const { promptInstall, isInstalled, fallbackInfo, dismissFallback, openInNewTab } = usePWA();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
-  // User Account Session (No auto-login without explicit register/login)
+  
+  // User Account Session restored seamlessly via Session ID Cookie system
   const [user, setUser] = useState<UserAccount | null>(() => {
-    localStorage.removeItem('qx_user_session');
-    return null;
+    const session = getUserSession();
+    return session?.user || null;
   });
+
+  // Listen for session changes across tabs and components
+  useEffect(() => {
+    const handleSessionChange = (e: any) => {
+      if (e.detail?.user) {
+        setUser(e.detail.user);
+      } else if (e.detail === null) {
+        setUser(null);
+      }
+    };
+    window.addEventListener('nux_session_change', handleSessionChange);
+    return () => window.removeEventListener('nux_session_change', handleSessionChange);
+  }, []);
 
   // 1. Assets State
   const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
@@ -106,27 +127,29 @@ export default function App() {
           localStorage.setItem('qx_demo_balance', String(data.demoBalance));
         }
         
-        // Also update user state if role, balanceLocked, or status changes
+        // Also update user state and session cookies if role, balanceLocked, or status changes
         setUser(prev => {
           if (!prev) return prev;
           const newLocked = data.balanceLocked !== undefined ? data.balanceLocked : prev.balanceLocked;
           const newRole = data.role || prev.role;
           const newStatus = data.accountStatus || prev.accountStatus;
           if (prev.balanceLocked !== newLocked || prev.role !== newRole || prev.accountStatus !== newStatus) {
-            return {
+            const updated = {
               ...prev,
               balanceLocked: newLocked,
               role: newRole,
               accountStatus: newStatus
             };
+            saveUserSession(updated);
+            return updated;
           }
           return prev;
         });
         
         // Handle blocked status
         if (data.accountStatus === 'blocked') {
+           clearUserSession();
            setUser(null);
-           localStorage.removeItem('qx_user_session');
            alert('Your account has been blocked by the administrator.');
            window.location.reload();
         }
@@ -225,7 +248,14 @@ export default function App() {
   };
 
   // 6. Navigation & Modals State
-  const [currentView, setCurrentView] = useState<QuotexNavPage>('home');
+  const [currentView, setCurrentView] = useState<QuotexNavPage>(() => {
+    const session = getUserSession();
+    if (session?.user) {
+      const isAdmin = session.user.email?.toLowerCase() === 'rosul9552@gmail.com' || session.user.role === 'admin';
+      return isAdmin ? 'admin' : 'trade';
+    }
+    return 'home';
+  });
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('trade');
   const [isAssetSelectorOpen, setIsAssetSelectorOpen] = useState(false);
   const [isDepositOpen, setIsDepositOpen] = useState(false);
@@ -242,13 +272,14 @@ export default function App() {
 
   const handleAuthSuccess = (userData: UserAccount) => {
     const isAdmin = userData.email?.toLowerCase() === 'rosul9552@gmail.com' || userData.role === 'admin';
-    const finalUserData = {
+    const finalUserData: UserAccount = {
       ...userData,
       role: isAdmin ? 'admin' : (userData.role || 'user')
     };
 
+    // Save session in persistent cookie system using session_id cookie
+    const sessionData = saveUserSession(finalUserData);
     setUser(finalUserData);
-    localStorage.setItem('qx_user_session', JSON.stringify(finalUserData));
 
     // Save to local registered users store so admin panel sees all registered emails
     try {
@@ -289,7 +320,7 @@ export default function App() {
       {
         id: `auth-${Date.now()}`,
         title: 'Authentication Successful',
-        message: `Welcome back, ${userData.name}! Logged in as ${userData.email}.`,
+        message: `Welcome back, ${userData.name}! Logged in as ${userData.email} (Session: ${sessionData.sessionId.substring(0, 14)}...).`,
         time: 'Just now',
         type: 'success',
         read: false,
@@ -299,15 +330,16 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    // Clear session cookies and session storage
+    clearUserSession();
     setUser(null);
-    localStorage.removeItem('qx_user_session');
     setCurrentView('home');
     soundManager.playClick();
     setNotifications((prev) => [
       {
         id: `logout-${Date.now()}`,
         title: 'Signed Out',
-        message: 'You have logged out of your account. Continue with practice or log in again.',
+        message: 'You have logged out of your account. Cookie session terminated.',
         time: 'Just now',
         type: 'info',
         read: false,
@@ -684,44 +716,46 @@ export default function App() {
     >
       {/* Top Broadcast Notice Marquee Bar */}
       {platformSettings.showNoticeBanner !== false && platformSettings.noticeBanner && (
-        <div className="bg-gradient-to-r from-emerald-600/90 via-cyan-600/90 to-blue-600/90 text-white text-[11px] font-bold py-1 px-4 flex items-center justify-between shadow-md z-40 border-b border-white/10 shrink-0">
-          <div className="flex items-center space-x-2 truncate">
-            <span className="px-1.5 py-0.2 rounded bg-black/40 text-[9px] font-black uppercase tracking-wider text-amber-300">ANNOUNCEMENT</span>
-            <span className="truncate">{platformSettings.noticeBanner}</span>
+        <div className="bg-gradient-to-r from-emerald-600/90 via-cyan-600/90 to-blue-600/90 text-white text-[10px] sm:text-[11px] font-bold py-1 px-2 sm:px-4 flex items-center justify-between shadow-md z-40 border-b border-white/10 shrink-0 w-full max-w-full overflow-hidden">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 truncate min-w-0">
+            <span className="px-1 py-0.2 rounded bg-black/40 text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-amber-300 shrink-0">ANNOUNCEMENT</span>
+            <span className="truncate text-white/95">{platformSettings.noticeBanner}</span>
           </div>
           <button 
             onClick={() => setPlatformSettings(prev => ({ ...prev, showNoticeBanner: false }))}
-            className="text-white/80 hover:text-white text-xs ml-3 shrink-0 cursor-pointer"
+            className="text-white/80 hover:text-white text-xs ml-2 sm:ml-3 shrink-0 cursor-pointer p-0.5"
+            aria-label="Close Notice"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* PWA Install Banner */}
+      {/* PWA Install Banner (Optimized for Mobile Viewports) */}
       {showInstallBanner && !isInstalled && (
-        <div className="bg-emerald-600 text-white text-xs font-bold py-2 px-4 flex items-center justify-between shadow-lg z-40 shrink-0 border-b border-emerald-500/20">
-          <div className="flex items-center space-x-3 truncate">
-            <div className="p-1.5 bg-black/20 rounded-lg shrink-0">
-              <Download className="w-4 h-4 text-white" />
+        <div className="bg-emerald-600 text-white text-xs font-bold py-1.5 px-2.5 sm:px-4 flex items-center justify-between shadow-lg z-40 shrink-0 border-b border-emerald-500/20 w-full max-w-full overflow-hidden">
+          <div className="flex items-center space-x-2 sm:space-x-3 truncate min-w-0">
+            <div className="p-1 sm:p-1.5 bg-black/20 rounded-lg shrink-0">
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-sm tracking-tight text-white">NUX Trading App is ready</span>
-              <span className="text-[10px] text-emerald-100 font-medium hidden sm:block">Install it now for a faster experience & offline access!</span>
+            <div className="flex flex-col min-w-0 truncate">
+              <span className="font-extrabold text-xs sm:text-sm tracking-tight text-white truncate">NUX Trading App is ready</span>
+              <span className="text-[10px] text-emerald-100 font-medium hidden sm:block truncate">Install it now for a faster experience & offline access!</span>
             </div>
           </div>
-          <div className="flex items-center space-x-2 shrink-0">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button 
               onClick={promptInstall}
-              className="px-4 py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 font-black rounded-lg shadow-sm active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              className="px-2.5 sm:px-4 py-1 sm:py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 font-black rounded-lg shadow-sm active:scale-95 transition-all cursor-pointer whitespace-nowrap text-[11px] sm:text-xs"
             >
               INSTALL APP
             </button>
             <button 
               onClick={() => setShowInstallBanner(false)}
-              className="p-1.5 text-emerald-200 hover:text-white rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
+              className="p-1 sm:p-1.5 text-emerald-200 hover:text-white rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
+              aria-label="Dismiss Banner"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>

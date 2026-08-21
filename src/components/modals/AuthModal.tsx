@@ -18,6 +18,7 @@ import confetti from 'canvas-confetti';
 import { SocialAuthModal } from './SocialAuthModal';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 import { FirebaseService } from '../../utils/firebaseSync';
+import { saveUserSession } from '../../utils/cookies';
 import { auth } from '../../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
@@ -159,11 +160,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         createdAt: new Date().toISOString()
       });
 
-      // Save local session
-      localStorage.setItem('qx_user_session', JSON.stringify({
-        token: `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        user: loggedInUser
-      }));
+      // Save persistent cookie session with unique session_id
+      saveUserSession(loggedInUser, { rememberMe });
 
       soundManager.playWin();
       try {
@@ -257,11 +255,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         phone: cleanPhone,
       };
 
-      // Store in localStorage
-      localStorage.setItem('qx_user_session', JSON.stringify({
-        token: `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        user
-      }));
+      // Save persistent cookie session with unique session_id
+      saveUserSession(user, { rememberMe });
 
       soundManager.playWin();
       try {

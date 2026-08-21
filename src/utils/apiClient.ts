@@ -1,3 +1,5 @@
+import { getCurrentSessionId, getCookie, SESSION_COOKIE_NAME } from './cookies';
+
 /**
  * Safe API Client for Quotex Platform
  * Ensures all requests and responses are strictly parsed with JSON validation,
@@ -82,22 +84,23 @@ export function formatErrorMessage(err: any, fallback = 'An unexpected error occ
 }
 
 /**
- * Retrieve the current authentication JWT token from document cookies or localStorage
+ * Retrieve the current authentication JWT token or Session ID from document cookies or storage
  */
 export function getStoredAuthToken(): string | null {
+  const sessionId = getCurrentSessionId();
+  if (sessionId) return sessionId;
+
   if (typeof document !== 'undefined') {
-    const tokenFromCookie = document.cookie
-      .split('; ')
-      .find((row) => row.startsWith('qx_token='))
-      ?.split('=')[1];
+    const tokenFromCookie = getCookie('qx_token') || getCookie(SESSION_COOKIE_NAME);
     if (tokenFromCookie) return tokenFromCookie;
   }
 
   if (typeof localStorage !== 'undefined') {
     try {
-      const userSession = localStorage.getItem('qx_user_session');
+      const userSession = localStorage.getItem('nux_user_session') || localStorage.getItem('qx_user_session');
       if (userSession) {
         const parsed = JSON.parse(userSession);
+        if (parsed.sessionId) return parsed.sessionId;
         if (parsed.token) return parsed.token;
       }
     } catch {}

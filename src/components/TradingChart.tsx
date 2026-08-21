@@ -784,24 +784,24 @@ export const TradingChart: React.FC<TradingChartProps> = ({
       />
 
       {/* Top Overlay Badges: UTC Live Clock, Pair Info button */}
-      <div className="absolute top-3 left-4 flex items-center space-x-3 pointer-events-auto">
-        <div className="flex items-center space-x-1.5 px-3 py-1 bg-[#0d121b]/80 backdrop-blur-md rounded-lg border border-white/10 text-xs font-mono-nums text-slate-300 shadow-lg">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-4 flex items-center space-x-1.5 sm:space-x-3 pointer-events-auto z-10">
+        <div className="flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-0.5 sm:py-1 bg-[#0d121b]/85 backdrop-blur-md rounded-lg border border-white/10 text-[9px] sm:text-xs font-mono-nums text-slate-300 shadow-lg">
+          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>{new Date().toISOString().substring(11, 19)} UTC</span>
         </div>
 
         <button
           id="btn-pair-info"
           onClick={onOpenPairInfoModal}
-          className="flex items-center space-x-1.5 px-3 py-1 bg-[#0d121b]/80 hover:bg-white/10 backdrop-blur-md rounded-lg border border-white/10 text-xs text-emerald-400 hover:text-emerald-300 transition-colors shadow-lg cursor-pointer animate-pulse"
+          className="flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-0.5 sm:py-1 bg-[#0d121b]/85 hover:bg-white/10 backdrop-blur-md rounded-lg border border-white/10 text-[9px] sm:text-xs text-emerald-400 hover:text-emerald-300 transition-colors shadow-lg cursor-pointer"
         >
-          <Info className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="font-semibold uppercase tracking-wider text-[10px] text-emerald-400">PAIR INFORMATION</span>
+          <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400 shrink-0" />
+          <span className="font-bold uppercase tracking-wider text-[8px] sm:text-[10px] text-emerald-400 whitespace-nowrap">PAIR INFO</span>
         </button>
       </div>
 
       {/* Floating Bottom Toolbar (Quotex Frosted Glass Style) */}
-      <div className="absolute bottom-4 left-4 flex items-center space-x-2 z-10">
+      <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 flex items-center space-x-1 sm:space-x-2 z-10">
         {/* Drawing Tools Dropdown */}
         <div className="relative">
           <button
@@ -811,18 +811,19 @@ export const TradingChart: React.FC<TradingChartProps> = ({
               setShowTypeMenu(false);
               setShowTfMenu(false);
             }}
-            className={`p-2 rounded-lg border backdrop-blur-md transition-all cursor-pointer ${
+            className={`p-1.5 sm:p-2 rounded-lg border backdrop-blur-md transition-all cursor-pointer ${
               activeDrawingTool !== 'none' || showDrawingMenu
                 ? 'bg-emerald-500 text-black font-bold border-emerald-400 shadow-lg shadow-emerald-500/20'
                 : 'bg-[#0d121b]/80 text-slate-300 border-white/10 hover:bg-white/10'
             }`}
             title="Drawing Tools"
+            aria-label="Drawing Tools"
           >
-            <PenTool className="w-4 h-4" />
+            <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {showDrawingMenu && (
-            <div className="absolute bottom-11 left-0 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 w-48 space-y-1">
+            <div className="absolute bottom-10 sm:bottom-11 left-0 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 w-48 space-y-1 z-20">
               <div className="text-[11px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider border-b border-white/5 pb-1 mb-1">
                 Drawing & Zoom
               </div>
@@ -874,14 +875,14 @@ export const TradingChart: React.FC<TradingChartProps> = ({
               setShowTypeMenu(false);
               setShowDrawingMenu(false);
             }}
-            className="flex items-center space-x-1 px-3 py-1.5 bg-[#0d121b]/80 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-mono-nums font-semibold text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
+            className="flex items-center space-x-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-[#0d121b]/80 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] sm:text-xs font-mono-nums font-semibold text-white backdrop-blur-md transition-all cursor-pointer shadow-lg"
           >
             <span>{timeframe}</span>
             <ChevronDown className="w-3 h-3 text-slate-400" />
           </button>
 
           {showTfMenu && (
-            <div className="absolute bottom-11 left-0 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 grid grid-cols-2 gap-1 w-36">
+            <div className="absolute bottom-10 sm:bottom-11 left-0 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 grid grid-cols-2 gap-1 w-36 z-20">
               {timeframes.map((tf) => (
                 <button
                   key={tf.key}
@@ -909,14 +910,15 @@ export const TradingChart: React.FC<TradingChartProps> = ({
               setShowTfMenu(false);
               setShowDrawingMenu(false);
             }}
-            className="p-2 bg-[#0d121b]/80 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 backdrop-blur-md transition-all cursor-pointer shadow-lg"
+            className="p-1.5 sm:p-2 bg-[#0d121b]/80 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 backdrop-blur-md transition-all cursor-pointer shadow-lg"
             title="Chart Type"
+            aria-label="Chart Type"
           >
-            <Layers className="w-4 h-4" />
+            <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {showTypeMenu && (
-            <div className="absolute bottom-11 left-0 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 w-40 space-y-1">
+            <div className="absolute bottom-10 sm:bottom-11 left-0 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 w-40 space-y-1 z-20">
               <div className="text-[11px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">
                 Chart Type
               </div>
@@ -947,27 +949,29 @@ export const TradingChart: React.FC<TradingChartProps> = ({
         <button
           id="btn-open-indicators"
           onClick={onOpenIndicatorsModal}
-          className="p-2 bg-[#0d121b]/80 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 backdrop-blur-md transition-all cursor-pointer shadow-lg"
+          className="p-1.5 sm:p-2 bg-[#0d121b]/80 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 backdrop-blur-md transition-all cursor-pointer shadow-lg"
           title="Indicators & Oscillators"
+          aria-label="Indicators & Oscillators"
         >
-          <Sliders className="w-4 h-4" />
+          <Sliders className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
 
         {/* Zoom In & Out & Reset */}
-        <div className="flex items-center space-x-1 bg-[#0d121b]/80 border border-white/10 rounded-lg p-1 backdrop-blur-md shadow-lg">
+        <div className="flex items-center space-x-0.5 sm:space-x-1 bg-[#0d121b]/80 border border-white/10 rounded-lg p-0.5 sm:p-1 backdrop-blur-md shadow-lg">
           <button
             onClick={() => setZoomLevel((z) => Math.max(0.4, z * 0.85))}
             className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
             title="Zoom Out"
+            aria-label="Zoom Out"
           >
-            <ZoomOut className="w-3.5 h-3.5" />
+            <ZoomOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </button>
           <button
             onClick={() => {
               setZoomLevel(1);
               setPanOffset(0);
             }}
-            className="p-1 text-slate-400 hover:text-white transition-colors text-[10px] font-mono-nums cursor-pointer"
+            className="px-1 py-0.5 text-slate-400 hover:text-white transition-colors text-[9px] sm:text-[10px] font-mono-nums cursor-pointer font-semibold"
             title="Reset Zoom & Pan"
           >
             100%
@@ -976,8 +980,9 @@ export const TradingChart: React.FC<TradingChartProps> = ({
             onClick={() => setZoomLevel((z) => Math.min(2.5, z * 1.15))}
             className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
             title="Zoom In"
+            aria-label="Zoom In"
           >
-            <ZoomIn className="w-3.5 h-3.5" />
+            <ZoomIn className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </button>
         </div>
       </div>

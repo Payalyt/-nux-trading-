@@ -127,30 +127,30 @@ export const Header: React.FC<HeaderProps> = ({
     <>
       <header 
         id="main-platform-header"
-        className="h-14 sm:h-16 bg-[#0d121b]/95 backdrop-blur-md border-b border-white/10 px-2 sm:px-4 flex items-center justify-between shrink-0 select-none z-30 w-full max-w-full overflow-hidden"
+        className="h-12 sm:h-16 bg-[#0d121b]/95 backdrop-blur-md border-b border-white/10 px-2 sm:px-4 flex items-center justify-between shrink-0 select-none z-30 w-full max-w-full overflow-hidden"
       >
         {/* Left: Mobile Menu Hamburger + Logo */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Mobile Menu Button - 3 Line Hamburger Menu */}
           <button
             onClick={() => setShowMobileMenu(true)}
-            className="flex lg:hidden p-1.5 sm:p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 active:scale-95 transition-all shadow-md shadow-emerald-500/10 shrink-0 items-center justify-center cursor-pointer"
+            className="flex lg:hidden p-1.5 sm:p-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 active:scale-95 transition-all shadow-md shadow-emerald-500/10 shrink-0 items-center justify-center cursor-pointer"
             title="Open Navigation Menu"
             aria-label="Open Navigation Menu"
           >
-            <Menu className="w-5 h-5 stroke-[2.5]" />
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
 
           {/* Logo & Brand Identity (Brand text hidden on mobile to give space to balance & deposit) */}
           <div 
             onClick={onGoToHome}
-            className="flex items-center gap-2 cursor-pointer group shrink-0"
+            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0"
             title={`${platformName} Home`}
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-xl flex items-center justify-center text-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform p-1.5 border border-emerald-400/30">
-              <CandlestickChart className="w-4 h-4 sm:w-5 sm:h-5 text-black stroke-[2.5]" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-xl flex items-center justify-center text-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform p-1 sm:p-1.5 border border-emerald-400/30 shrink-0">
+              <CandlestickChart className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-black stroke-[2.5]" />
             </div>
-            <span className="hidden md:inline-block font-extrabold text-sm sm:text-base tracking-tight text-white">NUX Trading</span>
+            <span className="hidden md:inline-block font-extrabold text-sm sm:text-base tracking-tight text-white whitespace-nowrap">NUX Trading</span>
           </div>
         </div>
 
@@ -167,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right: Controls, Account Selector & Action Buttons */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0 flex-nowrap">
           {/* PWA Install Button */}
           <button
             onClick={promptInstall}
@@ -177,8 +177,6 @@ export const Header: React.FC<HeaderProps> = ({
             <Download className="w-3.5 h-3.5" />
             <span>INSTALL APP</span>
           </button>
-
-
 
           {/* Audio Sound Toggle (Desktop only) */}
           <button
@@ -263,10 +261,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Live/Demo Toggle Pill */}
           {user && (
-            <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-0.5 gap-0.5 shadow-inner">
+            <div className="flex items-center bg-black/40 border border-white/10 rounded-lg sm:rounded-xl p-0.5 gap-0.5 shadow-inner shrink-0">
               <button
                 onClick={() => setAccountType('LIVE')}
-                className={`px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-extrabold tracking-wider transition-all cursor-pointer ${
                   accountType === 'LIVE' ? 'bg-emerald-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -274,7 +272,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <button
                 onClick={() => setAccountType('DEMO')}
-                className={`px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wider transition-all cursor-pointer ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-extrabold tracking-wider transition-all cursor-pointer ${
                   accountType === 'DEMO' ? 'bg-amber-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -297,17 +295,17 @@ export const Header: React.FC<HeaderProps> = ({
                   onOpenAuthPage('login');
                 }
               }}
-              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 active:scale-95 transition-all shadow-inner cursor-pointer"
+              className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 active:scale-95 transition-all shadow-inner cursor-pointer"
             >
               <div className="text-right flex flex-col items-end">
-                <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded leading-tight ${accountType === 'LIVE' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-amber-500/30 text-amber-300'}`}>
+                <span className={`text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded leading-tight ${accountType === 'LIVE' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-amber-500/30 text-amber-300'}`}>
                   {accountType === 'LIVE' ? 'LIVE' : 'DEMO'}
                 </span>
                 <span className="text-[11px] sm:text-sm font-mono-nums font-extrabold text-white leading-tight">
                   ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-300" />
+              <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300" />
             </button>
 
             {showAccountDropdown && (
@@ -470,11 +468,11 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="btn-header-deposit"
             onClick={onOpenDeposit}
-            className="flex items-center space-x-1 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-black text-xs font-black rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer shrink-0"
+            className="flex items-center space-x-1 px-2 sm:px-4 py-1 sm:py-2 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-black text-[11px] sm:text-xs font-black rounded-lg sm:rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer shrink-0"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
             <span className="hidden sm:inline">DEPOSIT</span>
-            <span className="sm:hidden">DEP</span>
+            <span className="sm:hidden font-black">DEP</span>
           </button>
 
           {/* User Profile Avatar or Log In / Sign Up */}
@@ -497,7 +495,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <button
                 onClick={() => onOpenAuthModal ? onOpenAuthModal('register') : onOpenAuthPage?.('register')}
-                className="px-2 sm:px-3.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 font-bold text-xs rounded-xl transition-all flex items-center space-x-1"
+                className="px-2 sm:px-3.5 py-1 sm:py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 font-bold text-[11px] sm:text-xs rounded-lg sm:rounded-xl transition-all flex items-center space-x-1"
               >
                 <UserPlus className="w-3 h-3" />
                 <span className="hidden sm:inline">Sign Up</span>

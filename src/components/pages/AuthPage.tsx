@@ -26,6 +26,7 @@ import confetti from 'canvas-confetti';
 import { SocialAuthModal } from '../modals/SocialAuthModal';
 import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 import { FirebaseService } from '../../utils/firebaseSync';
+import { saveUserSession } from '../../utils/cookies';
 import { auth } from '../../firebase';
 import { 
   createUserWithEmailAndPassword, 
@@ -226,6 +227,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         createdAt: new Date().toISOString()
       });
 
+      // Save persistent cookie session with unique session_id
+      saveUserSession(loggedInUser, { rememberMe });
+
       soundManager.playWin();
       try {
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
@@ -321,6 +325,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         role: backendRole,
         phone: cleanPhone,
       };
+
+      // Save persistent cookie session with unique session_id
+      saveUserSession(user, { rememberMe });
 
       onAuthSuccess(user);
     } catch (err: any) {

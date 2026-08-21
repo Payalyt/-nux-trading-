@@ -99,6 +99,99 @@ async function startServer() {
     });
   });
 
+  // Helper to parse cookies from request header
+  const parseCookies = (cookieHeader?: string): Record<string, string> => {
+    const list: Record<string, string> = {};
+    if (!cookieHeader) return list;
+    cookieHeader.split(';').forEach((cookie) => {
+      const parts = cookie.split('=');
+      const key = parts.shift()?.trim();
+      const val = decodeURIComponent(parts.join('=')?.trim() || '');
+      if (key) list[key] = val;
+    });
+    return list;
+  };
+
+  // In-memory session store on server (mirrored with client cookie session)
+  const serverSessions = new Map<string, any>();
+
+  // Auth Session check API
+  app.get('/api/auth/session', (req, res) => {
+    const cookies = parseCookies(req.headers.cookie);
+    const sessionId = cookies['session_id'] || cookies['nux_session_id'] || req.headers['x-session-id'] as string;
+    
+    if (sessionId && serverSessions.has(sessionId)) {
+      const session = serverSessions.get(sessionId);
+      return res.json({ success: true, sessionId, user: session.user, valid: true });
+    }
+    
+    res.json({ success: false, valid: false, message: 'No active session found' });
+  });
+
+  // Auth login API with session cookie generation
+  app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    const cleanUser = (username || '').trim().toLowerCase();
+    
+    const sessionId = `qx_sess_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const isAdmin = cleanUser === 'rosul9552@gmail.com' || cleanUser === 'admin';
+    const user = {
+      email: cleanUser.includes('@') ? cleanUser : `${cleanUser}@quotex.com`,
+      name: cleanUser.split('@')[0],
+      role: isAdmin ? 'admin' : 'user',
+      id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+      currency: 'USD'
+    };
+
+    serverSessions.set(sessionId, { user, createdAt: Date.now() });
+
+    // Set cookie on response
+    res.setHeader('Set-Cookie', `session_id=${sessionId}; Path=/; Max-Age=2592000; SameSite=Lax`);
+    res.json({
+      ok: true,
+      success: true,
+      sessionId,
+      user
+    });
+  });
+
+  // Auth register API with session cookie generation
+  app.post('/api/auth/register', (req, res) => {
+    const { username, fullName, phone } = req.body;
+    const cleanUser = (username || '').trim().toLowerCase();
+    const sessionId = `qx_sess_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const isAdmin = cleanUser === 'rosul9552@gmail.com';
+    const user = {
+      email: cleanUser.includes('@') ? cleanUser : `${cleanUser}@quotex.com`,
+      name: fullName || cleanUser.split('@')[0],
+      phone: phone || '',
+      role: isAdmin ? 'admin' : 'user',
+      id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+      currency: 'USD'
+    };
+
+    serverSessions.set(sessionId, { user, createdAt: Date.now() });
+
+    res.setHeader('Set-Cookie', `session_id=${sessionId}; Path=/; Max-Age=2592000; SameSite=Lax`);
+    res.json({
+      ok: true,
+      success: true,
+      sessionId,
+      user
+    });
+  });
+
+  // Auth logout API (clears session cookie)
+  app.post('/api/auth/logout', (req, res) => {
+    const cookies = parseCookies(req.headers.cookie);
+    const sessionId = cookies['session_id'] || cookies['nux_session_id'];
+    if (sessionId) {
+      serverSessions.delete(sessionId);
+    }
+    res.setHeader('Set-Cookie', 'session_id=; Path=/; Max-Age=0; SameSite=Lax');
+    res.json({ success: true, message: 'Logged out successfully' });
+  });
+
   // Deposit API
   app.post('/api/user/deposit', (req, res) => {
     const { amount, gateway, paymentType, senderNumber, trxId, bonusAmount, userNote } = req.body;
