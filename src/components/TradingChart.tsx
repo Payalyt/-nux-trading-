@@ -72,6 +72,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartX, setDragStartX] = useState(0);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const [touchDist, setTouchDist] = useState<number | null>(null);
   
   // Drawing tools state
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolType>('none');
@@ -694,6 +695,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     if (e.touches.length === 1) {
       setIsDragging(true);
       setDragStartX(e.touches[0].clientX);
+      setTouchDist(null);
       const rect = canvasRef.current?.getBoundingClientRect();
       if (rect) {
         setMousePos({
@@ -701,11 +703,18 @@ export const TradingChart: React.FC<TradingChartProps> = ({
           y: e.touches[0].clientY - rect.top,
         });
       }
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      setTouchDist(dist);
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length === 1) {
+    if (e.touches.length === 1 && isDragging) {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (rect) {
         setMousePos({
@@ -713,19 +722,31 @@ export const TradingChart: React.FC<TradingChartProps> = ({
           y: e.touches[0].clientY - rect.top,
         });
       }
-      if (isDragging) {
-        const deltaX = e.touches[0].clientX - dragStartX;
-        const candleShift = Math.round(deltaX / 8);
-        if (candleShift !== 0) {
-          setPanOffset((prev) => Math.max(0, Math.min(candles.length - 20, prev + candleShift)));
-          setDragStartX(e.touches[0].clientX);
-        }
+      const deltaX = e.touches[0].clientX - dragStartX;
+      const candleShift = Math.round(deltaX / 8);
+      if (candleShift !== 0) {
+        setPanOffset((prev) => Math.max(0, Math.min(candles.length - 20, prev + candleShift)));
+        setDragStartX(e.touches[0].clientX);
+      }
+    } else if (e.touches.length === 2 && touchDist !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = dist / touchDist;
+      if (ratio > 1.03) {
+        setZoomLevel((z) => Math.min(2.5, z * 1.05));
+        setTouchDist(dist);
+      } else if (ratio < 0.97) {
+        setZoomLevel((z) => Math.max(0.4, z * 0.95));
+        setTouchDist(dist);
       }
     }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
+    setTouchDist(null);
     setMousePos(null);
   };
 

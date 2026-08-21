@@ -55,10 +55,9 @@ import { HomePage } from './components/pages/HomePage';
 import { AdminDashboard } from './components/pages/AdminDashboard';
 import { usePWA } from './hooks/usePWA';
 import { Download, X } from 'lucide-react';
-import { PWAInstallModal } from './components/modals/PWAInstallModal';
 
 export default function App() {
-  const { promptInstall, showFallbackModal, setShowFallbackModal, deviceType } = usePWA();
+  const { promptInstall } = usePWA();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   // User Account Session (No auto-login without explicit register/login)
   const [user, setUser] = useState<UserAccount | null>(() => {
@@ -137,11 +136,8 @@ export default function App() {
   }, [user?.email]);
 
   useEffect(() => {
-    if (!user) {
-      setAccountType('LIVE');
-    }
-    localStorage.setItem('qx_account_type', user ? accountType : 'LIVE');
-  }, [accountType, user]);
+    localStorage.setItem('qx_account_type', accountType);
+  }, [accountType]);
 
   useEffect(() => {
     localStorage.setItem('qx_demo_balance', String(demoBalance));
@@ -729,13 +725,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* PWA Install Fallback Modal */}
-      <PWAInstallModal 
-        isOpen={showFallbackModal} 
-        onClose={() => setShowFallbackModal(false)} 
-        deviceType={deviceType}
-      />
 
       {currentView === 'home' ? (
         <HomePage

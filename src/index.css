@@ -356,7 +356,69 @@ div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nt
   display: none !important;
 }
 
-/* Hide new elements selected by the user */
+/* Additional Light Theme Text Visibility Fixes */
+.light-theme button,
+.light-theme span,
+.light-theme div,
+.light-theme label,
+.light-theme p,
+.light-theme h1,
+.light-theme h2,
+.light-theme h3,
+.light-theme h4,
+.light-theme header,
+.light-theme nav {
+  color: inherit;
+}
+
+.light-theme #main-trading-chart-container div,
+.light-theme #main-trading-chart-container span,
+.light-theme #main-trading-chart-container button,
+.light-theme .bg-\[\#0d121b\],
+.light-theme .bg-\[\#121722\],
+.light-theme .bg-\[\#101624\],
+.light-theme .bg-\[\#0a0e17\] {
+  color: #0f172a !important;
+}
+
+.light-theme div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) div {
+  color: inherit;
+}
+
+.light-theme #btn-pair-info,
+.light-theme #btn-chart-drawings,
+.light-theme #btn-timeframe-dropdown,
+.light-theme #btn-chart-type-dropdown,
+.light-theme #btn-open-indicators {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.light-theme #btn-pair-info:hover,
+.light-theme #btn-chart-drawings:hover,
+.light-theme #btn-timeframe-dropdown:hover,
+.light-theme #btn-chart-type-dropdown:hover,
+.light-theme #btn-open-indicators:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Focus mode styled elements: Light mode background white, text and icons black */
+.light-theme div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(2) > div#main-trading-chart-container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1),
+.light-theme div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(2) > div#main-trading-chart-container:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-theme div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(2) > div#main-trading-chart-container:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) *,
+.light-theme div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(2) > div#main-trading-chart-container:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(4) * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
 div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > button:nth-of-type(1),
 div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(2),
 div#root:nth-of-type(1) > div#quotex-trading-application:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > span:nth-of-type(1) {

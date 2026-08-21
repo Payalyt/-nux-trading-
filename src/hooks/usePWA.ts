@@ -23,32 +23,16 @@ export type DeviceType = 'ios' | 'android' | 'desktop';
 
 export function usePWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(globalDeferredPrompt);
-  // We want the install button to be PERMANENTLY visible across devices.
   const [isInstallable, setIsInstallable] = useState(true); 
-  const [showFallbackModal, setShowFallbackModal] = useState(false);
-  const [deviceType, setDeviceType] = useState<DeviceType>('desktop');
 
   useEffect(() => {
-    // Detect device type
-    const ua = navigator.userAgent.toLowerCase();
-    if (/iphone|ipad|ipod/.test(ua)) {
-      setDeviceType('ios');
-    } else if (/android/.test(ua)) {
-      setDeviceType('android');
-    } else {
-      setDeviceType('desktop');
-    }
-
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       const promptEvent = e as BeforeInstallPromptEvent;
       globalDeferredPrompt = promptEvent;
       setDeferredPrompt(promptEvent);
     };
 
-    // It's already attached globally, but we attach it here to update React state
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     return () => {
@@ -61,26 +45,22 @@ export function usePWA() {
 
     if (promptToUse) {
       try {
-        // Show the native install prompt
         await promptToUse.prompt();
-        
-        // Wait for the user to respond to the prompt
         const { outcome } = await promptToUse.userChoice;
-        
         if (outcome === 'accepted') {
-          // We no longer need the prompt. Clear it up.
           globalDeferredPrompt = null;
           setDeferredPrompt(null);
         }
       } catch (error) {
         console.error('Error with PWA prompt:', error);
-        setShowFallbackModal(true);
       }
     } else {
-      // Fallback for iOS / non-supporting browsers
-      setShowFallbackModal(true);
+      // If native prompt event isn't available, try browser's built-in prompt or action if possible
+      if ('serviceWorker' in navigator && window.matchMedia('(display-mode: browser)').matches) {
+        console.log('App ready for install');
+      }
     }
   };
 
-  return { isInstallable, promptInstall, showFallbackModal, setShowFallbackModal, deviceType };
+  return { isInstallable, promptInstall };
 }
