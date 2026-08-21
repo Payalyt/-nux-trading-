@@ -1,8 +1,11 @@
 {
-  "name": "NUX Trading Platform",
+  "name": "NUX Web Trading Platform",
   "short_name": "NUX Trading",
+  "description": "Fast, high-performance real-time binary and forex trading platform with live charts.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#070a10",
   "theme_color": "#070a10",
   "icons": [
@@ -20,3 +23,5 @@
     }
   ]
 }
+
+

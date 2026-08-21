@@ -54,10 +54,11 @@ import { AuthPage } from './components/pages/AuthPage';
 import { HomePage } from './components/pages/HomePage';
 import { AdminDashboard } from './components/pages/AdminDashboard';
 import { usePWA } from './hooks/usePWA';
+import { PWAFallbackToast } from './components/modals/PWAFallbackToast';
 import { Download, X } from 'lucide-react';
 
 export default function App() {
-  const { promptInstall } = usePWA();
+  const { promptInstall, isInstalled, fallbackInfo, dismissFallback, openInNewTab } = usePWA();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   // User Account Session (No auto-login without explicit register/login)
   const [user, setUser] = useState<UserAccount | null>(() => {
@@ -698,7 +699,7 @@ export default function App() {
       )}
 
       {/* PWA Install Banner */}
-      {showInstallBanner && (
+      {showInstallBanner && !isInstalled && (
         <div className="bg-emerald-600 text-white text-xs font-bold py-2 px-4 flex items-center justify-between shadow-lg z-40 shrink-0 border-b border-emerald-500/20">
           <div className="flex items-center space-x-3 truncate">
             <div className="p-1.5 bg-black/20 rounded-lg shrink-0">
@@ -1047,6 +1048,12 @@ export default function App() {
       <SupportModal
         isOpen={isSupportOpen}
         onClose={() => setIsSupportOpen(false)}
+      />
+
+      <PWAFallbackToast
+        fallbackInfo={fallbackInfo}
+        onDismiss={dismissFallback}
+        onOpenNewTab={openInNewTab}
       />
     </div>
   );

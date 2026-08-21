@@ -1,17 +1,20 @@
-const CACHE_NAME = 'nux-trading-pwa-v2';
+const CACHE_NAME = 'nux-trading-pwa-v3';
 
-const ASSETS_TO_CACHE = [
+const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Best effort caching, avoid failing the whole install if one asset fails
       return Promise.allSettled(
-        ASSETS_TO_CACHE.map(asset => cache.add(asset).catch(e => console.log('SW cache error:', e)))
+        PRECACHE_ASSETS.map((asset) =>
+          cache.add(asset).catch((err) => console.warn('PWA precache notice for:', asset, err))
+        )
       );
     })
   );
@@ -20,12 +23,11 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then((keys) => {
       return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log('Deleting old cache:', cache);
-            return caches.delete(cache);
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
           }
         })
       );
@@ -35,25 +37,40 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
-  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
 
-  // Network-First strategy
+  // Do not intercept non-GET requests or Firebase / external APIs
+  if (
+    event.request.method !== 'GET' ||
+    url.pathname.startsWith('/api') ||
+    url.hostname.includes('firestore') ||
+    url.hostname.includes('googleapis') ||
+    url.hostname.includes('firebaseio')
+  ) {
+    return;
+  }
+
+  // Stale-While-Revalidate for fast forward loading of assets and app shell
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // If network request succeeds, update the cache
-        if (response && response.status === 200 && response.type === 'basic') {
-          const resClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, resClone);
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(event.request).then((cachedResponse) => {
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => {
+            // If network fails and we have no cached asset for navigation, return cached index.html
+            if (event.request.mode === 'navigate') {
+              return cache.match('/index.html');
+            }
           });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Fallback to cache if network fails
-        return caches.match(event.request);
-      })
+
+        return cachedResponse || fetchPromise;
+      });
+    })
   );
 });
+
