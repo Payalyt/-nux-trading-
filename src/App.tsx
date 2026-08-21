@@ -1053,7 +1053,7 @@ export default function App() {
       <PWAFallbackToast
         fallbackInfo={fallbackInfo}
         onDismiss={dismissFallback}
-        onOpenNewTab={openInNewTab}
+        onOpenDefaultBrowser={openInNewTab}
       />
     </div>
   );
