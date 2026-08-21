@@ -32,6 +32,7 @@ import {
 import { Asset, UserAccount } from '../../types/trading';
 import { soundManager } from '../../utils/audio';
 import { usePWA } from '../../hooks/usePWA';
+import { SiteLogo } from '../common/SiteLogo';
 
 interface HomePageProps {
   onStartTrading: () => void;
@@ -136,19 +137,9 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="flex items-center space-x-3 sm:space-x-8">
           <div 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center space-x-2.5 cursor-pointer group"
+            className="flex items-center cursor-pointer group"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
-              <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-black stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <span className="font-black text-base sm:text-lg tracking-tight text-white">NUX</span>
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  TRADING
-                </span>
-              </div>
-            </div>
+            <SiteLogo size="lg" />
           </div>
 
           {/* Nav Links */}
@@ -791,15 +782,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <footer className="bg-[#05070c] border-t border-white/10 py-12 px-4 sm:px-8 text-xs text-slate-400">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-black font-black">
-                N
-              </div>
-              <div>
-                <div className="font-extrabold text-sm text-white">NUX TRADING</div>
-                <div className="text-[10px] text-slate-500">Official High-Performance Broker</div>
-              </div>
-            </div>
+            <SiteLogo size="md" showTagline={true} />
 
             <div className="flex flex-wrap items-center gap-6 text-[11px] font-semibold text-slate-400">
               <button onClick={onStartTrading} className="hover:text-emerald-400 transition-colors">Trade Terminal</button>

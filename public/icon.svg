@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0e14" />
+      <stop offset="50%" stop-color="#121722" />
+      <stop offset="100%" stop-color="#070a10" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#059669" stop-opacity="0.1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded App Icon Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)" stroke="#1e293b" stroke-width="8" />
+  
+  <!-- Subtle Glow Effect Behind Graph -->
+  <circle cx="256" cy="256" r="160" fill="url(#glowGrad)" filter="blur(30px)" opacity="0.35" />
+
+  <!-- Candlestick Graphic -->
+  <g transform="translate(64, 40) scale(0.75)">
+    <!-- Candle 1: Red -->
+    <line x1="120" y1="210" x2="120" y2="390" stroke="#f43f5e" stroke-width="6" stroke-linecap="round"/>
+    <rect x="102" y="240" width="36" height="110" rx="6" fill="#f43f5e" />
+
+    <!-- Candle 2: Green Small -->
+    <line x1="200" y1="180" x2="200" y2="340" stroke="#10b981" stroke-width="6" stroke-linecap="round"/>
+    <rect x="182" y="220" width="36" height="80" rx="6" fill="#10b981" />
+
+    <!-- Candle 3: Large Bullish Green -->
+    <line x1="280" y1="100" x2="280" y2="300" stroke="#10b981" stroke-width="8" stroke-linecap="round"/>
+    <rect x="258" y="130" width="44" height="130" rx="8" fill="#10b981" />
+
+    <!-- Candle 4: Breakout High Green -->
+    <line x1="370" y1="70" x2="370" y2="240" stroke="#34d399" stroke-width="8" stroke-linecap="round"/>
+    <rect x="348" y="90" width="44" height="110" rx="8" fill="#34d399" />
+
+    <!-- Trend Line -->
+    <path d="M 90 320 Q 200 240, 270 170 T 420 80" fill="none" stroke="#6ee7b7" stroke-width="8" stroke-linecap="round" stroke-dasharray="2 0" />
+    <circle cx="420" cy="80" r="12" fill="#34d399" stroke="#ffffff" stroke-width="4"/>
+  </g>
+
+  <!-- Brand Typography NUX -->
+  <text x="256" y="440" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="64" fill="#ffffff" text-anchor="middle" letter-spacing="8">
+    NUX
+  </text>
+</svg>

@@ -35,6 +35,7 @@ import {
   Download
 } from 'lucide-react';
 import { usePWA } from '../hooks/usePWA';
+import { SiteLogo } from './common/SiteLogo';
 
 interface HeaderProps {
   platformName?: string;
@@ -141,16 +142,13 @@ export const Header: React.FC<HeaderProps> = ({
             <Menu className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
 
-          {/* Logo & Brand Identity (Brand text hidden on mobile to give space to balance & deposit) */}
+          {/* Logo & Brand Identity */}
           <div 
             onClick={onGoToHome}
-            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0"
+            className="flex items-center cursor-pointer group shrink-0"
             title={`${platformName} Home`}
           >
-            <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-xl flex items-center justify-center text-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform p-1 sm:p-1.5 border border-emerald-400/30 shrink-0">
-              <CandlestickChart className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-black stroke-[2.5]" />
-            </div>
-            <span className="hidden md:inline-block font-extrabold text-sm sm:text-base tracking-tight text-white whitespace-nowrap">NUX Trading</span>
+            <SiteLogo size="md" />
           </div>
         </div>
 
@@ -514,9 +512,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-black p-1 shadow-md">
-                    <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
-                  </div>
+                  <SiteLogo size="sm" showText={false} />
                   <span className="font-extrabold text-base text-white">Navigation Menu</span>
                 </div>
                 <button

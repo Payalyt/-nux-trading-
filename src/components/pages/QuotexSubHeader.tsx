@@ -1,6 +1,7 @@
 import React from 'react';
 import { AccountType } from '../../types/trading';
-import { Plus, ArrowDownToLine, ChevronLeft, Shield, Sun, Moon, CandlestickChart } from 'lucide-react';
+import { Plus, ArrowDownToLine, ChevronLeft, Shield, Sun, Moon } from 'lucide-react';
+import { SiteLogo } from '../common/SiteLogo';
 
 export type QuotexNavPage = 
   | 'home'
@@ -64,17 +65,10 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
         <div className="flex items-center space-x-4 sm:space-x-8">
           <div 
             onClick={onBackToTrade}
-            className="flex items-center space-x-2.5 cursor-pointer group"
+            className="flex items-center cursor-pointer group"
             title="Back to Trading Chart"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-xl flex items-center justify-center text-black shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform p-1.5 border border-emerald-400/30">
-              <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center">
-                <span className="hidden md:inline-block font-extrabold text-sm sm:text-base tracking-tight text-white">NUX Trading</span>
-              </div>
-            </div>
+            <SiteLogo size="md" />
           </div>
 
           {/* Desktop Navigation Tabs */}

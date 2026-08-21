@@ -37,6 +37,7 @@ import {
   getRedirectResult 
 } from 'firebase/auth';
 import { useEffect } from 'react';
+import { SiteLogo } from '../common/SiteLogo';
 
 interface AuthPageProps {
   platformName?: string;
@@ -247,16 +248,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     e.preventDefault();
     setError(null);
 
-    if (!fullName || !fullName.trim()) {
-      setError('Please enter your full name.');
-      return;
-    }
     if (!email) {
       setError('Please enter your email address.');
-      return;
-    }
-    if (!phone || !phone.trim()) {
-      setError('Please enter your phone number.');
       return;
     }
     if (!password || password.length < 6) {
@@ -271,8 +264,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const cleanName = fullName.trim();
-      const cleanPhone = phone.trim();
+      const cleanName = (fullName && fullName.trim()) || cleanEmail.split('@')[0];
+      const cleanPhone = (phone && phone.trim()) || '';
 
       // 1. Try Firebase Auth (if available/enabled)
       try {
@@ -321,7 +314,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         email: cleanEmail,
         name: cleanName,
         id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-        currency: currency,
+        currency: currency || 'USD',
         role: backendRole,
         phone: cleanPhone,
       };
@@ -432,17 +425,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       <header className="h-16 border-b border-white/10 px-6 flex items-center justify-between z-10 bg-[#0e131d]/80 backdrop-blur-md">
         <div 
           onClick={onBackToTrade}
-          className="flex items-center space-x-3 cursor-pointer group"
+          className="flex items-center cursor-pointer group"
         >
-          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-xl flex items-center justify-center text-black p-1.5 shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform border border-emerald-400/30">
-            <CandlestickChart className="w-5 h-5 text-black stroke-[2.5]" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-extrabold text-base tracking-tight text-white">NUX Trading</span>
-            <span className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase -mt-1">
-              INNOVATIVE TRADING
-            </span>
-          </div>
+          <SiteLogo size="md" showTagline={true} />
         </div>
 
         <button
@@ -708,23 +693,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 </form>
               ) : (
                 /* REGISTRATION FORM */
-                <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-                  {/* Full Name Input */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-400 font-semibold">Full Name *</label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        required
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="e.g. Mohammad Rahim"
-                        className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-
+                <form onSubmit={handleRegisterSubmit} className="space-y-4">
                   {/* Email Input */}
                   <div className="space-y-1">
                     <label className="text-[11px] text-slate-400 font-semibold">Email Address *</label>
@@ -737,22 +706,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="e.g. trader@example.com"
                         className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Phone Number Input */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-400 font-semibold">Phone Number *</label>
-                    <div className="relative">
-                      <Smartphone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="e.g. 01712345678 or +88017..."
-                        className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
                       />
                     </div>
                   </div>
@@ -778,22 +731,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                  </div>
-
-                  {/* Currency Selection */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-400 font-semibold">Account Currency</label>
-                    <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
-                    >
-                      {currencies.map((c) => (
-                        <option key={c.code} value={c.code} className="bg-[#121722] text-white">
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
                   </div>
 
                   {/* Terms & Age Verification Checkbox */}

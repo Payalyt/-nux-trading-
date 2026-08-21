@@ -1,14 +1,36 @@
 {
+  "id": "/?source=pwa",
   "name": "NUX Web Trading Platform",
   "short_name": "NUX Trading",
-  "description": "Fast, high-performance real-time binary and forex trading platform with live charts.",
-  "start_url": "/",
+  "description": "Fast, real-time binary options, forex, and cryptocurrency trading platform with advanced charting tools.",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "window-controls-overlay",
+    "minimal-ui",
+    "browser"
+  ],
   "orientation": "any",
-  "background_color": "#070a10",
-  "theme_color": "#070a10",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "business",
+    "productivity",
+    "utilities"
+  ],
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
@@ -20,6 +42,53 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Trading Terminal",
+      "short_name": "Trade",
+      "description": "Open live chart and execution terminal",
+      "url": "/?tab=trade",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Deposit Funds",
+      "short_name": "Deposit",
+      "description": "Instant wallet deposit and payment gateways",
+      "url": "/?action=deposit",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Trading Signals & Analytics",
+      "short_name": "Signals",
+      "description": "View algorithmic technical indicators and signals",
+      "url": "/?action=signals",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }

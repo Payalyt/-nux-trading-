@@ -21,6 +21,7 @@ import { FirebaseService } from '../../utils/firebaseSync';
 import { saveUserSession } from '../../utils/cookies';
 import { auth } from '../../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { SiteLogo } from '../common/SiteLogo';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -181,16 +182,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    if (!fullName || !fullName.trim()) {
-      setError('Please enter your full name.');
-      return;
-    }
     if (!email || !email.trim()) {
       setError('Please enter a valid email address.');
-      return;
-    }
-    if (!phone || !phone.trim()) {
-      setError('Please enter your phone number.');
       return;
     }
     if (!password || password.length < 6) {
@@ -205,8 +198,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const cleanName = fullName.trim();
-      const cleanPhone = phone.trim();
+      const cleanName = (fullName && fullName.trim()) || cleanEmail.split('@')[0];
+      const cleanPhone = (phone && phone.trim()) || '';
 
       // 1. Try Firebase Auth (if available/enabled)
       try {
@@ -291,9 +284,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Header */}
         <div className="p-5 border-b border-white/10 bg-white/5 flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-black text-lg shadow-md shadow-emerald-500/20">
-              N
-            </div>
+            <SiteLogo size="md" showText={false} />
             <div>
               <h2 className="text-base font-bold text-white">NUX Trading</h2>
               <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
@@ -411,21 +402,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 font-semibold">Full Name *</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Mohammad Rahim"
-                    className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
                 <label className="text-[11px] text-slate-400 font-semibold">Email Address *</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -436,21 +412,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="e.g. trader@example.com"
                     className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 font-semibold">Phone Number *</label>
-                <div className="relative">
-                  <Smartphone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. 01712345678 or +88017..."
-                    className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
                   />
                 </div>
               </div>
@@ -475,21 +436,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 font-semibold">Account Currency</label>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-                >
-                  {currencies.map((c) => (
-                    <option key={c.code} value={c.code} className="bg-[#121722]">
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div className="flex items-start space-x-2 pt-1">
