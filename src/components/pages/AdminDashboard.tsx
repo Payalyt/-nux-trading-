@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserAccount } from '../../types/trading';
 import { FirebaseService } from '../../utils/firebaseSync';
+import { SiteLogo } from '../common/SiteLogo';
 import { 
   Users, 
   ArrowLeft, 
@@ -399,10 +400,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Trading</span>
           </button>
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center text-black font-black shadow-lg shadow-emerald-500/20">
-              <Shield className="w-4 h-4" />
-            </div>
+          <div className="flex items-center space-x-2.5">
+            <SiteLogo size="sm" showText={false} />
             <div>
               <h1 className="text-base font-black tracking-tight text-white flex items-center gap-2">
                 <span>Admin Master Control Panel</span>

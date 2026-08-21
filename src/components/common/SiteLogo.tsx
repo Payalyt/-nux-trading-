@@ -4,6 +4,7 @@ import { CandlestickChart } from 'lucide-react';
 interface SiteLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
+  hideTextOnMobile?: boolean;
   showTagline?: boolean;
   textClassName?: string;
   className?: string;
@@ -12,6 +13,7 @@ interface SiteLogoProps {
 export const SiteLogo: React.FC<SiteLogoProps> = ({
   size = 'md',
   showText = true,
+  hideTextOnMobile = false,
   showTagline = false,
   textClassName = '',
   className = '',
@@ -32,7 +34,7 @@ export const SiteLogo: React.FC<SiteLogoProps> = ({
       <div className={`relative ${selectedSize.img} rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 bg-[#0d121b]`}>
         {!imgError ? (
           <img
-            src="/logo.jpg"
+            src="/main-logo.png"
             alt="NUX Trading Logo"
             className="w-full h-full object-cover rounded-xl"
             referrerPolicy="no-referrer"
@@ -46,13 +48,13 @@ export const SiteLogo: React.FC<SiteLogoProps> = ({
       </div>
 
       {showText && (
-        <div className="flex flex-col">
+        <div className={`flex-col ${hideTextOnMobile ? 'hidden md:flex' : 'flex'}`}>
           <div className="flex items-center gap-1.5">
-            <span className={`font-black tracking-tight text-white ${selectedSize.text} ${textClassName}`}>
+            <span className={`font-black tracking-tight text-white uppercase ${selectedSize.text} ${textClassName}`}>
               NUX
             </span>
-            <span className={`font-extrabold uppercase tracking-wider rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 ${selectedSize.badge}`}>
-              Trading
+            <span className={`font-black uppercase tracking-wider rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 ${selectedSize.badge}`}>
+              TRADING
             </span>
           </div>
           {showTagline && (

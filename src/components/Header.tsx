@@ -148,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center cursor-pointer group shrink-0"
             title={`${platformName} Home`}
           >
-            <SiteLogo size="md" />
+            <SiteLogo size="md" hideTextOnMobile={true} />
           </div>
         </div>
 
@@ -257,54 +257,63 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Quick Live/Demo Toggle Pill */}
-          {user && (
-            <div className="flex items-center bg-black/40 border border-white/10 rounded-lg sm:rounded-xl p-0.5 gap-0.5 shadow-inner shrink-0">
-              <button
-                onClick={() => setAccountType('LIVE')}
-                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-extrabold tracking-wider transition-all cursor-pointer ${
-                  accountType === 'LIVE' ? 'bg-emerald-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                LIVE
-              </button>
-              <button
-                onClick={() => setAccountType('DEMO')}
-                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-extrabold tracking-wider transition-all cursor-pointer ${
-                  accountType === 'DEMO' ? 'bg-amber-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                DEMO
-              </button>
-            </div>
-          )}
-
           {/* Account Selector Pill & Dropdown (Ultra-Clear on Mobile & Desktop) */}
-          <div className="relative shrink-0">
-            <button
-              id="btn-account-dropdown"
-              onClick={() => {
-                if (user) {
-                  setShowAccountDropdown(!showAccountDropdown);
-                  setShowNotifications(false);
-                } else if (onOpenAuthModal) {
-                  onOpenAuthModal('login');
-                } else if (onOpenAuthPage) {
-                  onOpenAuthPage('login');
-                }
-              }}
-              className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 active:scale-95 transition-all shadow-inner cursor-pointer"
-            >
-              <div className="text-right flex flex-col items-end">
-                <span className={`text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded leading-tight ${accountType === 'LIVE' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-amber-500/30 text-amber-300'}`}>
-                  {accountType === 'LIVE' ? 'LIVE' : 'DEMO'}
-                </span>
-                <span className="text-[11px] sm:text-sm font-mono-nums font-extrabold text-white leading-tight">
-                  ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300" />
-            </button>
+          <div className="relative shrink-0 flex items-center">
+            <div className="flex items-center rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 shadow-inner transition-all">
+              {/* Main Balance Display - Click to open full details/amounts dropdown */}
+              <button
+                id="btn-account-dropdown"
+                onClick={() => {
+                  if (user) {
+                    setShowAccountDropdown(!showAccountDropdown);
+                    setShowNotifications(false);
+                  } else if (onOpenAuthModal) {
+                    onOpenAuthModal('login');
+                  } else if (onOpenAuthPage) {
+                    onOpenAuthPage('login');
+                  }
+                }}
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 active:scale-95 transition-all cursor-pointer"
+                title="Account Balance & Details"
+              >
+                <div className="text-right flex flex-col items-end">
+                  <span className={`text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded leading-tight ${accountType === 'LIVE' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-amber-500/30 text-amber-300'}`}>
+                    {accountType === 'LIVE' ? 'LIVE' : 'DEMO'}
+                  </span>
+                  <span className="text-[11px] sm:text-sm font-mono-nums font-extrabold text-white leading-tight">
+                    ${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </button>
+
+              {/* Arrow Button next to balance - Switch between LIVE and DEMO */}
+              {user ? (
+                <button
+                  id="btn-switch-live-demo-arrow"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newType = accountType === 'LIVE' ? 'DEMO' : 'LIVE';
+                    setAccountType(newType);
+                  }}
+                  className={`p-1.5 sm:p-2 border-l border-white/10 hover:bg-white/10 active:scale-90 transition-all cursor-pointer flex items-center justify-center ${
+                    accountType === 'LIVE' ? 'text-emerald-400 hover:text-emerald-300' : 'text-amber-400 hover:text-amber-300'
+                  }`}
+                  title={`Switch to ${accountType === 'LIVE' ? 'DEMO' : 'LIVE'} Account`}
+                >
+                  <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${accountType === 'DEMO' ? 'rotate-180' : ''}`} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (onOpenAuthModal) onOpenAuthModal('login');
+                    else if (onOpenAuthPage) onOpenAuthPage('login');
+                  }}
+                  className="p-1.5 sm:p-2 border-l border-white/10 text-slate-300 hover:text-white"
+                >
+                  <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              )}
+            </div>
 
             {showAccountDropdown && (
               <div className="absolute right-0 mt-2 w-64 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 p-2 space-y-1.5">
@@ -473,17 +482,8 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="sm:hidden font-black">DEP</span>
           </button>
 
-          {/* User Profile Avatar or Log In / Sign Up */}
-          {user ? (
-            <div
-              id="btn-user-profile"
-              onClick={onOpenProfile}
-              className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-black text-xs sm:text-sm flex items-center justify-center hover:border-emerald-400 cursor-pointer transition-all shadow-md shrink-0"
-              title={`Profile: ${user.email}`}
-            >
-              {user.name ? user.name[0].toUpperCase() : 'U'}
-            </div>
-          ) : (
+          {/* Auth buttons for logged out users */}
+          {!user && (
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => onOpenAuthModal ? onOpenAuthModal('login') : onOpenAuthPage?.('login')}

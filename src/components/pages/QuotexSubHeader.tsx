@@ -68,7 +68,7 @@ export const QuotexSubHeader: React.FC<QuotexSubHeaderProps> = ({
             className="flex items-center cursor-pointer group"
             title="Back to Trading Chart"
           >
-            <SiteLogo size="md" />
+            <SiteLogo size="md" hideTextOnMobile={true} />
           </div>
 
           {/* Desktop Navigation Tabs */}

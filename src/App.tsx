@@ -56,6 +56,7 @@ import { AdminDashboard } from './components/pages/AdminDashboard';
 import { usePWA } from './hooks/usePWA';
 import { PWAFallbackToast } from './components/modals/PWAFallbackToast';
 import { Download, X } from 'lucide-react';
+import { SiteLogo } from './components/common/SiteLogo';
 
 import { 
   saveUserSession, 
@@ -733,26 +734,25 @@ export default function App() {
 
       {/* PWA Install Banner (Optimized for Mobile Viewports) */}
       {showInstallBanner && !isInstalled && (
-        <div className="bg-emerald-600 text-white text-xs font-bold py-1.5 px-2.5 sm:px-4 flex items-center justify-between shadow-lg z-40 shrink-0 border-b border-emerald-500/20 w-full max-w-full overflow-hidden">
-          <div className="flex items-center space-x-2 sm:space-x-3 truncate min-w-0">
-            <div className="p-1 sm:p-1.5 bg-black/20 rounded-lg shrink-0">
-              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-            </div>
+        <div className="bg-[#0b1019] text-white text-xs font-bold py-2 px-3 sm:px-4 flex items-center justify-between shadow-xl z-40 shrink-0 border-b border-emerald-500/30 w-full max-w-full overflow-hidden">
+          <div className="flex items-center space-x-2.5 sm:space-x-3.5 truncate min-w-0">
+            <SiteLogo size="sm" showText={false} />
             <div className="flex flex-col min-w-0 truncate">
-              <span className="font-extrabold text-xs sm:text-sm tracking-tight text-white truncate">NUX Trading App is ready</span>
-              <span className="text-[10px] text-emerald-100 font-medium hidden sm:block truncate">Install it now for a faster experience & offline access!</span>
+              <span className="font-extrabold text-xs sm:text-sm tracking-tight text-white truncate">Install NUX Trading PWA App</span>
+              <span className="text-[10px] text-emerald-400 font-medium hidden sm:block truncate">Install to your device for instant launch, live market charts & push alerts</span>
             </div>
           </div>
           <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button 
               onClick={promptInstall}
-              className="px-2.5 sm:px-4 py-1 sm:py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 font-black rounded-lg shadow-sm active:scale-95 transition-all cursor-pointer whitespace-nowrap text-[11px] sm:text-xs"
+              className="flex items-center gap-1 px-3 sm:px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black rounded-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer whitespace-nowrap text-[11px] sm:text-xs"
             >
-              INSTALL APP
+              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>INSTALL APP</span>
             </button>
             <button 
               onClick={() => setShowInstallBanner(false)}
-              className="p-1 sm:p-1.5 text-emerald-200 hover:text-white rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
+              className="p-1 sm:p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Dismiss Banner"
             >
               <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />

@@ -1,11 +1,16 @@
-const CACHE_NAME = 'nux-trading-pwa-v3';
+const CACHE_NAME = 'nux-trading-pwa-v5';
 
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/main-logo.png',
   '/icon-192x192.png',
-  '/icon-512x512.png'
+  '/icon-512x512.png',
+  '/apple-touch-icon.png',
+  '/favicon.ico',
+  '/favicon-32x32.png',
+  '/favicon-16x16.png'
 ];
 
 self.addEventListener('install', (event) => {

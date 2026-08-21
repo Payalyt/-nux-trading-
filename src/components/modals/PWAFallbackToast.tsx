@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, ExternalLink, X, Smartphone, Globe, Info, Compass, MoreVertical } from 'lucide-react';
 import { FallbackInfo } from '../../hooks/usePWA';
+import { SiteLogo } from '../common/SiteLogo';
 
 interface PWAFallbackToastProps {
   fallbackInfo: FallbackInfo;
@@ -32,17 +33,7 @@ export const PWAFallbackToast: React.FC<PWAFallbackToastProps> = ({
 
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 text-emerald-400 mt-0.5">
-              {isInApp ? (
-                <Compass className="w-5 h-5 text-emerald-400" />
-              ) : fallbackInfo.reason === 'iframe' ? (
-                <Globe className="w-5 h-5" />
-              ) : fallbackInfo.reason === 'ios_safari' ? (
-                <Smartphone className="w-5 h-5" />
-              ) : (
-                <Info className="w-5 h-5" />
-              )}
-            </div>
+            <SiteLogo size="md" showText={false} className="mt-0.5" />
             <div>
               <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
                 {fallbackInfo.title}
