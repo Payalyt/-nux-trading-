@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "NUX Web Trading Platform",
+  "name": "NUX Trading",
   "short_name": "NUX Trading",
-  "description": "Fast, real-time binary options, forex, and cryptocurrency trading platform with advanced charting tools.",
+  "description": "Fast, real-time binary options, forex, and cryptocurrency trading platform.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
