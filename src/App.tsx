@@ -55,6 +55,7 @@ import { HomePage } from './components/pages/HomePage';
 import { AdminDashboard } from './components/pages/AdminDashboard';
 import { usePWA } from './hooks/usePWA';
 import { PWAFallbackToast } from './components/modals/PWAFallbackToast';
+import { PWAInstalledSuccessToast } from './components/modals/PWAInstalledSuccessToast';
 import { Download, X } from 'lucide-react';
 import { SiteLogo } from './components/common/SiteLogo';
 
@@ -66,7 +67,15 @@ import {
 } from './utils/cookies';
 
 export default function App() {
-  const { promptInstall, isInstalled, fallbackInfo, dismissFallback, openInNewTab } = usePWA();
+  const { 
+    promptInstall, 
+    isInstalled, 
+    justInstalled,
+    dismissJustInstalled,
+    fallbackInfo, 
+    dismissFallback, 
+    openInNewTab
+  } = usePWA();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   
   // User Account Session restored seamlessly via Session ID Cookie system
@@ -1088,6 +1097,11 @@ export default function App() {
         fallbackInfo={fallbackInfo}
         onDismiss={dismissFallback}
         onOpenDefaultBrowser={openInNewTab}
+      />
+
+      <PWAInstalledSuccessToast
+        show={justInstalled}
+        onDismiss={dismissJustInstalled}
       />
     </div>
   );

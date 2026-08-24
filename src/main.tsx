@@ -4,7 +4,7 @@ import App from './App.tsx';
 import './index.css';
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
+  const registerSW = () => {
     navigator.serviceWorker.register('/sw.js').then((registration) => {
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
@@ -12,7 +12,6 @@ if ('serviceWorker' in navigator) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // A new service worker is available and installed
-              // It will skip waiting and activate immediately due to self.skipWaiting()
             }
           });
         }
@@ -28,7 +27,13 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
       }
     });
-  });
+  };
+
+  if (document.readyState === 'complete') {
+    registerSW();
+  } else {
+    window.addEventListener('load', registerSW);
+  }
 }
 
 createRoot(document.getElementById('root')!).render(

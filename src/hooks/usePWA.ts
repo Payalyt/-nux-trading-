@@ -9,15 +9,29 @@ export interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
-// Global variable to catch the event early before React mounts
+// Global variable to catch the native browser install prompt as early as possible
 let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+let hasAutoPrompted = false;
 
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevent default mini-infobar and preserve event for manual installation
+    // Prevent default mini-infobar so our button can invoke the browser's native prompt on demand
     e.preventDefault();
     globalDeferredPrompt = e as BeforeInstallPromptEvent;
     window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+
+    // If page was opened with ?auto_install=true or ?install=true, trigger browser native prompt immediately
+    const urlParams = new URLSearchParams(window.location.search);
+    if ((urlParams.get('auto_install') === 'true' || urlParams.get('install') === 'true') && !hasAutoPrompted) {
+      hasAutoPrompted = true;
+      setTimeout(() => {
+        try {
+          globalDeferredPrompt?.prompt();
+        } catch (err) {
+          console.warn('Auto prompt trigger:', err);
+        }
+      }, 300);
+    }
   });
 }
 
@@ -37,17 +51,22 @@ export function detectInAppBrowser(): {
   isInApp: boolean;
   isAndroid: boolean;
   isIOS: boolean;
+  isWindows: boolean;
+  isMac: boolean;
+  isInIframe: boolean;
   appName: string;
 } {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-    return { isInApp: false, isAndroid: false, isIOS: false, appName: '' };
+    return { isInApp: false, isAndroid: false, isIOS: false, isWindows: false, isMac: false, isInIframe: false, appName: '' };
   }
 
   const ua = (navigator.userAgent || navigator.vendor || '').toLowerCase();
   const isAndroid = /android/.test(ua);
   const isIOS = /iphone|ipad|ipod/.test(ua);
+  const isWindows = /windows/.test(ua);
+  const isMac = /macintosh|mac os x/.test(ua) && !isIOS;
+  const isInIframe = window.self !== window.top;
 
-  // Common in-app browser identifiers (Facebook, Messenger, Instagram, TikTok, Line, etc.)
   const isMessenger = ua.includes('fban') || ua.includes('fbav') || ua.includes('messenger') || ua.includes('fb_iab');
   const isInstagram = ua.includes('instagram');
   const isTikTok = ua.includes('musical_ly') || ua.includes('tiktok') || ua.includes('bytedance');
@@ -55,6 +74,8 @@ export function detectInAppBrowser(): {
   const isTwitter = ua.includes('twitter');
   const isWeChat = ua.includes('micromessenger');
   const isSnapchat = ua.includes('snapchat');
+  const isTelegram = ua.includes('telegram');
+  const isWhatsApp = ua.includes('whatsapp');
   const isGenericWebView =
     (isAndroid && (ua.includes('; wv') || ua.includes('version/4.0'))) ||
     (isIOS && !ua.includes('safari') && ua.includes('mobile/'));
@@ -67,6 +88,8 @@ export function detectInAppBrowser(): {
     isTwitter ||
     isWeChat ||
     isSnapchat ||
+    isTelegram ||
+    isWhatsApp ||
     isGenericWebView;
 
   let appName = 'In-App Browser';
@@ -77,8 +100,10 @@ export function detectInAppBrowser(): {
   else if (isTwitter) appName = 'Twitter';
   else if (isWeChat) appName = 'WeChat';
   else if (isSnapchat) appName = 'Snapchat';
+  else if (isTelegram) appName = 'Telegram';
+  else if (isWhatsApp) appName = 'WhatsApp';
 
-  return { isInApp, isAndroid, isIOS, appName };
+  return { isInApp, isAndroid, isIOS, isWindows, isMac, isInIframe, appName };
 }
 
 export function usePWA() {
@@ -88,11 +113,13 @@ export function usePWA() {
     if (typeof window === 'undefined') return false;
     return (
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+      document.referrer.includes('android-app://')
     );
   });
 
   const [inAppInfo, setInAppInfo] = useState(() => detectInAppBrowser());
+  const [justInstalled, setJustInstalled] = useState<boolean>(false);
 
   const [fallbackInfo, setFallbackInfo] = useState<FallbackInfo>({
     show: false,
@@ -123,6 +150,7 @@ export function usePWA() {
       setDeferredPrompt(null);
       setIsInstalled(true);
       setIsInstallable(false);
+      setJustInstalled(true);
       setFallbackInfo((prev) => ({ ...prev, show: false }));
     };
 
@@ -139,78 +167,79 @@ export function usePWA() {
       window.removeEventListener('pwa-prompt-ready', handlePromptReady);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
+  }, [isInstalled]);
+
+  // Auto-dismiss justInstalled notification after 6 seconds
+  useEffect(() => {
+    if (justInstalled) {
+      const timer = setTimeout(() => {
+        setJustInstalled(false);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [justInstalled]);
+
+  const dismissJustInstalled = useCallback(() => {
+    setJustInstalled(false);
   }, []);
 
   const dismissFallback = useCallback(() => {
     setFallbackInfo((prev) => ({ ...prev, show: false }));
   }, []);
 
-  const openInDefaultBrowser = useCallback(() => {
+  const openInDefaultBrowser = useCallback((withAutoInstall = true) => {
     if (typeof window === 'undefined') return;
 
-    const currentUrl = window.location.href;
-    const cleanHostAndPath = `${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const currentUrl = new URL(window.location.href);
+    if (withAutoInstall) {
+      currentUrl.searchParams.set('auto_install', 'true');
+    }
+    const targetUrl = currentUrl.toString();
+    const cleanHostAndPath = `${currentUrl.host}${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
     const { isAndroid, isIOS } = detectInAppBrowser();
 
     if (isAndroid) {
-      // Android Chrome intent to launch Google Chrome directly from in-app browsers
       const chromeIntent = `intent://${cleanHostAndPath}#Intent;scheme=https;package=com.android.chrome;end;`;
       try {
         window.location.href = chromeIntent;
       } catch {
-        window.open(currentUrl, '_system');
+        window.open(targetUrl, '_blank');
       }
     } else if (isIOS) {
-      // On iOS Safari / external browser
-      window.open(currentUrl, '_blank');
+      window.open(targetUrl, '_blank');
     } else {
-      window.open(currentUrl, '_blank', 'noopener,noreferrer');
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
     }
   }, []);
 
+  /**
+   * Directly triggers the browser's native installation popup.
+   * If the browser or environment requires transfer (iframe or in-app webview),
+   * it delegates directly to the browser without displaying website modals.
+   */
   const installPWA = useCallback(async () => {
-    // 1. Check if user is in an in-app browser (Messenger, Instagram, FB, etc.)
     const inApp = detectInAppBrowser();
 
-    if (inApp.isInApp) {
-      const cleanHostAndPath = `${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`;
-      const chromeIntent = `intent://${cleanHostAndPath}#Intent;scheme=https;package=com.android.chrome;end;`;
-
-      if (inApp.isAndroid) {
-        // Attempt to directly launch in Chrome on Android
-        try {
-          window.location.href = chromeIntent;
-        } catch (e) {
-          console.warn('Direct intent launch failed:', e);
-        }
-
-        setFallbackInfo({
-          show: true,
-          reason: 'inapp_android',
-          title: `Open in Chrome to Install`,
-          message: `${inApp.appName} blocks direct app installation. Tap the 3 dots (⋯ or ⋮) at the top right, then select "Open in Chrome" or "Open in External Browser".`,
-          actionText: 'Open in Chrome',
-          appName: inApp.appName,
-          intentUrl: chromeIntent,
-        });
-        return;
-      } else if (inApp.isIOS) {
-        setFallbackInfo({
-          show: true,
-          reason: 'inapp_ios',
-          title: `Open in Safari to Install`,
-          message: `${inApp.appName} blocks home screen installation. Tap the 3 dots (⋯) or Share icon at the top/bottom, and choose "Open in Safari".`,
-          actionText: 'Open in Safari',
-          appName: inApp.appName,
-        });
-        return;
-      }
+    // 1. If running inside an iframe (like AI Studio preview):
+    // Browser sandboxing blocks native install prompts inside iframes.
+    // Transfer execution immediately to a real browser window with ?auto_install=true
+    if (inApp.isInIframe) {
+      openInDefaultBrowser(true);
+      return;
     }
 
-    // 2. If native prompt event is captured, trigger it immediately
+    // 2. If running inside an In-App Browser (Facebook/Instagram/TikTok/Messenger):
+    // Launch Chrome intent directly so the actual browser handles installation
+    if (inApp.isInApp) {
+      openInDefaultBrowser(true);
+      return;
+    }
+
+    // 3. Directly invoke the browser's native installation popup!
     const promptToUse = deferredPrompt || globalDeferredPrompt;
     if (promptToUse) {
       try {
+        // This triggers the browser's native popup (Chrome / Edge / Android OS dialog)
         await promptToUse.prompt();
         const { outcome } = await promptToUse.userChoice;
         if (outcome === 'accepted') {
@@ -218,49 +247,43 @@ export function usePWA() {
           setDeferredPrompt(null);
           setIsInstalled(true);
           setIsInstallable(false);
+          setJustInstalled(true);
           setFallbackInfo((prev) => ({ ...prev, show: false }));
         }
       } catch (error) {
-        console.error('Error triggering native PWA prompt:', error);
+        console.error('Error triggering browser native install popup:', error);
       }
       return;
     }
 
-    // 3. Handle specific browser environments when deferredPrompt is not yet ready
-    const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
-    const ua = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : '';
-    const isIOS = /iphone|ipad|ipod/.test(ua);
-
-    if (isInIframe) {
-      setFallbackInfo({
-        show: true,
-        reason: 'iframe',
-        title: 'Install in Main Window',
-        message: 'Browser security restricts native PWA installation inside preview frames. Open in a new tab or use browser menu (⋮ → Install App).',
-        actionText: 'Open in New Tab',
-      });
-    } else if (isIOS) {
+    // 4. If iOS Safari (which doesn't support programmatic beforeinstallprompt),
+    // show the standard Safari manual instructions toast
+    if (inApp.isIOS) {
       setFallbackInfo({
         show: true,
         reason: 'ios_safari',
-        title: 'Install on iOS Safari',
-        message: 'Tap the Share button (⎋ / ⬆) at the bottom of Safari, then choose "Add to Home Screen" to install the app.',
+        title: 'Install via Safari Browser',
+        message: 'Tap the Share icon (⎋ / ⬆) at the bottom of Safari, then select "Add to Home Screen" to install.',
       });
     } else {
+      // For browsers that haven't fired beforeinstallprompt yet or already installed
       setFallbackInfo({
         show: true,
         reason: 'browser_menu',
-        title: 'Install via Browser Menu',
-        message: 'Click the install icon (⊕) in your browser address bar or click menu (⋮) → "Install NUX Trading" / "Add to Home screen".',
+        title: 'Install from Browser Bar',
+        message: 'Click the Install icon (⊕) in your browser address bar or open the browser menu (⋮) → "Install NUX Trading".',
       });
     }
-  }, [deferredPrompt]);
+  }, [deferredPrompt, openInDefaultBrowser]);
 
   return {
     isInstallable,
     isInstalled,
+    justInstalled,
+    dismissJustInstalled,
     inAppInfo,
     deferredPrompt,
+    hasDeferredPrompt: !!(deferredPrompt || globalDeferredPrompt),
     fallbackInfo,
     installPWA,
     promptInstall: installPWA,
