@@ -10,14 +10,14 @@ export interface BeforeInstallPromptEvent extends Event {
 }
 
 // Global variable to catch the native browser install prompt as early as possible
-let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = (typeof window !== 'undefined' && (window as any).__pwaInstallPrompt) || null;
 let hasAutoPrompted = false;
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevent default mini-infobar so our button can invoke the browser's native prompt on demand
+  const registerPrompt = (e: Event) => {
     e.preventDefault();
     globalDeferredPrompt = e as BeforeInstallPromptEvent;
+    (window as any).__pwaInstallPrompt = e;
     window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
 
     // If page was opened with ?auto_install=true or ?install=true, trigger browser native prompt immediately
@@ -32,7 +32,13 @@ if (typeof window !== 'undefined') {
         }
       }, 300);
     }
-  });
+  };
+
+  window.addEventListener('beforeinstallprompt', registerPrompt);
+
+  if ((window as any).__pwaInstallPrompt) {
+    globalDeferredPrompt = (window as any).__pwaInstallPrompt;
+  }
 }
 
 export type FallbackReason = 'inapp_android' | 'inapp_ios' | 'iframe' | 'ios_safari' | 'browser_menu' | null;
@@ -236,7 +242,7 @@ export function usePWA() {
     }
 
     // 3. Directly invoke the browser's native installation popup!
-    const promptToUse = deferredPrompt || globalDeferredPrompt;
+    const promptToUse = deferredPrompt || globalDeferredPrompt || (typeof window !== 'undefined' ? (window as any).__pwaInstallPrompt : null);
     if (promptToUse) {
       try {
         // This triggers the browser's native popup (Chrome / Edge / Android OS dialog)
@@ -244,6 +250,9 @@ export function usePWA() {
         const { outcome } = await promptToUse.userChoice;
         if (outcome === 'accepted') {
           globalDeferredPrompt = null;
+          if (typeof window !== 'undefined') {
+            (window as any).__pwaInstallPrompt = null;
+          }
           setDeferredPrompt(null);
           setIsInstalled(true);
           setIsInstallable(false);

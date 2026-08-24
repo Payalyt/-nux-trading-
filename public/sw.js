@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nux-trading-pwa-v6';
+const CACHE_NAME = 'nux-trading-pwa-v7';
 
 const PRECACHE_ASSETS = [
   '/',

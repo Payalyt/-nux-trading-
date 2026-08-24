@@ -24,6 +24,19 @@
         }
       });
     </script>
+    <!-- Early PWA Install Prompt Capture -->
+    <script>
+      window.__pwaInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+      });
+      window.addEventListener('appinstalled', function() {
+        window.__pwaInstallPrompt = null;
+        window.dispatchEvent(new CustomEvent('pwa-installed-ready'));
+      });
+    </script>
     <meta name="description" content="Modern, responsive, and intuitive binary options and live web trading platform." />
     <!-- Cache Control Meta Tags to ensure immediate updates -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
