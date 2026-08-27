@@ -16,6 +16,7 @@ import { soundManager } from '../../utils/audio';
 
 import { UserAccount } from '../../types/trading';
 import { FirebaseService } from '../../utils/firebaseSync';
+import { GoogleIcon } from '../common/GoogleIcon';
 
 interface MyAccountPageProps {
   liveBalance: number;
@@ -67,9 +68,10 @@ export const MyAccountPage: React.FC<MyAccountPageProps> = ({
           <div className="flex flex-col space-y-3 pt-4">
             <button
               onClick={() => onOpenAuth?.()}
-              className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+              className="w-full py-3.5 bg-white hover:bg-slate-100 text-slate-900 font-black text-sm rounded-xl shadow-lg shadow-white/10 flex items-center justify-center space-x-2.5 transition-all cursor-pointer"
             >
-              Log In to Account
+              <GoogleIcon className="w-5 h-5" />
+              <span>Sign in with Google</span>
             </button>
           </div>
         </div>

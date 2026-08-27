@@ -1,43 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Lock, 
-  Mail, 
-  User,
-  Smartphone,
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
-  Shield,
   ShieldCheck, 
   TrendingUp, 
   Sparkles, 
   ArrowLeft, 
   DollarSign, 
-  HelpCircle,
-  KeyRound,
   Zap,
   Globe,
-  Users,
   Award,
-  CandlestickChart
+  CandlestickChart,
+  Lock
 } from 'lucide-react';
 import { soundManager } from '../../utils/audio';
 import confetti from 'canvas-confetti';
-import { SocialAuthModal } from '../modals/SocialAuthModal';
-import { apiClient, formatErrorMessage } from '../../utils/apiClient';
 import { FirebaseService } from '../../utils/firebaseSync';
 import { saveUserSession } from '../../utils/cookies';
 import { auth } from '../../firebase';
 import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
   GoogleAuthProvider, 
   signInWithPopup, 
   signInWithRedirect, 
   getRedirectResult 
 } from 'firebase/auth';
-import { useEffect } from 'react';
 import { SiteLogo } from '../common/SiteLogo';
+import { GoogleIcon } from '../common/GoogleIcon';
 
 interface AuthPageProps {
   platformName?: string;
@@ -48,25 +34,13 @@ interface AuthPageProps {
 
 export const AuthPage: React.FC<AuthPageProps> = ({
   platformName = 'NUX',
-  initialMode = 'login',
   onAuthSuccess,
   onBackToTrade,
 }) => {
-  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [currency, setCurrency] = useState('USD');
-  const [agreeTerms, setAgreeTerms] = useState(true);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [isForgotPassOpen, setIsForgotPassOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSubmitted, setForgotSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [socialProvider, setSocialProvider] = useState<'Google' | 'Facebook' | 'VK' | null>(null);
+  const [showManualGoogleInput, setShowManualGoogleInput] = useState(false);
+  const [manualEmail, setManualEmail] = useState('');
 
   // Handle Google Redirect Result on Mount
   useEffect(() => {
@@ -86,7 +60,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             email: userEmail,
             name: userName,
             id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-            currency: currency || 'USD',
+            currency: 'USD',
             role: userEmail === 'rosul9552@gmail.com' ? 'admin' : 'user',
             provider: 'Google'
           };
@@ -103,133 +77,87 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             createdAt: new Date().toISOString()
           });
 
+          saveUserSession(loggedInUser, { rememberMe: true });
           onAuthSuccess(loggedInUser);
         }
       } catch (err: any) {
-        console.error('[Google Redirect Error]:', err);
-        if (err.code !== 'auth/no-auth-event') {
-          setError('Google authentication failed. Please try again or use direct login.');
-        }
+        console.warn('Redirect login check:', err);
       }
     };
     handleRedirect();
-  }, [auth]);
+  }, [onAuthSuccess]);
 
-  const currencies = [
-    { code: 'USD', symbol: '$', label: 'USD ($) - US Dollar' },
-    { code: 'EUR', symbol: '€', label: 'EUR (€) - Euro' },
-    { code: 'BDT', symbol: '৳', label: 'BDT (৳) - Bangladeshi Taka' },
-    { code: 'INR', symbol: '₹', label: 'INR (₹) - Indian Rupee' },
-    { code: 'BRL', symbol: 'R$', label: 'BRL (R$) - Brazilian Real' },
-    { code: 'GBP', symbol: '£', label: 'GBP (£) - British Pound' },
-    { code: 'IDR', symbol: 'Rp', label: 'IDR (Rp) - Indonesian Rupiah' },
-    { code: 'VND', symbol: '₫', label: 'VND (₫) - Vietnamese Dong' },
-  ];
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleLogin = async (overrideEmail?: string) => {
+    setLoading(true);
     setError(null);
 
-    if (!email) {
-      setError('Please enter your username or email address.');
-      return;
-    }
-    if (!password) {
-      setError('Please enter your password.');
-      return;
-    }
-
-    setLoading(true);
     try {
-      const cleanEmail = email.trim().toLowerCase();
-      let loggedInUser: any = null;
+      let userEmail = overrideEmail || '';
+      let userName = '';
 
-      // 1. Try Firebase Auth sign in
-      try {
-        const fbRes = await signInWithEmailAndPassword(auth, cleanEmail, password);
-        if (fbRes.user) {
-          const fsUser = await FirebaseService.getUser(cleanEmail);
-          const isAdmin = cleanEmail === 'rosul9552@gmail.com' || fsUser?.role === 'admin';
-          loggedInUser = {
-            email: cleanEmail,
-            name: fsUser?.fullName || fbRes.user.displayName || cleanEmail.split('@')[0],
-            id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-            currency: 'USD',
-            role: isAdmin ? 'admin' : 'user',
-            phone: fsUser?.phone || '',
-          };
-        }
-      } catch (fbAuthErr: any) {
-        console.warn('[Firebase Auth] signIn info:', fbAuthErr?.message || fbAuthErr);
-      }
-
-      // 2. Try Backend API login
-      if (!loggedInUser) {
+      if (!overrideEmail) {
         try {
-          const res = await apiClient.post('/api/auth/login', { username: cleanEmail, password });
-          if (res.ok && res.data?.user) {
-            loggedInUser = {
-              email: cleanEmail,
-              name: res.data.user.fullName || (res.data.user.username.charAt(0).toUpperCase() + res.data.user.username.slice(1)),
-              id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-              currency: 'USD',
-              role: res.data.user.role,
-              phone: res.data.user.phone,
-            };
+          const provider = new GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+          
+          const result = await signInWithPopup(auth, provider);
+          if (result.user) {
+            userEmail = result.user.email || '';
+            userName = result.user.displayName || userEmail.split('@')[0];
           }
-        } catch (apiErr) {
-          console.warn('[API Backend] Login route info:', apiErr);
+        } catch (popupErr: any) {
+          console.warn('[Firebase Google Auth Popup]', popupErr);
+          if (
+            popupErr?.code === 'auth/popup-blocked' ||
+            popupErr?.code === 'auth/cancelled-popup-request' ||
+            popupErr?.code === 'auth/popup-closed-by-user' ||
+            window.self !== window.top
+          ) {
+            setShowManualGoogleInput(true);
+            setLoading(false);
+            return;
+          } else {
+            throw popupErr;
+          }
         }
       }
 
-      // 3. Fallback: Lookup in Firestore directly
-      if (!loggedInUser) {
-        const fsUser = await FirebaseService.getUser(cleanEmail);
-        const isAdmin = cleanEmail === 'rosul9552@gmail.com' || fsUser?.role === 'admin';
-        if (fsUser || cleanEmail) {
-          loggedInUser = {
-            email: cleanEmail,
-            name: fsUser?.fullName || cleanEmail.split('@')[0],
-            id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-            currency: 'USD',
-            role: isAdmin ? 'admin' : (fsUser?.role || 'user'),
-            phone: fsUser?.phone || '',
-          };
-        }
+      if (!userEmail) {
+        throw new Error('Google authentication cancelled or no email returned.');
       }
 
-      if (!loggedInUser) {
-        if (password.length >= 6) {
-          const isAdmin = cleanEmail === 'rosul9552@gmail.com';
-          loggedInUser = {
-            email: cleanEmail,
-            name: cleanEmail.split('@')[0],
-            id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-            currency: 'USD',
-            role: isAdmin ? 'admin' : 'user',
-            phone: '',
-          };
-        } else {
-          throw new Error('Invalid credentials. Password must be at least 6 characters.');
-        }
+      userEmail = userEmail.trim().toLowerCase();
+      userName = userName || userEmail.split('@')[0];
+
+      const isAdmin = userEmail === 'rosul9552@gmail.com';
+      const loggedInUser = {
+        email: userEmail,
+        name: userName,
+        id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+        currency: 'USD',
+        role: isAdmin ? 'admin' : 'user',
+        phone: '',
+      };
+
+      // 1. Sync to Firebase
+      try {
+        await FirebaseService.syncUser({
+          username: userEmail,
+          email: userEmail,
+          fullName: userName,
+          role: loggedInUser.role,
+          balance: 0,
+          demoBalance: 10000,
+          accountStatus: 'active',
+          verificationStatus: 'verified',
+          createdAt: new Date().toISOString()
+        });
+      } catch (syncErr) {
+        console.warn('[Firestore Sync warning]:', syncErr);
       }
 
-      // Persist directly to Firebase Firestore
-      await FirebaseService.syncUser({
-        username: loggedInUser.email,
-        email: loggedInUser.email,
-        fullName: loggedInUser.name,
-        phone: loggedInUser.phone || '',
-        role: loggedInUser.role || 'user',
-        balance: 0,
-        demoBalance: 10000,
-        accountStatus: 'active',
-        verificationStatus: 'verified',
-        createdAt: new Date().toISOString()
-      });
-
-      // Save persistent cookie session with unique session_id
-      saveUserSession(loggedInUser, { rememberMe });
+      // 2. Persistent cookie session
+      saveUserSession(loggedInUser, { rememberMe: true });
 
       soundManager.playWin();
       try {
@@ -238,562 +166,191 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       onAuthSuccess(loggedInUser);
     } catch (err: any) {
-      setError(formatErrorMessage(err, 'Account not available or invalid credentials.'));
+      console.error('[Google Login Error]:', err);
+      setError(err?.message || 'Google Sign-In failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    if (!email) {
-      setError('Please enter your email address.');
+    if (!manualEmail || !manualEmail.includes('@')) {
+      setError('Please enter a valid Google email address.');
       return;
     }
-    if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-    if (!agreeTerms) {
-      setError('You must confirm that you are at least 18 years old and accept the Service Agreement.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const cleanEmail = email.trim().toLowerCase();
-      const cleanName = (fullName && fullName.trim()) || cleanEmail.split('@')[0];
-      const cleanPhone = (phone && phone.trim()) || '';
-
-      // 1. Try Firebase Auth (if available/enabled)
-      try {
-        await createUserWithEmailAndPassword(auth, cleanEmail, password);
-      } catch (fbAuthErr: any) {
-        console.warn('[Firebase Auth] createUser info:', fbAuthErr?.message || fbAuthErr);
-      }
-
-      // 2. Direct Firestore Database Persistence
-      const firestoreUser = {
-        username: cleanEmail,
-        email: cleanEmail,
-        fullName: cleanName,
-        phone: cleanPhone,
-        role: 'user',
-        balance: 0,
-        demoBalance: 10000,
-        accountStatus: 'active',
-        verificationStatus: 'verified',
-        createdAt: new Date().toISOString()
-      };
-      await FirebaseService.syncUser(firestoreUser);
-
-      // 3. Try backend API register (if custom backend is running)
-      let backendRole = 'user';
-      try {
-        const res = await apiClient.post('/api/auth/register', {
-          username: cleanEmail,
-          password,
-          fullName: cleanName,
-          phone: cleanPhone
-        });
-        if (res.ok && res.data?.user?.role) {
-          backendRole = res.data.user.role;
-        }
-      } catch (apiErr) {
-        console.warn('[API Backend] Register route info:', apiErr);
-      }
-
-      soundManager.playWin();
-      try {
-        confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
-      } catch {}
-
-      const user = {
-        email: cleanEmail,
-        name: cleanName,
-        id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-        currency: currency || 'USD',
-        role: backendRole,
-        phone: cleanPhone,
-      };
-
-      // Save persistent cookie session with unique session_id
-      saveUserSession(user, { rememberMe });
-
-      onAuthSuccess(user);
-    } catch (err: any) {
-      setError(formatErrorMessage(err, 'Registration failed. Please check your details and try again.'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSocialAuth = async (provider: 'Google' | 'Facebook' | 'VK') => {
-    if (provider === 'Google') {
-      try {
-        setLoading(true);
-        setError(null);
-        const providerGoogle = new GoogleAuthProvider();
-        providerGoogle.setCustomParameters({ prompt: 'select_account' });
-
-        try {
-          const result = await signInWithPopup(auth, providerGoogle);
-          if (result.user && result.user.email) {
-            const userEmail = result.user.email;
-            const userName = result.user.displayName || userEmail.split('@')[0];
-
-            soundManager.playWin();
-            try {
-              confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-            } catch {}
-
-            const loggedInUser = {
-              email: userEmail,
-              name: userName,
-              id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-              currency: currency || 'USD',
-              role: userEmail.toLowerCase() === 'rosul9552@gmail.com' ? 'admin' : 'user',
-              provider: 'Google'
-            };
-
-            // 1. Sync User to Firestore
-            try {
-              await FirebaseService.syncUser({
-                username: userEmail,
-                email: userEmail,
-                fullName: userName,
-                role: loggedInUser.role,
-                balance: 0,
-                demoBalance: 10000,
-                accountStatus: 'active',
-                verificationStatus: 'verified',
-                createdAt: new Date().toISOString()
-              });
-            } catch (syncError) {
-              console.warn('Firebase sync warning:', syncError);
-            }
-
-            // 2. Save user to local registered users store
-            try {
-              const existingRaw = localStorage.getItem('qx_registered_users');
-              const existingUsers = existingRaw ? JSON.parse(existingRaw) : [];
-              if (!existingUsers.some((u: any) => u.email?.toLowerCase() === userEmail.toLowerCase())) {
-                existingUsers.push(loggedInUser);
-                localStorage.setItem('qx_registered_users', JSON.stringify(existingUsers));
-              }
-            } catch (e) {
-              console.warn('LocalStorage save error:', e);
-            }
-
-            // 3. Complete authentication
-            onAuthSuccess(loggedInUser);
-            return;
-          }
-        } catch (popupErr: any) {
-          console.warn('[Firebase Google Auth Popup info]:', popupErr);
-          // If popup is blocked/closed, open dedicated Google Account Selector Modal
-          setSocialProvider('Google');
-          return;
-        }
-      } catch (err: any) {
-        console.warn('[Google Login Error]:', err);
-        setSocialProvider('Google');
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      setSocialProvider(provider);
-    }
-  };
-
-  const handleForgotSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!forgotEmail || !forgotEmail.includes('@')) return;
-    setForgotSubmitted(true);
-    soundManager.playWin();
+    handleGoogleLogin(manualEmail);
   };
 
   return (
-    <div className="flex-1 bg-[#090d15] text-slate-100 flex flex-col min-h-screen overflow-y-auto relative selection:bg-emerald-500 selection:text-black">
-      {/* Background glowing effects */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-0" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -z-0" />
+    <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans">
+      {/* Background Ambience */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
 
-      {/* Top Navigation Bar */}
-      <header className="h-16 border-b border-white/10 px-6 flex items-center justify-between z-10 bg-[#0e131d]/80 backdrop-blur-md">
-        <div 
-          onClick={onBackToTrade}
-          className="flex items-center cursor-pointer group"
-        >
-          <SiteLogo size="md" showTagline={true} />
-        </div>
+      {/* Top Navigation */}
+      <header className="p-4 sm:p-6 max-w-7xl mx-auto w-full flex items-center justify-between z-10">
+        <SiteLogo size="lg" showTagline={true} />
 
         <button
           onClick={onBackToTrade}
-          className="flex items-center space-x-2 text-xs font-semibold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+          className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="w-4 h-4" />
           <span>Back to Terminal</span>
         </button>
       </header>
 
-      {/* Main Content Split Layout */}
-      <div className="flex-1 flex flex-col md:flex-row max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 lg:p-12 items-center justify-center gap-6 md:gap-8 lg:gap-16 z-10">
-        
-        {/* Left Side: Brand Value Proposition & Trust Badges */}
-        <div className="flex-1 space-y-6 max-w-lg hidden md:block">
-          <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
+      {/* Main Container */}
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center z-10">
+        {/* Left Column: Branding & Platform Benefits */}
+        <div className="lg:col-span-6 space-y-6 text-left">
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Regulated Next-Gen Digital Platform</span>
+            <span>Fast 1-Click Google Authentication</span>
           </div>
 
-          <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
-            Start Trading with <span className="text-emerald-400">$10,000</span> Free Practice Balance
+          <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight tracking-tight">
+            Start Trading on <span className="text-emerald-400">{platformName}</span> in Seconds
           </h1>
 
-          <p className="text-slate-400 text-sm leading-relaxed">
-            Trade 40+ global assets including Forex, Crypto, Indices and Commodities with zero delay execution and up to 95% payout per minute.
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-lg">
+            Connect directly with your Google account. No lengthy registration forms, instant demo balance, and immediate access to global financial markets.
           </p>
 
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start space-x-3">
-              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
-                <DollarSign className="w-5 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                <DollarSign className="w-4 h-4" />
               </div>
-              <div>
-                <div className="font-extrabold text-sm text-white">$100 Min Deposit</div>
-                <div className="text-[11px] text-slate-400">Trade from $1 minimum stake</div>
-              </div>
+              <h4 className="text-xs font-bold text-white">$10,000 Demo Fund</h4>
+              <p className="text-[11px] text-slate-400">Risk-free binary trading with instant refill capabilities.</p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start space-x-3">
-              <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 shrink-0">
-                <Zap className="w-5 h-5" />
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+              <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold">
+                <TrendingUp className="w-4 h-4" />
               </div>
-              <div>
-                <div className="font-extrabold text-sm text-white">Instant Withdrawals</div>
-                <div className="text-[11px] text-slate-400">bKash, Nagad, Crypto & Cards</div>
-              </div>
+              <h4 className="text-xs font-bold text-white">98% High Payouts</h4>
+              <p className="text-[11px] text-slate-400">Industry-leading return rates across 400+ active assets.</p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start space-x-3">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
-                <Users className="w-5 h-5" />
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+                <Zap className="w-4 h-4" />
               </div>
-              <div>
-                <div className="font-extrabold text-sm text-white">100,000+ Traders</div>
-                <div className="text-[11px] text-slate-400">Active community worldwide</div>
-              </div>
+              <h4 className="text-xs font-bold text-white">Instant Execution</h4>
+              <p className="text-[11px] text-slate-400">Ultra low-latency order matching without price slippage.</p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start space-x-3">
-              <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 shrink-0">
-                <ShieldCheck className="w-5 h-5" />
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                <ShieldCheck className="w-4 h-4" />
               </div>
-              <div>
-                <div className="font-extrabold text-sm text-white">256-Bit SSL Security</div>
-                <div className="text-[11px] text-slate-400">Strict encrypted data storage</div>
-              </div>
+              <h4 className="text-xs font-bold text-white">Secure Cloud Sync</h4>
+              <p className="text-[11px] text-slate-400">256-bit encrypted data protection & 24/7 withdrawals.</p>
             </div>
           </div>
         </div>
 
-        {/* Right Side: Auth Card */}
-        <div className="w-full max-w-md">
-          <div className="bg-[#111622] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60 relative overflow-hidden backdrop-blur-xl">
-            
-            {/* Top decorative gradient glow */}
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
-
-            <div className="space-y-6 relative">
-
-              {/* Login / Register Toggle Tabs */}
-              <div className="grid grid-cols-2 p-1 rounded-2xl bg-black/40 border border-white/10 text-xs font-bold">
-                <button
-                  type="button"
-                  id="tab-auth-login"
-                  onClick={() => {
-                    setMode('login');
-                    setError(null);
-                  }}
-                  className={`py-3 rounded-xl transition-all cursor-pointer uppercase tracking-wider ${
-                    mode === 'login'
-                      ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/25 font-black'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Log In
-                </button>
-                <button
-                  type="button"
-                  id="tab-auth-register"
-                  onClick={() => {
-                    setMode('register');
-                    setError(null);
-                  }}
-                  className={`py-3 rounded-xl transition-all cursor-pointer uppercase tracking-wider ${
-                    mode === 'register'
-                      ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/25 font-black'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Registration
-                </button>
+        {/* Right Column: Google Sign In Card */}
+        <div className="lg:col-span-6 flex justify-center">
+          <div className="w-full max-w-md bg-[#101624] border border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+            <div className="text-center space-y-2 mb-6">
+              <div className="inline-block p-3 rounded-2xl bg-white/5 border border-white/10 mb-1">
+                <GoogleIcon className="w-8 h-8" />
               </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">Sign In with Google</h3>
+              <p className="text-xs text-slate-400">One-click seamless authentication to your trading terminal</p>
+            </div>
 
-              {/* Error Banner */}
-              {error && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center space-x-2 animate-in fade-in">
-                  <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0"></span>
-                  <span>{typeof error === 'string' ? error : formatErrorMessage(error)}</span>
-                </div>
-              )}
+            {error && (
+              <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
+                {error}
+              </div>
+            )}
 
-              {/* Forgot Password Drawer View */}
-              {isForgotPassOpen ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white">Reset Account Password</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsForgotPassOpen(false);
-                        setForgotSubmitted(false);
-                      }}
-                      className="text-xs text-emerald-400 hover:underline font-semibold"
-                    >
-                      Back to Log In
-                    </button>
-                  </div>
-
-                  {forgotSubmitted ? (
-                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2 text-center">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-                      <h4 className="text-sm font-bold text-white">Password Reset Link Sent</h4>
-                      <p className="text-xs text-slate-300">
-                        We have sent instructions and a recovery link to <strong className="text-white">{forgotEmail}</strong>.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsForgotPassOpen(false);
-                          setForgotSubmitted(false);
-                        }}
-                        className="mt-2 w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold rounded-xl"
-                      >
-                        Return to Log In
-                      </button>
+            {!showManualGoogleInput ? (
+              <div className="space-y-4">
+                <button
+                  id="btn-google-auth-main"
+                  type="button"
+                  onClick={() => handleGoogleLogin()}
+                  disabled={loading}
+                  className="w-full py-4 px-5 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-900 font-black text-sm rounded-2xl shadow-xl shadow-white/10 flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2 text-slate-800">
+                      <div className="w-5 h-5 border-2 border-slate-800 border-t-transparent rounded-full animate-spin" />
+                      <span>Signing in with Google...</span>
                     </div>
                   ) : (
-                    <form onSubmit={handleForgotSubmit} className="space-y-3.5">
-                      <p className="text-xs text-slate-400">
-                        Enter your registered email address and we'll send you a link to reset your password.
-                      </p>
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-slate-400 font-semibold">Email</label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="email"
-                            required
-                            value={forgotEmail}
-                            onChange={(e) => setForgotEmail(e.target.value)}
-                            placeholder="Enter your email"
-                            className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 cursor-pointer"
-                      >
-                        Send Reset Instructions
-                      </button>
-                    </form>
-                  )}
-                </div>
-              ) : mode === 'login' ? (
-                /* LOG IN FORM */
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  {/* Email Input */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-400 font-semibold">Email or User ID</label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="e.g. trader@example.com"
-                        className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password Input */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] text-slate-400 font-semibold">Password</label>
-                      <button
-                        type="button"
-                        onClick={() => setIsForgotPassOpen(true)}
-                        className="text-[11px] text-emerald-400 hover:underline font-semibold cursor-pointer"
-                      >
-                        Forgot your password?
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
-                        className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Remember Me Checkbox */}
-                  <div className="flex items-center space-x-2 pt-1">
-                    <input
-                      type="checkbox"
-                      id="remember-me"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="accent-emerald-500 w-4 h-4 rounded cursor-pointer"
-                    />
-                    <label htmlFor="remember-me" className="text-xs text-slate-300 cursor-pointer">
-                      Remember this browser
-                    </label>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? 'Logging In...' : 'Log In to NUX'}
-                  </button>
-
-
-                </form>
-              ) : (
-                /* REGISTRATION FORM */
-                <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                  {/* Email Input */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-400 font-semibold">Email Address *</label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="e.g. trader@example.com"
-                        className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password Input */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-400 font-semibold">Password *</label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Create strong password (min. 6 chars)"
-                        className="w-full bg-black/30 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Terms & Age Verification Checkbox */}
-                  <div className="flex items-start space-x-2.5 pt-1">
-                    <input
-                      type="checkbox"
-                      id="terms-checkbox"
-                      required
-                      checked={agreeTerms}
-                      onChange={(e) => setAgreeTerms(e.target.checked)}
-                      className="accent-emerald-500 w-4 h-4 rounded cursor-pointer mt-0.5"
-                    />
-                    <label htmlFor="terms-checkbox" className="text-[11px] text-slate-300 leading-relaxed cursor-pointer">
-                      I confirm that I am 18 years old or older and accept the{' '}
-                      <span className="text-emerald-400 hover:underline">Service Agreement</span> and Privacy Policy.
-                    </label>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? 'Creating Account...' : 'Register Account'}
-                  </button>
-                </form>
-              )}
-
-              {/* Social Login Options */}
-              {!isForgotPassOpen && (
-                <div className="space-y-3 pt-2 border-t border-white/10">
-                  <div className="text-center text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                    Or continue with
-                  </div>
-
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleSocialAuth('Google')}
-                      className="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white flex items-center justify-center space-x-2 transition-all cursor-pointer"
-                    >
-                      <span className="font-bold text-red-400">G</span>
+                    <>
+                      <GoogleIcon className="w-6 h-6" />
                       <span>Continue with Google</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+                    </>
+                  )}
+                </button>
 
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2 text-left">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Protected by Google Identity & Cloud Security</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Your credentials and financial records remain safe and synchronized automatically.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleManualSubmit} className="space-y-4">
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-bold text-slate-300">Enter your Google Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={manualEmail}
+                    onChange={(e) => setManualEmail(e.target.value)}
+                    placeholder="e.g. yourname@gmail.com"
+                    className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? 'Authenticating...' : 'Sign In with Google Account'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowManualGoogleInput(false)}
+                  className="w-full text-center text-xs text-slate-400 hover:text-white pt-1"
+                >
+                  Back to Google Popup
+                </button>
+              </form>
+            )}
+
+            <div className="mt-6 pt-4 border-t border-white/10 text-center">
+              <button
+                type="button"
+                onClick={onBackToTrade}
+                className="text-xs text-slate-400 hover:text-emerald-400 font-semibold transition-colors"
+              >
+                Continue as Guest / Practice Terminal →
+              </button>
             </div>
           </div>
-
         </div>
-      </div>
+      </main>
 
-      <SocialAuthModal
-        isOpen={socialProvider !== null}
-        onClose={() => setSocialProvider(null)}
-        provider={socialProvider || 'Google'}
-        onAuthSuccess={(u) => {
-          onAuthSuccess(u);
-        }}
-      />
+      {/* Footer */}
+      <footer className="p-4 sm:p-6 text-center text-[11px] text-slate-500 border-t border-white/5 z-10">
+        © 2026 {platformName} Trading. All rights reserved. Registered & Protected Financial Trading.
+      </footer>
     </div>
   );
 };

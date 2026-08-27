@@ -33,6 +33,7 @@ import { Asset, UserAccount } from '../../types/trading';
 import { soundManager } from '../../utils/audio';
 import { usePWA } from '../../hooks/usePWA';
 import { SiteLogo } from '../common/SiteLogo';
+import { GoogleIcon } from '../common/GoogleIcon';
 
 interface HomePageProps {
   onStartTrading: () => void;
@@ -195,27 +196,16 @@ export const HomePage: React.FC<HomePageProps> = ({
               <span>Go to Terminal</span>
             </button>
           ) : (
-            <>
-              <button
-                onClick={() => {
-                  soundManager.playClick();
-                  onOpenAuth('login');
-                }}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all cursor-pointer"
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => {
-                  soundManager.playClick();
-                  onOpenAuth('register');
-                }}
-                className="flex items-center space-x-1 sm:space-x-1.5 px-3.5 sm:px-5 py-1.5 sm:py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black rounded-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer"
-              >
-                <span>Sign Up</span>
-                <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
-              </button>
-            </>
+            <button
+              onClick={() => {
+                soundManager.playClick();
+                onOpenAuth('login');
+              }}
+              className="flex items-center space-x-2 px-3.5 sm:px-4 py-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-black rounded-xl shadow-lg shadow-white/10 active:scale-95 transition-all cursor-pointer"
+            >
+              <GoogleIcon className="w-4 h-4" />
+              <span>Sign in with Google</span>
+            </button>
           )}
         </div>
       </header>
@@ -255,12 +245,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             <button
               onClick={() => {
                 soundManager.playClick();
-                onOpenAuth('register');
+                onOpenAuth('login');
               }}
-              className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm rounded-2xl shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-95 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-100 text-slate-900 font-black text-sm rounded-2xl shadow-xl shadow-white/10 active:scale-95 transition-all flex items-center justify-center space-x-2.5 cursor-pointer"
             >
-              <span>Create Free Account</span>
-              <ArrowRight className="w-4 h-4 stroke-[3]" />
+              <GoogleIcon className="w-5 h-5" />
+              <span>Continue with Google</span>
             </button>
 
             <button
@@ -759,11 +749,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             <button
               onClick={() => {
                 soundManager.playClick();
-                onOpenAuth('register');
+                onOpenAuth('login');
               }}
-              className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm rounded-2xl shadow-2xl shadow-emerald-500/30 transition-all cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-100 text-slate-900 font-black text-sm rounded-2xl shadow-2xl shadow-white/20 active:scale-95 transition-all flex items-center justify-center space-x-2.5 cursor-pointer"
             >
-              Sign Up in 1 Click
+              <GoogleIcon className="w-5 h-5" />
+              <span>Sign In with Google</span>
             </button>
             <button
               onClick={() => {
@@ -788,8 +779,9 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button onClick={onStartTrading} className="hover:text-emerald-400 transition-colors">Trade Terminal</button>
               <button onClick={() => scrollToSection('markets-section')} className="hover:text-emerald-400 transition-colors">Markets</button>
               <button onClick={() => scrollToSection('advantages-section')} className="hover:text-emerald-400 transition-colors">Advantages</button>
-              <button onClick={() => onOpenAuth('login')} className="hover:text-emerald-400 transition-colors">Client Login</button>
-              <button onClick={() => onOpenAuth('register')} className="hover:text-emerald-400 transition-colors">Registration</button>
+              <button onClick={() => onOpenAuth('login')} className="hover:text-emerald-400 transition-colors flex items-center space-x-1">
+                <span>Google Login</span>
+              </button>
             </div>
           </div>
 

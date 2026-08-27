@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { usePWA } from '../hooks/usePWA';
 import { SiteLogo } from './common/SiteLogo';
+import { GoogleIcon } from './common/GoogleIcon';
 
 interface HeaderProps {
   platformName?: string;
@@ -440,8 +441,8 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
 
-                {/* Auth links inside dropdown */}
-                <div className="pt-2 mt-1 border-t border-white/10 grid grid-cols-2 gap-1.5">
+                {/* Google Auth link inside dropdown */}
+                <div className="pt-2 mt-1 border-t border-white/10">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -449,22 +450,10 @@ export const Header: React.FC<HeaderProps> = ({
                       if (onOpenAuthPage) onOpenAuthPage('login');
                       else if (onOpenAuthModal) onOpenAuthModal('login');
                     }}
-                    className="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold text-slate-300 flex items-center justify-center space-x-1 transition-colors"
+                    className="w-full py-2 px-3 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-sm"
                   >
-                    <LogIn className="w-3 h-3 text-emerald-400" />
-                    <span>Log In</span>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowAccountDropdown(false);
-                      if (onOpenAuthPage) onOpenAuthPage('register');
-                      else if (onOpenAuthModal) onOpenAuthModal('register');
-                    }}
-                    className="py-1.5 px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-[10px] font-bold flex items-center justify-center space-x-1 transition-colors"
-                  >
-                    <UserPlus className="w-3 h-3" />
-                    <span>Sign Up</span>
+                    <GoogleIcon className="w-4 h-4" />
+                    <span>Sign in with Google</span>
                   </button>
                 </div>
               </div>
@@ -482,22 +471,17 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="sm:hidden font-black">DEP</span>
           </button>
 
-          {/* Auth buttons for logged out users */}
+          {/* Google Login button for logged out users */}
           {!user && (
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center shrink-0">
               <button
+                id="btn-header-google-login"
                 onClick={() => onOpenAuthModal ? onOpenAuthModal('login') : onOpenAuthPage?.('login')}
-                className="hidden sm:inline-block px-2.5 sm:px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all"
+                className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-[11px] sm:text-xs rounded-lg sm:rounded-xl shadow-md shadow-white/10 active:scale-95 transition-all flex items-center space-x-1.5 cursor-pointer"
               >
-                Log In
-              </button>
-              <button
-                onClick={() => onOpenAuthModal ? onOpenAuthModal('register') : onOpenAuthPage?.('register')}
-                className="px-2 sm:px-3.5 py-1 sm:py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 font-bold text-[11px] sm:text-xs rounded-lg sm:rounded-xl transition-all flex items-center space-x-1"
-              >
-                <UserPlus className="w-3 h-3" />
-                <span className="hidden sm:inline">Sign Up</span>
-                <span className="sm:hidden">Join</span>
+                <GoogleIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Google Login</span>
+                <span className="sm:hidden">Login</span>
               </button>
             </div>
           )}

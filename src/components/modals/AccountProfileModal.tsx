@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trade, AccountType, UserAccount } from '../../types/trading';
 import { X, User, ShieldCheck, Award, TrendingUp, BarChart2, CheckCircle, LogOut, LogIn } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleIcon';
 
 interface AccountProfileModalProps {
   isOpen: boolean;
@@ -82,24 +83,16 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
               <h3 className="text-lg font-bold text-white mb-2">Not Logged In</h3>
               <p className="text-xs text-slate-400 mb-6 px-6">Create an account or log in to track your performance, manage settings, and participate in VIP tournaments.</p>
               
-              <div className="flex justify-center space-x-3">
+              <div className="flex justify-center">
                 <button
                   onClick={() => {
                     onClose();
                     onOpenAuth?.('login');
                   }}
-                  className="px-6 py-2 bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-bold rounded-xl transition-all"
+                  className="px-6 py-2.5 bg-white hover:bg-slate-100 text-slate-900 text-xs font-black rounded-xl shadow-lg shadow-white/10 flex items-center space-x-2 transition-all cursor-pointer"
                 >
-                  Log In
-                </button>
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenAuth?.('register');
-                  }}
-                  className="px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
-                >
-                  Sign Up
+                  <GoogleIcon className="w-4 h-4" />
+                  <span>Sign in with Google</span>
                 </button>
               </div>
             </div>
