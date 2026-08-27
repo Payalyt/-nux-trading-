@@ -18,6 +18,7 @@ import { auth } from '../../firebase';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { SiteLogo } from '../common/SiteLogo';
 import { GoogleIcon } from '../common/GoogleIcon';
+import { triggerDirectGoogleLogin } from '../../utils/googleAuth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -33,108 +34,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showManualGoogleInput, setShowManualGoogleInput] = useState(false);
-  const [manualEmail, setManualEmail] = useState('');
 
   if (!isOpen) return null;
 
-  const handleGoogleSignIn = async (overrideEmail?: string) => {
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
 
-    try {
-      let userEmail = overrideEmail || '';
-      let userName = '';
-
-      if (!overrideEmail) {
-        try {
-          const provider = new GoogleAuthProvider();
-          provider.setCustomParameters({ prompt: 'select_account' });
-          
-          const result = await signInWithPopup(auth, provider);
-          if (result.user) {
-            userEmail = result.user.email || '';
-            userName = result.user.displayName || userEmail.split('@')[0];
-          }
-        } catch (popupErr: any) {
-          console.warn('[Firebase Google Popup Error]:', popupErr);
-          
-          // If popup is blocked by iframe or browser policy
-          if (
-            popupErr?.code === 'auth/popup-blocked' || 
-            popupErr?.code === 'auth/cancelled-popup-request' ||
-            popupErr?.code === 'auth/popup-closed-by-user' ||
-            window.self !== window.top
-          ) {
-            setShowManualGoogleInput(true);
-            setLoading(false);
-            return;
-          } else {
-            throw popupErr;
-          }
-        }
+    await triggerDirectGoogleLogin(
+      (userAccount) => {
+        setLoading(false);
+        onAuthSuccess(userAccount);
+        onClose();
+      },
+      (err) => {
+        setLoading(false);
+        setError(err);
       }
-
-      if (!userEmail) {
-        throw new Error('Google authentication cancelled or no email returned.');
-      }
-
-      userEmail = userEmail.trim().toLowerCase();
-      userName = userName || userEmail.split('@')[0];
-
-      const isAdmin = userEmail === 'rosul9552@gmail.com';
-      const loggedInUser = {
-        email: userEmail,
-        name: userName,
-        id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
-        currency: 'USD',
-        role: isAdmin ? 'admin' : 'user',
-        phone: '',
-      };
-
-      // 1. Sync user to Firestore
-      try {
-        await FirebaseService.syncUser({
-          username: userEmail,
-          email: userEmail,
-          fullName: userName,
-          role: loggedInUser.role,
-          balance: 0,
-          demoBalance: 10000,
-          accountStatus: 'active',
-          verificationStatus: 'verified',
-          createdAt: new Date().toISOString()
-        });
-      } catch (syncErr) {
-        console.warn('[Firestore Sync warning]:', syncErr);
-      }
-
-      // 2. Save persistent session cookie
-      saveUserSession(loggedInUser, { rememberMe: true });
-
-      // 3. Audio & Confetti
-      soundManager.playWin();
-      try {
-        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-      } catch {}
-
-      onAuthSuccess(loggedInUser);
-      onClose();
-    } catch (err: any) {
-      console.error('[Google Auth Error]:', err);
-      setError(err?.message || 'Google Sign-In failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualEmail || !manualEmail.includes('@')) {
-      setError('Please enter a valid Google email address.');
-      return;
-    }
-    handleGoogleSignIn(manualEmail);
+    );
   };
 
   return (
@@ -217,65 +134,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           {/* Primary Action: Google Login Button */}
-          {!showManualGoogleInput ? (
-            <div className="space-y-3">
-              <button
-                id="btn-google-signin-modal"
-                type="button"
-                onClick={() => handleGoogleSignIn()}
-                disabled={loading}
-                className="w-full py-3.5 px-4 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-900 font-bold text-sm rounded-2xl shadow-xl shadow-white/10 flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2 text-slate-700">
-                    <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
-                    <span>Connecting to Google...</span>
-                  </div>
-                ) : (
-                  <>
-                    <GoogleIcon className="w-5 h-5" />
-                    <span>Continue with Google</span>
-                  </>
-                )}
-              </button>
-
-              <p className="text-center text-[11px] text-slate-400">
-                By continuing with Google, you agree to our Terms of Service & Privacy Policy.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleManualSubmit} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-300">Enter your Google Email</label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    value={manualEmail}
-                    onChange={(e) => setManualEmail(e.target.value)}
-                    placeholder="e.g. trader@gmail.com"
-                    className="w-full bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                  />
+          <div className="space-y-3">
+            <button
+              id="btn-google-signin-modal"
+              type="button"
+              onClick={() => handleGoogleSignIn()}
+              disabled={loading}
+              className="w-full py-3.5 px-4 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-900 font-bold text-sm rounded-2xl shadow-xl shadow-white/10 flex items-center justify-center gap-3 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2 text-slate-700">
+                  <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
+                  <span>Connecting to Google...</span>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <GoogleIcon className="w-5 h-5" />
+                  <span>Continue with Google</span>
+                </>
+              )}
+            </button>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading ? 'Authenticating...' : 'Sign In with Google Account'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowManualGoogleInput(false)}
-                className="w-full text-center text-xs text-slate-400 hover:text-white pt-1"
-              >
-                Back to Google Popup
-              </button>
-            </form>
-          )}
+            <p className="text-center text-[11px] text-slate-400">
+              By continuing with Google, you agree to our Terms of Service & Privacy Policy.
+            </p>
+          </div>
         </div>
       </div>
     </div>

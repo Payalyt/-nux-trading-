@@ -52,6 +52,7 @@ interface HeaderProps {
   notifications: NotificationItem[];
   onMarkNotificationRead: (id: string) => void;
   user?: UserAccount | null;
+  onDirectGoogleLogin?: () => void;
   onOpenAuthModal?: (mode: 'login' | 'register') => void;
   onOpenAuthPage?: (mode: 'login' | 'register') => void;
   onLogout?: () => void;
@@ -77,6 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
   notifications,
   onMarkNotificationRead,
   user,
+  onDirectGoogleLogin,
   onOpenAuthModal,
   onOpenAuthPage,
   onLogout,
@@ -447,10 +449,11 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowAccountDropdown(false);
-                      if (onOpenAuthPage) onOpenAuthPage('login');
+                      if (onDirectGoogleLogin) onDirectGoogleLogin();
+                      else if (onOpenAuthPage) onOpenAuthPage('login');
                       else if (onOpenAuthModal) onOpenAuthModal('login');
                     }}
-                    className="w-full py-2 px-3 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-sm"
+                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-black flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md"
                   >
                     <GoogleIcon className="w-4 h-4" />
                     <span>Sign in with Google</span>
@@ -476,7 +479,11 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center shrink-0">
               <button
                 id="btn-header-google-login"
-                onClick={() => onOpenAuthModal ? onOpenAuthModal('login') : onOpenAuthPage?.('login')}
+                onClick={() => {
+                  if (onDirectGoogleLogin) onDirectGoogleLogin();
+                  else if (onOpenAuthModal) onOpenAuthModal('login');
+                  else if (onOpenAuthPage) onOpenAuthPage('login');
+                }}
                 className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-[11px] sm:text-xs rounded-lg sm:rounded-xl shadow-md shadow-white/10 active:scale-95 transition-all flex items-center space-x-1.5 cursor-pointer"
               >
                 <GoogleIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />

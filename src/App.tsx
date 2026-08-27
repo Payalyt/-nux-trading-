@@ -65,6 +65,9 @@ import {
   clearUserSession, 
   getCurrentSessionId 
 } from './utils/cookies';
+import { triggerDirectGoogleLogin } from './utils/googleAuth';
+import { auth } from './firebase';
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 
 export default function App() {
   const { 
@@ -338,6 +341,53 @@ export default function App() {
       ...prev,
     ]);
   };
+
+  // Immediate 1-click Google Sign In Trigger
+  const handleDirectGoogleAuth = () => {
+    triggerDirectGoogleLogin(
+      (userData) => {
+        handleAuthSuccess(userData);
+      },
+      (errMsg) => {
+        console.warn('Direct Google Sign In notice:', errMsg);
+      }
+    );
+  };
+
+  // Listen to Google Redirect results and Auth State to guarantee user goes straight to terminal
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          const email = (result.user.email || '').trim().toLowerCase();
+          const name = result.user.displayName || email.split('@')[0];
+          handleAuthSuccess({
+            email,
+            name,
+            id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+            currency: 'USD',
+            role: email === 'rosul9552@gmail.com' ? 'admin' : 'user'
+          });
+        }
+      })
+      .catch((err) => console.warn('Redirect check notice:', err));
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser && !user) {
+        const email = (firebaseUser.email || '').trim().toLowerCase();
+        const name = firebaseUser.displayName || email.split('@')[0];
+        handleAuthSuccess({
+          email,
+          name,
+          id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+          currency: 'USD',
+          role: email === 'rosul9552@gmail.com' ? 'admin' : 'user'
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const handleLogout = () => {
     // Clear session cookies and session storage
@@ -774,20 +824,18 @@ export default function App() {
         <HomePage
           onStartTrading={() => {
             if (!user) {
-              setAuthModalMode('login');
-              setCurrentView('auth');
+              handleDirectGoogleAuth();
             } else {
               setCurrentView('trade');
             }
           }}
-          onOpenAuth={(mode) => {
-            setAuthModalMode(mode);
-            setCurrentView('auth');
+          onDirectGoogleLogin={handleDirectGoogleAuth}
+          onOpenAuth={() => {
+            handleDirectGoogleAuth();
           }}
           onSelectAssetAndTrade={(assetId) => {
             if (!user) {
-              setAuthModalMode('login');
-              setCurrentView('auth');
+              handleDirectGoogleAuth();
               return;
             }
             const found = assets.find(
@@ -830,14 +878,9 @@ export default function App() {
               )
             }
             user={user}
-            onOpenAuthModal={(mode) => {
-              setAuthModalMode(mode);
-              setIsAuthModalOpen(true);
-            }}
-            onOpenAuthPage={(mode) => {
-              setAuthModalMode(mode);
-              setCurrentView('auth');
-            }}
+            onDirectGoogleLogin={handleDirectGoogleAuth}
+            onOpenAuthModal={() => handleDirectGoogleAuth()}
+            onOpenAuthPage={() => handleDirectGoogleAuth()}
             onLogout={handleLogout}
             onGoToHome={() => setCurrentView('trade')}
             onNavigatePage={(page) => setCurrentView(page as any)}

@@ -38,6 +38,7 @@ import { GoogleIcon } from '../common/GoogleIcon';
 interface HomePageProps {
   onStartTrading: () => void;
   onOpenAuth: (mode: 'login' | 'register') => void;
+  onDirectGoogleLogin?: () => void;
   onSelectAssetAndTrade?: (assetId: string) => void;
   user?: UserAccount | null;
   assets?: Asset[];
@@ -46,6 +47,7 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({
   onStartTrading,
   onOpenAuth,
+  onDirectGoogleLogin,
   onSelectAssetAndTrade,
   user,
   assets = [],
@@ -199,7 +201,8 @@ export const HomePage: React.FC<HomePageProps> = ({
             <button
               onClick={() => {
                 soundManager.playClick();
-                onOpenAuth('login');
+                if (onDirectGoogleLogin) onDirectGoogleLogin();
+                else onOpenAuth('login');
               }}
               className="flex items-center space-x-2 px-3.5 sm:px-4 py-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-black rounded-xl shadow-lg shadow-white/10 active:scale-95 transition-all cursor-pointer"
             >
@@ -245,7 +248,8 @@ export const HomePage: React.FC<HomePageProps> = ({
             <button
               onClick={() => {
                 soundManager.playClick();
-                onOpenAuth('login');
+                if (onDirectGoogleLogin) onDirectGoogleLogin();
+                else onOpenAuth('login');
               }}
               className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-100 text-slate-900 font-black text-sm rounded-2xl shadow-xl shadow-white/10 active:scale-95 transition-all flex items-center justify-center space-x-2.5 cursor-pointer"
             >
@@ -749,7 +753,8 @@ export const HomePage: React.FC<HomePageProps> = ({
             <button
               onClick={() => {
                 soundManager.playClick();
-                onOpenAuth('login');
+                if (onDirectGoogleLogin) onDirectGoogleLogin();
+                else onOpenAuth('login');
               }}
               className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-100 text-slate-900 font-black text-sm rounded-2xl shadow-2xl shadow-white/20 active:scale-95 transition-all flex items-center justify-center space-x-2.5 cursor-pointer"
             >
@@ -779,7 +784,13 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button onClick={onStartTrading} className="hover:text-emerald-400 transition-colors">Trade Terminal</button>
               <button onClick={() => scrollToSection('markets-section')} className="hover:text-emerald-400 transition-colors">Markets</button>
               <button onClick={() => scrollToSection('advantages-section')} className="hover:text-emerald-400 transition-colors">Advantages</button>
-              <button onClick={() => onOpenAuth('login')} className="hover:text-emerald-400 transition-colors flex items-center space-x-1">
+              <button 
+                onClick={() => {
+                  if (onDirectGoogleLogin) onDirectGoogleLogin();
+                  else onOpenAuth('login');
+                }} 
+                className="hover:text-emerald-400 transition-colors flex items-center space-x-1"
+              >
                 <span>Google Login</span>
               </button>
             </div>
