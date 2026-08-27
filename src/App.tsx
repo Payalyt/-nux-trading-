@@ -67,7 +67,7 @@ import {
 } from './utils/cookies';
 import { triggerDirectGoogleLogin } from './utils/googleAuth';
 import { auth } from './firebase';
-import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import { onAuthStateChanged, getRedirectResult, signOut } from 'firebase/auth';
 
 export default function App() {
   const { 
@@ -389,17 +389,26 @@ export default function App() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     // Clear session cookies and session storage
     clearUserSession();
     setUser(null);
-    setCurrentView('home');
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn('Firebase signout:', e);
+    }
+    setCurrentView('auth');
+    setIsProfileOpen(false);
+    setIsDepositOpen(false);
+    setIsWithdrawalOpen(false);
+    setIsAuthModalOpen(false);
     soundManager.playClick();
     setNotifications((prev) => [
       {
         id: `logout-${Date.now()}`,
         title: 'Signed Out',
-        message: 'You have logged out of your account. Cookie session terminated.',
+        message: 'You have logged out of your account.',
         time: 'Just now',
         type: 'info',
         read: false,

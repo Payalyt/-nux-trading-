@@ -443,21 +443,53 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
 
-                {/* Google Auth link inside dropdown */}
+                {/* Account Actions / Auth in dropdown */}
                 <div className="pt-2 mt-1 border-t border-white/10">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowAccountDropdown(false);
-                      if (onDirectGoogleLogin) onDirectGoogleLogin();
-                      else if (onOpenAuthPage) onOpenAuthPage('login');
-                      else if (onOpenAuthModal) onOpenAuthModal('login');
-                    }}
-                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-black flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md"
-                  >
-                    <GoogleIcon className="w-4 h-4" />
-                    <span>Sign in with Google</span>
-                  </button>
+                  {user ? (
+                    <div className="space-y-1.5">
+                      {onNavigatePage && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowAccountDropdown(false);
+                            onNavigatePage('my_account');
+                          }}
+                          className="w-full py-2 px-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer border border-white/10"
+                        >
+                          <User className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>My Account Profile</span>
+                        </button>
+                      )}
+                      {onLogout && (
+                        <button
+                          id="btn-header-dropdown-logout"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowAccountDropdown(false);
+                            onLogout();
+                          }}
+                          className="w-full py-2 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Log Out</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAccountDropdown(false);
+                        if (onDirectGoogleLogin) onDirectGoogleLogin();
+                        else if (onOpenAuthPage) onOpenAuthPage('login');
+                        else if (onOpenAuthModal) onOpenAuthModal('login');
+                      }}
+                      className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-black flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md"
+                    >
+                      <GoogleIcon className="w-4 h-4" />
+                      <span>Sign in with Google</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
