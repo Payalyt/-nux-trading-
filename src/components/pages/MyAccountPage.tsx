@@ -17,6 +17,7 @@ import { soundManager } from '../../utils/audio';
 import { UserAccount } from '../../types/trading';
 import { FirebaseService } from '../../utils/firebaseSync';
 import { GoogleIcon } from '../common/GoogleIcon';
+import { get8DigitId } from '../../utils/userId';
 
 interface MyAccountPageProps {
   liveBalance: number;
@@ -45,7 +46,7 @@ export const MyAccountPage: React.FC<MyAccountPageProps> = ({
   const [kycSubmitted, setKycSubmitted] = useState(false);
 
   const currentEmail = user?.email || 'parvezhasanonline@gmail.com';
-  const currentId = user?.id || '#92316380';
+  const currentId = user ? `#${get8DigitId(user)}` : '#84920153';
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();

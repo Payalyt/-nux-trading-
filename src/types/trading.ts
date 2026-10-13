@@ -136,13 +136,29 @@ export interface NotificationItem {
   read: boolean;
 }
 
+export type CandleDirection = 'UP' | 'DOWN' | 'NORMAL' | 'SPIKE_UP' | 'SPIKE_DOWN';
+export type CandleIntensity = 'low' | 'medium' | 'high';
+
+export interface CentralCandleControl {
+  direction: CandleDirection;
+  intensity: CandleIntensity;
+  targetAsset?: string; // 'all' or specific asset ID
+  speed?: number; // 1 to 5
+  updatedAt: number;
+  updatedBy?: string;
+  spikeTimestamp?: number;
+}
+
 export interface UserAccount {
   email: string;
   name: string;
-  id: string;
+  id: string; // 8-digit unique ID
+  numericId?: string; // 8-digit unique ID
   currency: string;
   isVerified?: boolean;
   role?: string;
   balanceLocked?: boolean;
   accountStatus?: string;
+  phone?: string;
 }
+

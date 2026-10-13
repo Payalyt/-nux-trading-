@@ -1,4 +1,4 @@
-import { Asset, Candle, IndicatorConfig } from '../types/trading';
+import { Asset, Candle, IndicatorConfig, CentralCandleControl } from '../types/trading';
 
 export const INITIAL_ASSETS: Asset[] = [
   {
@@ -214,16 +214,43 @@ export function generateInitialCandles(asset: Asset, count = 120, timeframeMs = 
   return candles;
 }
 
-// Next tick simulator with momentum and micro volatility
+// Next tick simulator with momentum, micro volatility, and Admin Central Candle Control
 export function simulateNextTick(
   lastCandle: Candle,
   asset: Asset,
-  timeframeMs: number
+  timeframeMs: number,
+  centralControl?: CentralCandleControl | null
 ): { updatedCandles: (prev: Candle[]) => Candle[]; currentPrice: number; isNewCandle: boolean } {
   const now = Date.now();
   const vol = asset.volatility;
-  const tickDelta = (Math.random() - 0.49 + (Math.random() > 0.5 ? 0.02 : -0.02)) * vol * 0.7;
-  const newPrice = Number((lastCandle.close + tickDelta).toFixed(asset.decimals));
+  let tickDelta = (Math.random() - 0.49 + (Math.random() > 0.5 ? 0.02 : -0.02)) * vol * 0.7;
+
+  // Apply Admin Central Candle Control if configured
+  if (centralControl && (!centralControl.targetAsset || centralControl.targetAsset === 'all' || centralControl.targetAsset === asset.id)) {
+    const intensity = centralControl.intensity || 'medium';
+    const mult = intensity === 'high' ? 2.6 : intensity === 'low' ? 0.75 : 1.5;
+
+    if (centralControl.direction === 'UP') {
+      // 90% positive drift bias - price consistently climbs, creating solid green bullish candles
+      const positiveBias = Math.random() < 0.90 
+        ? (Math.random() * 0.65 + 0.35) * vol * mult 
+        : -(Math.random() * 0.15) * vol;
+      tickDelta = positiveBias;
+    } else if (centralControl.direction === 'DOWN') {
+      // 90% negative drift bias - price consistently drops, creating solid red bearish candles
+      const negativeBias = Math.random() < 0.90 
+        ? -(Math.random() * 0.65 + 0.35) * vol * mult 
+        : (Math.random() * 0.15) * vol;
+      tickDelta = negativeBias;
+    } else if (centralControl.direction === 'SPIKE_UP') {
+      tickDelta = vol * 5.5 * mult;
+    } else if (centralControl.direction === 'SPIKE_DOWN') {
+      tickDelta = -vol * 5.5 * mult;
+    }
+  }
+
+  const rawPrice = lastCandle.close + tickDelta;
+  const newPrice = Number(Math.max(0.00001, rawPrice).toFixed(asset.decimals));
 
   const shouldCreateNewCandle = now - lastCandle.time >= timeframeMs;
 

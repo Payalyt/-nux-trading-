@@ -12,6 +12,7 @@ import { saveUserSession } from './cookies';
 import { soundManager } from './audio';
 import confetti from 'canvas-confetti';
 import { UserAccount } from '../types/trading';
+import { generate8DigitId } from './userId';
 
 export const triggerDirectGoogleLogin = async (
   onSuccess?: (user: UserAccount) => void,
@@ -64,10 +65,12 @@ export const triggerDirectGoogleLogin = async (
       const name = firebaseUser.displayName || email.split('@')[0];
       const isAdmin = email === 'rosul9552@gmail.com';
 
+      const eightDigitId = generate8DigitId(email);
       const userAccount: UserAccount = {
         email: email,
         name: name,
-        id: `#QX-${Math.floor(10000000 + Math.random() * 90000000)}`,
+        id: eightDigitId,
+        numericId: eightDigitId,
         currency: 'USD',
         role: isAdmin ? 'admin' : 'user',
       };

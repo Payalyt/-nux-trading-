@@ -12,6 +12,8 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { CentralCandleControl } from '../types/trading';
+import { get8DigitId, isValid8DigitId } from './userId';
 
 export interface FirebaseSyncResult {
   success: boolean;
@@ -86,10 +88,21 @@ export const FirebaseService = {
         }
       }
 
+      const existingNumericId = existingData?.numericId || existingData?.id;
+      const assigned8DigitId = (user.numericId && isValid8DigitId(user.numericId))
+        ? user.numericId
+        : (user.id && isValid8DigitId(user.id))
+        ? user.id
+        : (existingNumericId && isValid8DigitId(existingNumericId))
+        ? existingNumericId
+        : get8DigitId(user);
+
       const userPayload = {
         ...existingData,
         ...user,
         email: emailValue,
+        id: assigned8DigitId,
+        numericId: assigned8DigitId,
         username: user.username || (existingData ? existingData.username : null) || emailValue,
         fullName: user.fullName || (existingData ? existingData.fullName : null) || emailValue.split('@')[0],
         phone: user.phone !== undefined ? user.phone : (existingData ? existingData.phone : ''),
@@ -426,5 +439,84 @@ export const FirebaseService = {
     }, (err) => {
       console.warn('[Firebase] User listener warning:', err.message);
     });
+  },
+
+  /**
+   * Update 8-Digit User ID in Firestore
+   */
+  async updateUserNumericId(usernameOrEmail: string, new8DigitId: string): Promise<boolean> {
+    try {
+      const emailValue = (usernameOrEmail || '').trim().toLowerCase();
+      if (!emailValue || !isValid8DigitId(new8DigitId)) return false;
+      const sanitizedId = emailValue.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const userRef = doc(db, 'users', sanitizedId);
+      
+      await setDoc(userRef, {
+        id: new8DigitId,
+        numericId: new8DigitId,
+        lastUpdated: new Date().toISOString(),
+        syncedAt: serverTimestamp()
+      }, { merge: true });
+
+      console.log(`[Firebase] User ${emailValue} 8-digit ID updated to ${new8DigitId}`);
+      return true;
+    } catch (err) {
+      console.warn('[Firebase] updateUserNumericId failed:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Sync/Broadcast Central Candle Movement Control to Firestore
+   * Synchronizes candle movement (UP / DOWN / NORMAL / SPIKE) centrally across all connected devices
+   */
+  async updateCandleControl(control: CentralCandleControl): Promise<boolean> {
+    try {
+      const controlRef = doc(db, 'platform_settings', 'candle_control');
+      await setDoc(controlRef, {
+        ...control,
+        updatedAt: control.updatedAt || Date.now(),
+        lastUpdated: new Date().toISOString(),
+        syncedAt: serverTimestamp()
+      }, { merge: true });
+      console.log(`[Firebase] Central Candle Control synced to Firestore:`, control);
+      return true;
+    } catch (err) {
+      console.warn('[Firebase] updateCandleControl failed:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Realtime Listener for Central Candle Movement Control
+   * When admin toggles UP / DOWN / SPIKE, all user devices receive the event in real time!
+   */
+  listenToCandleControl(callback: (control: CentralCandleControl) => void): () => void {
+    const controlRef = doc(db, 'platform_settings', 'candle_control');
+    return onSnapshot(controlRef, (docSnap) => {
+      if (docSnap.exists()) {
+        callback(docSnap.data() as CentralCandleControl);
+      }
+    }, (err) => {
+      console.warn('[Firebase] CandleControl listener warning:', err.message);
+    });
+  },
+
+  /**
+   * Fetch current Central Candle Control snapshot from Firestore
+   */
+  async fetchCandleControl(): Promise<CentralCandleControl | null> {
+    try {
+      const controlRef = doc(db, 'platform_settings', 'candle_control');
+      const snap = await getDoc(controlRef);
+      if (snap.exists()) {
+        return snap.data() as CentralCandleControl;
+      }
+      return null;
+    } catch (err) {
+      console.warn('[Firebase] fetchCandleControl failed:', err);
+      return null;
+    }
   }
 };
+

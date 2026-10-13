@@ -8,7 +8,8 @@ import {
   Timeframe, 
   IndicatorConfig, 
   NotificationItem,
-  UserAccount 
+  UserAccount,
+  CentralCandleControl 
 } from './types/trading';
 import { 
   INITIAL_ASSETS, 
@@ -18,6 +19,7 @@ import {
 import { soundManager } from './utils/audio';
 import confetti from 'canvas-confetti';
 import { FirebaseService } from './utils/firebaseSync';
+import { get8DigitId, isValid8DigitId } from './utils/userId';
 
 // Components
 import { Header } from './components/Header';
@@ -140,18 +142,31 @@ export default function App() {
           localStorage.setItem('qx_demo_balance', String(data.demoBalance));
         }
         
-        // Also update user state and session cookies if role, balanceLocked, or status changes
+        // Also update user state and session cookies if role, balanceLocked, status or 8-digit numericId changes
         setUser(prev => {
           if (!prev) return prev;
           const newLocked = data.balanceLocked !== undefined ? data.balanceLocked : prev.balanceLocked;
           const newRole = data.role || prev.role;
           const newStatus = data.accountStatus || prev.accountStatus;
-          if (prev.balanceLocked !== newLocked || prev.role !== newRole || prev.accountStatus !== newStatus) {
+          const newNumericId = (data.numericId && isValid8DigitId(data.numericId))
+            ? String(data.numericId).trim()
+            : (data.id && isValid8DigitId(data.id))
+            ? String(data.id).trim()
+            : prev.numericId;
+
+          if (
+            prev.balanceLocked !== newLocked || 
+            prev.role !== newRole || 
+            prev.accountStatus !== newStatus ||
+            (newNumericId && prev.numericId !== newNumericId)
+          ) {
             const updated = {
               ...prev,
               balanceLocked: newLocked,
               role: newRole,
-              accountStatus: newStatus
+              accountStatus: newStatus,
+              id: newNumericId || prev.id,
+              numericId: newNumericId || prev.numericId
             };
             saveUserSession(updated);
             return updated;
@@ -183,6 +198,34 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('qx_live_balance', String(liveBalance));
   }, [liveBalance]);
+
+  // Central Candle Movement Control (Admin Controlled via Firestore)
+  const [centralCandleControl, setCentralCandleControl] = useState<CentralCandleControl>(() => {
+    const saved = localStorage.getItem('qx_central_candle_control');
+    return saved ? JSON.parse(saved) : {
+      direction: 'NORMAL',
+      intensity: 'medium',
+      targetAsset: 'all',
+      updatedAt: Date.now()
+    };
+  });
+
+  const candleControlRef = useRef<CentralCandleControl>(centralCandleControl);
+  useEffect(() => {
+    candleControlRef.current = centralCandleControl;
+  }, [centralCandleControl]);
+
+  // Real-time Central Candle Control Firestore Listener (Sync across all connected users & devices)
+  useEffect(() => {
+    const unsubscribe = FirebaseService.listenToCandleControl((ctrl) => {
+      if (ctrl) {
+        setCentralCandleControl(ctrl);
+        candleControlRef.current = ctrl;
+        localStorage.setItem('qx_central_candle_control', JSON.stringify(ctrl));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // 3. Trade Execution Parameters
   const [tradeDuration, setTradeDuration] = useState<number>(60); // 1 minute in seconds
@@ -519,7 +562,12 @@ export default function App() {
           const assetCandles = prevMap[asset.id] || [];
           if (assetCandles.length > 0) {
             const last = assetCandles[assetCandles.length - 1];
-            const { updatedCandles, currentPrice } = simulateNextTick(last, asset, timeframeMs);
+            const { updatedCandles, currentPrice } = simulateNextTick(
+              last, 
+              asset, 
+              timeframeMs, 
+              candleControlRef.current
+            );
             nextMap[asset.id] = updatedCandles(assetCandles);
             
             // update current price state

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { UserAccount } from '../../types/trading';
+import { UserAccount, CentralCandleControl, CandleDirection, CandleIntensity } from '../../types/trading';
 import { FirebaseService } from '../../utils/firebaseSync';
 import { SiteLogo } from '../common/SiteLogo';
+import { get8DigitId, isValid8DigitId, generate8DigitId } from '../../utils/userId';
 import { 
   Users, 
   ArrowLeft, 
@@ -23,7 +24,14 @@ import {
   MinusCircle,
   Gift,
   Edit3,
-  CreditCard
+  CreditCard,
+  TrendingUp,
+  TrendingDown,
+  Radio,
+  Zap,
+  Sparkles,
+  Copy,
+  CheckCircle2
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -67,6 +75,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
   });
   
+  // Central Candle Movement Control (Admin Driven - Realtime Synced across All Devices)
+  const [centralCandleControl, setCentralCandleControl] = useState<CentralCandleControl>(() => {
+    const saved = localStorage.getItem('qx_central_candle_control');
+    return saved ? JSON.parse(saved) : {
+      direction: 'NORMAL',
+      intensity: 'medium',
+      targetAsset: 'all',
+      updatedAt: Date.now()
+    };
+  });
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+
+  // User 8-Digit ID Management State
+  const [customIdInput, setCustomIdInput] = useState('');
+  const [customIdError, setCustomIdError] = useState('');
+  const [editingUserIdUser, setEditingUserIdUser] = useState<any | null>(null);
+  const [quickIdInput, setQuickIdInput] = useState('');
+  const [quickIdError, setQuickIdError] = useState('');
+
   // Modal for advanced user balance/status management
   const [managingUser, setManagingUser] = useState<any | null>(null);
   const [customBalanceInput, setCustomBalanceInput] = useState('');
@@ -221,6 +248,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     loadAdminData();
   }, []);
 
+  // Realtime subscription to Central Candle Control from Firestore
+  useEffect(() => {
+    const unsubscribe = FirebaseService.listenToCandleControl((ctrl) => {
+      if (ctrl) {
+        setCentralCandleControl(ctrl);
+        localStorage.setItem('qx_central_candle_control', JSON.stringify(ctrl));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleSaveUserManagement = async () => {
     if (!managingUser) return;
     try {
@@ -228,8 +266,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const newBal = customBalanceInput !== '' ? parseFloat(customBalanceInput) : Number(managingUser.balance || 0);
       const newBonus = bonusInput !== '' ? parseFloat(bonusInput) : Number(managingUser.bonus || 0);
 
+      if (customIdInput && !isValid8DigitId(customIdInput.trim())) {
+        setCustomIdError('User ID must be exactly 8 numeric digits (e.g. 84920153)');
+        return;
+      }
+      setCustomIdError('');
+
+      const assignedNumericId = (customIdInput && isValid8DigitId(customIdInput.trim()))
+        ? customIdInput.trim()
+        : get8DigitId(managingUser);
+
       const updatedData = {
         ...managingUser,
+        id: assignedNumericId,
+        numericId: assignedNumericId,
         balance: isNaN(newBal) ? Number(managingUser.balance || 0) : newBal,
         bonus: isNaN(newBonus) ? Number(managingUser.bonus || 0) : newBonus,
         forceBalance: true,
@@ -237,14 +287,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       };
 
       await FirebaseService.syncUser(updatedData);
-      setActionMessage(`Successfully updated profile for ${email}`);
+      if (customIdInput && isValid8DigitId(customIdInput.trim())) {
+        await FirebaseService.updateUserNumericId(email, assignedNumericId);
+      }
+
+      setActionMessage(`Successfully updated profile & ID (${assignedNumericId}) for ${email}`);
       setManagingUser(null);
       setCustomBalanceInput('');
       setBonusInput('');
+      setCustomIdInput('');
       loadAdminData();
       setTimeout(() => setActionMessage(''), 4000);
     } catch (err) {
       alert('Failed to update user profile');
+    }
+  };
+
+  // Quick 8-Digit ID Update handler
+  const handleQuickSave8DigitId = async (userToEdit: any, newId: string) => {
+    const trimmed = newId.trim();
+    if (!isValid8DigitId(trimmed)) {
+      setQuickIdError('User ID must be exactly 8 numeric digits (e.g. 84920153)');
+      return;
+    }
+    setQuickIdError('');
+    const email = (userToEdit.email || userToEdit.username || '').toLowerCase();
+    const ok = await FirebaseService.updateUserNumericId(email, trimmed);
+    if (ok) {
+      setUsers(prev => prev.map(u => {
+        const uEmail = (u.email || u.username || '').toLowerCase();
+        if (uEmail === email) {
+          return { ...u, numericId: trimmed, id: trimmed };
+        }
+        return u;
+      }));
+      setActionMessage(`User ${email} 8-digit ID successfully updated to: ${trimmed}`);
+      setTimeout(() => setActionMessage(''), 4000);
+      setEditingUserIdUser(null);
+    } else {
+      alert('Failed to update 8-digit user ID in Firestore.');
+    }
+  };
+
+  // Realtime Central Candle Control Broadcaster (Changes affect all user devices simultaneously)
+  const handleBroadcastCandleDirection = async (
+    direction: CandleDirection, 
+    customIntensity?: CandleIntensity,
+    customAsset?: string
+  ) => {
+    setIsBroadcasting(true);
+    const updatedControl: CentralCandleControl = {
+      ...centralCandleControl,
+      direction,
+      intensity: customIntensity || centralCandleControl.intensity || 'medium',
+      targetAsset: customAsset || centralCandleControl.targetAsset || 'all',
+      updatedAt: Date.now(),
+      updatedBy: _currentUser?.email || 'Admin',
+      spikeTimestamp: (direction === 'SPIKE_UP' || direction === 'SPIKE_DOWN') ? Date.now() : undefined
+    };
+
+    setCentralCandleControl(updatedControl);
+    localStorage.setItem('qx_central_candle_control', JSON.stringify(updatedControl));
+    const ok = await FirebaseService.updateCandleControl(updatedControl);
+    setIsBroadcasting(false);
+
+    if (ok) {
+      if (direction === 'UP') {
+        setActionMessage('🟢 FORCE UP Active: All connected users now see continuous bullish green candles!');
+      } else if (direction === 'DOWN') {
+        setActionMessage('🔴 FORCE DOWN Active: All connected users now see continuous bearish red candles!');
+      } else if (direction === 'NORMAL') {
+        setActionMessage('⚖️ NORMAL MARKET Active: Standard organic market algorithm restored across all screens.');
+      } else if (direction === 'SPIKE_UP') {
+        setActionMessage('🚀 Bullish Spike (+2.5%) broadcasted to all user screens in real time!');
+      } else if (direction === 'SPIKE_DOWN') {
+        setActionMessage('💥 Bearish Drop (-2.5%) broadcasted to all user screens in real time!');
+      }
+      setTimeout(() => setActionMessage(''), 5000);
+    } else {
+      alert('Failed to broadcast candle control to Firestore. Please check internet connection.');
     }
   };
 
@@ -382,11 +503,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.username || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(u => {
+    const term = searchTerm.toLowerCase();
+    const id8 = get8DigitId(u);
+    return (
+      (u.email || '').toLowerCase().includes(term) ||
+      (u.fullName || '').toLowerCase().includes(term) ||
+      (u.username || '').toLowerCase().includes(term) ||
+      id8.includes(term)
+    );
+  });
 
   return (
     <div className="flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-y-auto select-none">
@@ -408,8 +534,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
                   Firebase Live
                 </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                  centralCandleControl.direction === 'UP' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                  centralCandleControl.direction === 'DOWN' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
+                  'bg-white/10 text-slate-300 border-white/10'
+                }`}>
+                  Candle: {centralCandleControl.direction}
+                </span>
               </h1>
-              <p className="text-[11px] text-slate-400">Complete control: Edit Balances, Add Bonus, Lock Balances, Block Users & Approve Transactions</p>
+              <p className="text-[11px] text-slate-400">Complete control: Central Candlestick Movement, 8-Digit User IDs, Balances & Transactions</p>
             </div>
           </div>
         </div>
@@ -444,6 +577,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <span>Users ({users.length})</span>
         </button>
         <button
+          onClick={() => setActiveTab('graph')}
+          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
+            activeTab === 'graph' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          {centralCandleControl.direction === 'UP' ? (
+            <TrendingUp className="w-4 h-4 text-emerald-400 animate-pulse" />
+          ) : centralCandleControl.direction === 'DOWN' ? (
+            <TrendingDown className="w-4 h-4 text-rose-400 animate-pulse" />
+          ) : (
+            <Radio className="w-4 h-4 text-amber-400" />
+          )}
+          <span>Candle & Market Control</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-black ${
+            centralCandleControl.direction === 'UP' ? 'bg-emerald-500/20 text-emerald-300' :
+            centralCandleControl.direction === 'DOWN' ? 'bg-rose-500/20 text-rose-300' :
+            'bg-white/10 text-slate-300'
+          }`}>
+            {centralCandleControl.direction}
+          </span>
+        </button>
+        <button
           onClick={() => setActiveTab('transactions')}
           className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
             activeTab === 'transactions' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
@@ -460,15 +615,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <CreditCard className="w-4 h-4" />
           <span>Gateways</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('graph')}
-          className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-bold text-xs transition-all cursor-pointer shrink-0 ${
-            activeTab === 'graph' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-white'
-          }`}
-        >
-          <Edit3 className="w-4 h-4 text-amber-400" />
-          <span>Graph & Risk</span>
         </button>
         <button
           onClick={() => setActiveTab('settings')}
@@ -499,7 +645,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search users by email, name or username..."
+                  placeholder="Search by 8-digit ID, email, name or username..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-[#121824] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
@@ -515,7 +661,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-white/5 border-b border-white/10 text-slate-400 uppercase tracking-wider text-[10px]">
-                      <th className="p-4">User Email / ID</th>
+                      <th className="p-4">User Email</th>
+                      <th className="p-4">8-Digit ID (ইউনিক আইডি)</th>
                       <th className="p-4">Full Name</th>
                       <th className="p-4">Status / Lock</th>
                       <th className="p-4">Live Balance</th>
@@ -526,83 +673,106 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody className="divide-y divide-white/5">
                     {loading ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-500">
+                        <td colSpan={7} className="p-8 text-center text-slate-500">
                           Loading Firestore users...
                         </td>
                       </tr>
                     ) : filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-500">
+                        <td colSpan={7} className="p-8 text-center text-slate-500">
                           No users found matching your search.
                         </td>
                       </tr>
                     ) : (
-                      filteredUsers.map((u, i) => (
-                        <tr key={u.id || i} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="p-4 font-mono font-bold text-white flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs font-bold">
-                              {(u.email || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div>{u.email}</div>
-                              <div className="text-[10px] text-slate-500">{u.id}</div>
-                            </div>
-                          </td>
-                          <td className="p-4 text-slate-300 font-semibold">{u.fullName || u.username || 'N/A'}</td>
-                          <td className="p-4 space-x-1">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              u.accountStatus === 'blocked' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400'
-                            }`}>
-                              {u.accountStatus === 'blocked' ? 'Blocked' : 'Active'}
-                            </span>
-                            {u.balanceLocked && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                Locked
+                      filteredUsers.map((u, i) => {
+                        const user8DigitId = get8DigitId(u);
+                        return (
+                          <tr key={u.id || i} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="p-4 font-mono font-bold text-white flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
+                                {(u.email || 'U').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-white text-xs truncate max-w-[180px]">{u.email}</div>
+                                <div className="text-[10px] text-slate-500 font-sans">{u.role === 'admin' ? 'Administrator' : 'Standard Trader'}</div>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 tracking-wider">
+                                  #{user8DigitId}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setEditingUserIdUser(u);
+                                    setQuickIdInput(user8DigitId);
+                                    setQuickIdError('');
+                                  }}
+                                  className="p-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 transition-all cursor-pointer"
+                                  title="Edit 8-digit Unique ID"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="p-4 text-slate-300 font-semibold">{u.fullName || u.username || 'N/A'}</td>
+                            <td className="p-4 space-x-1">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                u.accountStatus === 'blocked' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400'
+                              }`}>
+                                {u.accountStatus === 'blocked' ? 'Blocked' : 'Active'}
                               </span>
-                            )}
-                          </td>
-                          <td className="p-4 font-mono font-extrabold text-emerald-400">
-                            ${Number(u.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="p-4 font-mono text-amber-400">
-                            +${Number(u.bonus || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="p-4 text-right space-x-1.5">
-                            <button
-                              onClick={() => {
-                                setManagingUser(u);
-                                setCustomBalanceInput(String(u.balance || 0));
-                                setBonusInput(String(u.bonus || 0));
-                              }}
-                              className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-xl transition-all cursor-pointer inline-flex items-center gap-1"
-                              title="Edit Balance & Bonus"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Edit Balance</span>
-                            </button>
-                            <button
-                              onClick={() => handleToggleLockBalance(u)}
-                              className={`px-2.5 py-1.5 border font-bold rounded-xl transition-all cursor-pointer inline-flex items-center gap-1 ${
-                                u.balanceLocked ? 'bg-amber-500/20 border-amber-500/30 text-amber-400' : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
-                              }`}
-                              title="Lock/Unlock Balance (Prevent Withdrawal)"
-                            >
-                              {u.balanceLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-                              <span>{u.balanceLocked ? 'Unlock' : 'Lock'}</span>
-                            </button>
-                            <button
-                              onClick={() => handleToggleBlockUser(u)}
-                              className={`px-2.5 py-1.5 border font-bold rounded-xl transition-all cursor-pointer inline-flex items-center gap-1 ${
-                                u.accountStatus === 'blocked' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                              }`}
-                              title="Block or Unblock User"
-                            >
-                              {u.accountStatus === 'blocked' ? <UserCheck className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
-                              <span>{u.accountStatus === 'blocked' ? 'Unblock' : 'Block'}</span>
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                              {u.balanceLocked && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                  Locked
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 font-mono font-extrabold text-emerald-400">
+                              ${Number(u.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="p-4 font-mono text-amber-400">
+                              +${Number(u.bonus || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="p-4 text-right space-x-1.5">
+                              <button
+                                onClick={() => {
+                                  setManagingUser(u);
+                                  setCustomBalanceInput(String(u.balance || 0));
+                                  setBonusInput(String(u.bonus || 0));
+                                  setCustomIdInput(user8DigitId);
+                                  setCustomIdError('');
+                                }}
+                                className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-xl transition-all cursor-pointer inline-flex items-center gap-1"
+                                title="Edit Balance, Bonus & 8-Digit ID"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Edit Profile</span>
+                              </button>
+                              <button
+                                onClick={() => handleToggleLockBalance(u)}
+                                className={`px-2.5 py-1.5 border font-bold rounded-xl transition-all cursor-pointer inline-flex items-center gap-1 ${
+                                  u.balanceLocked ? 'bg-amber-500/20 border-amber-500/30 text-amber-400' : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+                                }`}
+                                title="Lock/Unlock Balance (Prevent Withdrawal)"
+                              >
+                                {u.balanceLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                                <span>{u.balanceLocked ? 'Unlock' : 'Lock'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleToggleBlockUser(u)}
+                                className={`px-2.5 py-1.5 border font-bold rounded-xl transition-all cursor-pointer inline-flex items-center gap-1 ${
+                                  u.accountStatus === 'blocked' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                }`}
+                                title="Block or Unblock User"
+                              >
+                                {u.accountStatus === 'blocked' ? <UserCheck className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
+                                <span>{u.accountStatus === 'blocked' ? 'Unblock' : 'Block'}</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -783,128 +953,288 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {/* Graph & Risk Controls Tab */}
+        {/* Candle Movement & Market Controls Tab */}
         {activeTab === 'graph' && (
           <div className="space-y-6 max-w-4xl">
-            <div className="bg-[#121824] border border-white/10 rounded-2xl p-6 shadow-xl space-y-5">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            {/* 1. Live Central Candlestick Movement Broadcast Station */}
+            <div className="bg-[#121824] border border-emerald-500/30 rounded-2xl p-6 shadow-2xl space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <div>
-                  <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Edit3 className="w-4 h-4 text-amber-400" />
-                    <span>Trading Graph Control & Risk Engine</span>
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Control live market graph algorithms, global trade win/loss percentage, and user target outcomes.</p>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                      <Radio className="w-4 h-4 animate-pulse" />
+                    </span>
+                    <h2 className="text-sm font-black text-white tracking-wide">
+                      Central Candlestick Movement Control (সেন্ট্রাল ক্যান্ডেল কন্ট্রোল)
+                    </h2>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    সকল ইউজারের ডিভাইসে ক্যান্ডেলের মুভমেন্ট (আপ/ডাউন) সেন্ট্রালি কন্ট্রোল করুন। এখানে পরিবর্তন করলে সবার ডিভাইসে একই ক্যান্ডেল মুভমেন্ট লাইভ দেখাবে।
+                  </p>
                 </div>
-                <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold font-mono">
-                  Algorithm Active
-                </span>
+
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1.5 rounded-xl text-xs font-mono font-black border flex items-center gap-1.5 shadow-lg ${
+                    centralCandleControl.direction === 'UP' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' :
+                    centralCandleControl.direction === 'DOWN' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' :
+                    centralCandleControl.direction === 'SPIKE_UP' ? 'bg-teal-500/20 text-teal-300 border-teal-500/50' :
+                    centralCandleControl.direction === 'SPIKE_DOWN' ? 'bg-orange-500/20 text-orange-300 border-orange-500/50' :
+                    'bg-white/10 text-slate-300 border-white/15'
+                  }`}>
+                    <span className="w-2 h-2 rounded-full animate-ping bg-current" />
+                    <span>BROADCAST: {centralCandleControl.direction}</span>
+                  </span>
+                </div>
               </div>
 
-              {/* Global Market Mode */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-300">Global Market Graph Mode</label>
-                  <select
-                    value={graphControls.globalMode || 'normal'}
-                    onChange={(e) => {
-                      const updated = { ...graphControls, globalMode: e.target.value };
-                      setGraphControls(updated);
-                      localStorage.setItem('qx_graph_controls', JSON.stringify(updated));
-                    }}
-                    className="w-full bg-[#0a0e17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
-                  >
-                    <option value="normal">🌐 Normal Dynamic Market Simulation</option>
-                    <option value="force_win">🟢 Force High Win Rate Mode (75%+ Win Rate)</option>
-                    <option value="force_loss">🔴 Force High Loss Rate Mode (User Loss Engine)</option>
-                    <option value="bull_trend">📈 Force Strong Bullish Upward Trend (+2.5%)</option>
-                    <option value="bear_trend">📉 Force Strong Bearish Downward Trend (-2.5%)</option>
-                  </select>
-                  <p className="text-[11px] text-slate-400">Controls how graph candles resolve trades globally across all active pairs.</p>
+              {/* Main Direction Control Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. FORCE UP CARD */}
+                <div 
+                  onClick={() => handleBroadcastCandleDirection('UP')}
+                  className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+                    centralCandleControl.direction === 'UP'
+                      ? 'bg-emerald-950/40 border-emerald-500 shadow-xl shadow-emerald-500/20 ring-2 ring-emerald-500/50'
+                      : 'bg-[#0a0e17] border-white/10 hover:border-emerald-500/50 hover:bg-emerald-950/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    {centralCandleControl.direction === 'UP' && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-black">
+                        ACTIVE NOW
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-black text-white group-hover:text-emerald-300 transition-colors">
+                    FORCE UP (আপ / বুলিশ)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                    মার্কেট একটানা উপরের দিকে উঠবে এবং সকল ইউজারের ডিভাইসে ১০০% গ্রিন/বুলিশ ক্যান্ডেল তৈরি করবে।
+                  </p>
+                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold text-emerald-400">
+                    <span>ক্লিক করে আপ করুন</span>
+                    <span className="text-lg">↗</span>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-300">Target Global Win Rate: <span className="font-mono text-emerald-400">{graphControls.winRatePercent}%</span></label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value={graphControls.winRatePercent || 70}
-                    onChange={(e) => {
-                      const updated = { ...graphControls, winRatePercent: Number(e.target.value) };
-                      setGraphControls(updated);
-                      localStorage.setItem('qx_graph_controls', JSON.stringify(updated));
-                    }}
-                    className="w-full accent-emerald-500 cursor-pointer"
-                  />
-                  <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                    <span>0% (100% Loss)</span>
-                    <span>50% (Fair)</span>
-                    <span>100% (100% Win)</span>
+                {/* 2. FORCE DOWN CARD */}
+                <div 
+                  onClick={() => handleBroadcastCandleDirection('DOWN')}
+                  className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+                    centralCandleControl.direction === 'DOWN'
+                      ? 'bg-rose-950/40 border-rose-500 shadow-xl shadow-rose-500/20 ring-2 ring-rose-500/50'
+                      : 'bg-[#0a0e17] border-white/10 hover:border-rose-500/50 hover:bg-rose-950/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                      <TrendingDown className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    {centralCandleControl.direction === 'DOWN' && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                        ACTIVE NOW
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-black text-white group-hover:text-rose-300 transition-colors">
+                    FORCE DOWN (ডাউন / বেয়ারিশ)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                    মার্কেট একটানা নিচের দিকে নামবে এবং সকল ইউজারের ডিভাইসে ১০০% রেড/বেয়ারিশ ক্যান্ডেল তৈরি করবে।
+                  </p>
+                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold text-rose-400">
+                    <span>ক্লিক করে ডাউন করুন</span>
+                    <span className="text-lg">↘</span>
+                  </div>
+                </div>
+
+                {/* 3. NORMAL MARKET CARD */}
+                <div 
+                  onClick={() => handleBroadcastCandleDirection('NORMAL')}
+                  className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
+                    centralCandleControl.direction === 'NORMAL'
+                      ? 'bg-blue-950/40 border-blue-500 shadow-xl shadow-blue-500/20 ring-2 ring-blue-500/50'
+                      : 'bg-[#0a0e17] border-white/10 hover:border-blue-500/50 hover:bg-blue-950/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                      <RefreshCw className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    {centralCandleControl.direction === 'NORMAL' && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-500 text-black">
+                        ACTIVE NOW
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-black text-white group-hover:text-blue-300 transition-colors">
+                    NORMAL (স্বাভাবিক মার্কেট)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                    স্বাভাবিক অর্গানিক মার্কেট মুভমেন্ট। স্বাভাবিক অ্যালগরিদম অনুযায়ী প্রাকৃতিক ওঠানামা করবে।
+                  </p>
+                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold text-blue-400">
+                    <span>স্বাভাবিক গতিতে রাখুন</span>
+                    <span className="text-lg">⚖</span>
                   </div>
                 </div>
               </div>
 
-              {/* Instant Graph Spike Injector */}
-              <div className="pt-4 border-t border-white/10 space-y-3">
-                <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                  <span>Realtime Live Chart Spike Injector</span>
-                  <span className="text-[10px] text-slate-400 font-normal">(Triggers an immediate price movement spike on active chart)</span>
-                </h3>
+              {/* Movement Intensity and Asset Scope */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/10">
+                {/* Movement Intensity / Speed */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-2">
+                    Candle Movement Intensity / গতি ও তীব্রতা
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'low', label: 'ধীর (Low)', mult: '0.75x' },
+                      { id: 'medium', label: 'স্বাভাবিক (Med)', mult: '1.5x' },
+                      { id: 'high', label: 'তীব্র (High)', mult: '2.6x' },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleBroadcastCandleDirection(centralCandleControl.direction, item.id as CandleIntensity)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border text-center ${
+                          (centralCandleControl.intensity || 'medium') === item.id
+                            ? 'bg-emerald-500 text-black border-emerald-400 shadow-md'
+                            : 'bg-[#0a0e17] text-slate-300 border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        <div>{item.label}</div>
+                        <div className="text-[9px] opacity-75">{item.mult}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => {
-                      const updated = {
-                        ...graphControls,
-                        spikeSignal: { direction: 'up', magnitude: 0.015, timestamp: Date.now() }
-                      };
-                      setGraphControls(updated);
-                      localStorage.setItem('qx_graph_controls', JSON.stringify(updated));
-                      setActionMessage('📈 Bullish Spike (+1.5%) injected onto active chart!');
-                      setTimeout(() => setActionMessage(''), 4000);
-                    }}
-                    className="px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-black border border-emerald-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                {/* Target Asset Pair */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-2">
+                    Target Pair Scope / অ্যাসেট পেয়ার
+                  </label>
+                  <select
+                    value={centralCandleControl.targetAsset || 'all'}
+                    onChange={(e) => handleBroadcastCandleDirection(centralCandleControl.direction, centralCandleControl.intensity, e.target.value)}
+                    className="w-full bg-[#0a0e17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-semibold"
                   >
-                    <span>📈 Inject Bull Spike (+1.5%)</span>
-                  </button>
+                    <option value="all">🌐 All Currency & Crypto Pairs (সকল পেয়ারে কার্যকর)</option>
+                    <option value="usdjpy">USD/JPY (US Dollar / Japanese Yen)</option>
+                    <option value="eurusd">EUR/USD (Euro / US Dollar)</option>
+                    <option value="gbpusd">GBP/USD (Great Britain Pound / US Dollar)</option>
+                    <option value="btcusd">BTC/USD (Bitcoin / US Dollar)</option>
+                    <option value="ethusd">ETH/USD (Ethereum / US Dollar)</option>
+                    <option value="gold">GOLD (XAU/USD Spot)</option>
+                    <option value="aapl_otc">APPLE (OTC)</option>
+                  </select>
+                  <p className="text-[10px] text-slate-400 mt-1">Select "All" so every trader on any pair sees the synchronized movement.</p>
+                </div>
+              </div>
 
+              {/* Instant Realtime Chart Spikes */}
+              <div className="pt-3 border-t border-white/10">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Instant Price Spike & Drop Injector (তাৎক্ষণিক স্পাইক / জাম্প)</span>
+                  </h4>
+                  <span className="text-[10px] text-slate-400">Triggers immediately on all screens</span>
+                </div>
+                <div className="flex flex-wrap gap-2.5">
                   <button
-                    onClick={() => {
-                      const updated = {
-                        ...graphControls,
-                        spikeSignal: { direction: 'down', magnitude: 0.015, timestamp: Date.now() }
-                      };
-                      setGraphControls(updated);
-                      localStorage.setItem('qx_graph_controls', JSON.stringify(updated));
-                      setActionMessage('📉 Bearish Spike (-1.5%) injected onto active chart!');
-                      setTimeout(() => setActionMessage(''), 4000);
-                    }}
-                    className="px-4 py-2.5 bg-rose-500/20 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    onClick={() => handleBroadcastCandleDirection('SPIKE_UP')}
+                    className="px-4 py-2.5 bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-black border border-emerald-500/40 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2"
                   >
-                    <span>📉 Inject Bear Spike (-1.5%)</span>
+                    <TrendingUp className="w-4 h-4" />
+                    <span>🚀 Inject Immediate Bull Spike (+2.5%)</span>
                   </button>
+                  <button
+                    onClick={() => handleBroadcastCandleDirection('SPIKE_DOWN')}
+                    className="px-4 py-2.5 bg-rose-500/20 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/40 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <TrendingDown className="w-4 h-4" />
+                    <span>💥 Inject Immediate Bear Dump (-2.5%)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Realtime Sync Status Note */}
+              <div className="p-3 bg-white/[0.03] border border-white/10 rounded-xl flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Firestore Channel: <strong className="text-slate-200">platform_settings/candle_control</strong></span>
+                </div>
+                <span>Last Updated: {new Date(centralCandleControl.updatedAt).toLocaleTimeString()}</span>
+              </div>
+            </div>
+
+            {/* 2. Global Trade Win/Loss Engine & Targeted User Overrides */}
+            <div className="bg-[#121824] border border-white/10 rounded-2xl p-6 shadow-xl space-y-5">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Edit3 className="w-4 h-4 text-amber-400" />
+                    <span>Trade Settlement Win Rate & User Overrides</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Control global trade expiry win/loss ratio and individual user target trade outcomes.</p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold font-mono">
+                  Engine Active
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-300">
+                  Target Global Win Rate: <span className="font-mono text-emerald-400 font-black">{graphControls.winRatePercent}%</span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={graphControls.winRatePercent || 70}
+                  onChange={(e) => {
+                    const updated = { ...graphControls, winRatePercent: Number(e.target.value) };
+                    setGraphControls(updated);
+                    localStorage.setItem('qx_graph_controls', JSON.stringify(updated));
+                  }}
+                  className="w-full accent-emerald-500 cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                  <span>0% (100% Trader Loss)</span>
+                  <span>50% (Fair Odds)</span>
+                  <span>100% (100% Trader Win)</span>
                 </div>
               </div>
 
               {/* Targeted User Specific Override Table */}
               <div className="pt-4 border-t border-white/10 space-y-3">
-                <h3 className="text-xs font-bold text-white">Targeted User Graph Outcome Overrides</h3>
+                <h4 className="text-xs font-bold text-white">Specific Trader Outcome Overrides</h4>
                 <div className="bg-[#0a0e17] border border-white/10 rounded-xl p-3 overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px]">
-                        <th className="pb-2">User Email</th>
-                        <th className="pb-2">Current Balance</th>
+                        <th className="pb-2">User Email / ID</th>
+                        <th className="pb-2">Live Balance</th>
                         <th className="pb-2 text-right">Specific Outcome Control</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {users.slice(0, 8).map((u) => {
+                      {users.slice(0, 10).map((u) => {
                         const currentOverride = graphControls.userOverrides?.[u.email] || 'normal';
+                        const id8 = get8DigitId(u);
                         return (
                           <tr key={u.email} className="hover:bg-white/[0.02]">
-                            <td className="py-2.5 font-bold text-white font-mono">{u.email}</td>
+                            <td className="py-2.5 font-bold text-white font-mono">
+                              <div>{u.email}</div>
+                              <div className="text-[10px] text-slate-500 font-normal">ID: #{id8}</div>
+                            </td>
                             <td className="py-2.5 font-mono text-emerald-400">${Number(u.balance || 0).toFixed(2)}</td>
                             <td className="py-2.5 text-right">
                               <select
@@ -1367,6 +1697,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="space-y-4">
+              {/* 8-Digit Unique ID Edit */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-300">
+                    8-Digit Unique User ID (৮ ডিজিটের ইউনিক আইডি)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = generate8DigitId();
+                      setCustomIdInput(rand);
+                      setCustomIdError('');
+                    }}
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    🎲 Auto Generate
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  maxLength={8}
+                  value={customIdInput}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    setCustomIdInput(clean);
+                    if (clean.length === 8) setCustomIdError('');
+                  }}
+                  placeholder="8-digit numeric ID (e.g. 84920153)"
+                  className="w-full bg-[#0a0e17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-emerald-400 font-mono font-bold tracking-wider focus:outline-none focus:border-emerald-500"
+                />
+                {customIdError && <p className="text-[10px] text-rose-400 mt-1">{customIdError}</p>}
+                <p className="text-[10px] text-slate-400 mt-1">Must be exactly 8 digits. Admin can change this unique identifier anytime.</p>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">Custom Live Balance ($)</label>
                 <div className="relative">
@@ -1436,6 +1800,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black rounded-xl shadow-lg shadow-emerald-500/20 cursor-pointer transition-all"
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Quick 8-Digit ID Edit Modal */}
+      {editingUserIdUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#121824] border border-emerald-500/30 rounded-2xl w-full max-w-sm p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-emerald-400" />
+                  <span>Edit 8-Digit User ID</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5 truncate max-w-[240px]">{editingUserIdUser.email}</p>
+              </div>
+              <button 
+                onClick={() => setEditingUserIdUser(null)}
+                className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-300">8-Digit Unique Number ID</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = generate8DigitId();
+                      setQuickIdInput(rand);
+                      setQuickIdError('');
+                    }}
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    🎲 Random 8-Digit
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  maxLength={8}
+                  value={quickIdInput}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    setQuickIdInput(clean);
+                    if (clean.length === 8) setQuickIdError('');
+                  }}
+                  placeholder="8-digit ID (e.g. 84920153)"
+                  className="w-full bg-[#0a0e17] border border-emerald-500/30 rounded-xl px-4 py-2.5 text-base text-emerald-400 font-mono font-black tracking-widest text-center focus:outline-none focus:border-emerald-500"
+                />
+                {quickIdError && <p className="text-[10px] text-rose-400 mt-1 font-semibold">{quickIdError}</p>}
+                <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between">
+                  <span>Digits count:</span>
+                  <span className={`font-mono font-bold ${quickIdInput.length === 8 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {quickIdInput.length} / 8 digits
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-white/10">
+                <button
+                  onClick={() => setEditingUserIdUser(null)}
+                  className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={quickIdInput.length !== 8}
+                  onClick={() => handleQuickSave8DigitId(editingUserIdUser, quickIdInput)}
+                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black text-xs font-black rounded-xl shadow-lg shadow-emerald-500/20 cursor-pointer"
+                >
+                  Save 8-Digit ID
                 </button>
               </div>
             </div>

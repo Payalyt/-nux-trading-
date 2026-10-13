@@ -1,4 +1,5 @@
 import { UserAccount } from '../types/trading';
+import { get8DigitId, isValid8DigitId } from './userId';
 
 /**
  * Cookie and Session Management Utility for NUX Trading Platform
@@ -100,6 +101,19 @@ export function saveUserSession(
   const rememberDays = options.rememberMe !== false ? 30 : 1;
   const sessionId = options.sessionId || generateSessionId();
 
+  // Ensure 8-digit unique ID is assigned
+  const eightDigitId = (user.numericId && isValid8DigitId(user.numericId))
+    ? user.numericId
+    : (user.id && isValid8DigitId(user.id))
+    ? user.id
+    : get8DigitId(user);
+
+  const normalizedUser: UserAccount = {
+    ...user,
+    id: eightDigitId,
+    numericId: eightDigitId,
+  };
+
   // Set primary and alias session ID cookies
   setCookie(SESSION_COOKIE_NAME, sessionId, rememberDays);
   setCookie(SESSION_COOKIE_ALIAS, sessionId, rememberDays);
@@ -107,7 +121,7 @@ export function saveUserSession(
 
   const sessionPayload = {
     sessionId,
-    user,
+    user: normalizedUser,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + rememberDays * 24 * 60 * 60 * 1000).toISOString()
   };
@@ -116,7 +130,7 @@ export function saveUserSession(
   if (typeof localStorage !== 'undefined') {
     try {
       localStorage.setItem(USER_DATA_KEY, JSON.stringify(sessionPayload));
-      localStorage.setItem(LEGACY_USER_DATA_KEY, JSON.stringify({ token: sessionId, user }));
+      localStorage.setItem(LEGACY_USER_DATA_KEY, JSON.stringify({ token: sessionId, user: normalizedUser }));
     } catch (err) {
       console.warn('[Cookies] LocalStorage save warning:', err);
     }
@@ -129,7 +143,7 @@ export function saveUserSession(
     } catch {}
   }
 
-  return { sessionId, user };
+  return { sessionId, user: normalizedUser };
 }
 
 /**

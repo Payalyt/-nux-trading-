@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AccountType, NotificationItem, UserAccount } from '../types/trading';
 import { soundManager } from '../utils/audio';
+import { get8DigitId } from '../utils/userId';
 import { 
   Plus, 
   ArrowDownToLine, 
@@ -320,6 +321,22 @@ export const Header: React.FC<HeaderProps> = ({
 
             {showAccountDropdown && (
               <div className="absolute right-0 mt-2 w-64 bg-[#0d121b]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 p-2 space-y-1.5">
+                {/* User Info & 8-Digit ID */}
+                {user && (
+                  <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
+                    <div className="min-w-0 pr-2">
+                      <div className="text-xs font-black text-white truncate">{user.name || user.email.split('@')[0]}</div>
+                      <div className="text-[10px] text-slate-400 font-mono truncate">{user.email}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[9px] text-slate-400 font-bold uppercase block tracking-wider">USER ID</span>
+                      <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                        #{get8DigitId(user)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Admin Quick Link */}
                 {(user?.role === 'admin' || user?.email?.toLowerCase() === 'rosul9552@gmail.com') && onNavigatePage && (
                   <div

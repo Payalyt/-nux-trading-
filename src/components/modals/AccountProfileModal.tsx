@@ -2,6 +2,7 @@ import React from 'react';
 import { Trade, AccountType, UserAccount } from '../../types/trading';
 import { X, User, ShieldCheck, Award, TrendingUp, BarChart2, CheckCircle, LogOut, LogIn } from 'lucide-react';
 import { GoogleIcon } from '../common/GoogleIcon';
+import { get8DigitId } from '../../utils/userId';
 
 interface AccountProfileModalProps {
   isOpen: boolean;
@@ -113,6 +114,12 @@ export const AccountProfileModal: React.FC<AccountProfileModalProps> = ({
                       </span>
                     </div>
                     <div className="text-xs text-slate-400 mt-0.5">{currentEmail}</div>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="text-[10px] text-slate-400 font-mono">User ID:</span>
+                      <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                        #{get8DigitId(user)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
