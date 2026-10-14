@@ -117,14 +117,87 @@ export default function App() {
     return (localStorage.getItem('qx_account_type') as AccountType) || 'LIVE';
   });
 
+  const userRef = useRef<UserAccount | null>(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // Central Persistent Balance Handlers (Guarantees balance NEVER reverts on refresh or tab switch)
+  const updateAndPersistLiveBalance = (amountOrUpdater: number | ((prev: number) => number)) => {
+    setLiveBalance((prev) => {
+      const nextVal = typeof amountOrUpdater === 'function' ? amountOrUpdater(prev) : amountOrUpdater;
+      const formatted = Math.max(0, Math.round(nextVal * 100) / 100);
+
+      try {
+        localStorage.setItem('qx_live_balance', String(formatted));
+        localStorage.setItem('qx_balance_updated_at', String(Date.now()));
+      } catch {}
+
+      const activeUser = userRef.current;
+      if (activeUser?.email) {
+        try {
+          const updatedUser = { ...activeUser, balance: formatted };
+          saveUserSession(updatedUser);
+          userRef.current = updatedUser;
+        } catch (err) {
+          console.warn('[Session] Failed to update balance in session:', err);
+        }
+
+        // Realtime Firestore synchronization for cloud persistence
+        FirebaseService.updateUserBalance(activeUser.email, formatted, 'live');
+      }
+
+      return formatted;
+    });
+  };
+
+  const updateAndPersistDemoBalance = (amountOrUpdater: number | ((prev: number) => number)) => {
+    setDemoBalance((prev) => {
+      const nextVal = typeof amountOrUpdater === 'function' ? amountOrUpdater(prev) : amountOrUpdater;
+      const formatted = Math.max(0, Math.round(nextVal * 100) / 100);
+
+      try {
+        localStorage.setItem('qx_demo_balance', String(formatted));
+        localStorage.setItem('qx_demo_balance_updated_at', String(Date.now()));
+      } catch {}
+
+      const activeUser = userRef.current;
+      if (activeUser?.email) {
+        try {
+          const updatedUser = { ...activeUser, demoBalance: formatted };
+          saveUserSession(updatedUser);
+          userRef.current = updatedUser;
+        } catch {}
+
+        FirebaseService.updateUserBalance(activeUser.email, formatted, 'demo');
+      }
+
+      return formatted;
+    });
+  };
+
   const [demoBalance, setDemoBalance] = useState<number>(() => {
+    const session = getUserSession();
     const saved = localStorage.getItem('qx_demo_balance');
-    return saved !== null ? Number(saved) : 10000;
+    if (saved !== null && !isNaN(Number(saved))) {
+      return Number(saved);
+    }
+    if (session?.user && typeof session.user.demoBalance === 'number') {
+      return session.user.demoBalance;
+    }
+    return 10000;
   });
 
   const [liveBalance, setLiveBalance] = useState<number>(() => {
+    const session = getUserSession();
     const saved = localStorage.getItem('qx_live_balance');
-    return saved !== null ? Number(saved) : 0;
+    if (saved !== null && !isNaN(Number(saved))) {
+      return Number(saved);
+    }
+    if (session?.user && typeof session.user.balance === 'number') {
+      return session.user.balance;
+    }
+    return 0;
   });
 
   // Listen to Firebase User Profile for Real-time Balance Updates
@@ -134,12 +207,32 @@ export default function App() {
     const unsubscribe = FirebaseService.listenToUser(user.email, (data) => {
       if (data) {
         if (typeof data.balance === 'number') {
-          setLiveBalance(data.balance);
-          localStorage.setItem('qx_live_balance', String(data.balance));
+          const lastLocalUpdate = Number(localStorage.getItem('qx_balance_updated_at') || 0);
+          const timeSinceLocalUpdate = Date.now() - lastLocalUpdate;
+          const currentLocal = Number(localStorage.getItem('qx_live_balance') || 0);
+
+          // If local balance was changed very recently (within 4 seconds, e.g. trade win profit),
+          // avoid overwriting with older stale Firestore snapshot, and ensure Firestore is up-to-date
+          if (timeSinceLocalUpdate < 4000 && Math.abs(currentLocal - data.balance) > 0.01) {
+            FirebaseService.updateUserBalance(user.email, currentLocal, 'live');
+            setLiveBalance(currentLocal);
+          } else {
+            setLiveBalance(data.balance);
+            localStorage.setItem('qx_live_balance', String(data.balance));
+          }
         }
         if (typeof data.demoBalance === 'number') {
-          setDemoBalance(data.demoBalance);
-          localStorage.setItem('qx_demo_balance', String(data.demoBalance));
+          const lastDemoUpdate = Number(localStorage.getItem('qx_demo_balance_updated_at') || 0);
+          const timeSinceDemoUpdate = Date.now() - lastDemoUpdate;
+          const currentDemoLocal = Number(localStorage.getItem('qx_demo_balance') || 0);
+
+          if (timeSinceDemoUpdate < 4000 && Math.abs(currentDemoLocal - data.demoBalance) > 0.01) {
+            FirebaseService.updateUserBalance(user.email, currentDemoLocal, 'demo');
+            setDemoBalance(currentDemoLocal);
+          } else {
+            setDemoBalance(data.demoBalance);
+            localStorage.setItem('qx_demo_balance', String(data.demoBalance));
+          }
         }
         
         // Also update user state and session cookies if role, balanceLocked, status or 8-digit numericId changes
@@ -214,11 +307,6 @@ export default function App() {
   useEffect(() => {
     candleControlRef.current = centralCandleControl;
   }, [centralCandleControl]);
-
-  const userRef = useRef<UserAccount | null>(user);
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
 
   // Real-time Central Candle Control Firestore Listener (Sync across all connected users & devices)
   useEffect(() => {
@@ -655,11 +743,11 @@ export default function App() {
                 });
               } catch {}
 
-              // Credit account balance
+              // Credit account balance with profit return amount and immediately sync to cloud & storage
               if (trade.accountType === 'DEMO') {
-                setDemoBalance((b) => b + returnAmount);
+                updateAndPersistDemoBalance((b) => b + returnAmount);
               } else {
-                setLiveBalance((b) => b + returnAmount);
+                updateAndPersistLiveBalance((b) => b + returnAmount);
               }
             } else {
               soundManager.playLoss();
@@ -671,8 +759,8 @@ export default function App() {
             setLatestSettledTrade(settledTrade);
             FirebaseService.syncTrade({
               ...settledTrade,
-              userEmail: user?.email || 'guest@demo.trade',
-              userName: user?.name || 'Trader',
+              userEmail: userRef.current?.email || user?.email || 'guest@demo.trade',
+              userName: userRef.current?.name || user?.name || 'Trader',
               resolvedAt: new Date().toISOString()
             });
           });
@@ -705,11 +793,11 @@ export default function App() {
       return;
     }
 
-    // Deduct stake amount immediately
+    // Deduct stake amount immediately and persist to Firestore
     if (accountType === 'DEMO') {
-      setDemoBalance((b) => Math.max(0, b - investment));
+      updateAndPersistDemoBalance((b) => Math.max(0, b - investment));
     } else {
-      setLiveBalance((b) => Math.max(0, b - investment));
+      updateAndPersistLiveBalance((b) => Math.max(0, b - investment));
     }
 
     soundManager.playTradePlaced();
@@ -748,9 +836,9 @@ export default function App() {
     soundManager.playClick();
 
     if (trade.accountType === 'DEMO') {
-      setDemoBalance((b) => b + earlyReturn);
+      updateAndPersistDemoBalance((b) => b + earlyReturn);
     } else {
-      setLiveBalance((b) => b + earlyReturn);
+      updateAndPersistLiveBalance((b) => b + earlyReturn);
     }
 
     const soldTrade: Trade = {
@@ -768,21 +856,15 @@ export default function App() {
   // Reset Demo Balance
   const handleResetDemo = () => {
     soundManager.playWin();
-    setDemoBalance(10000);
+    updateAndPersistDemoBalance(10000);
   };
 
   const handleChangeDemoBalance = (amount: number) => {
-    setDemoBalance(amount);
-    if (user?.email) {
-      FirebaseService.updateUserBalance(user.email, amount, 'demo');
-    }
+    updateAndPersistDemoBalance(amount);
   };
 
   const handleChangeLiveBalance = (amount: number) => {
-    setLiveBalance(amount);
-    if (user?.email) {
-      FirebaseService.updateUserBalance(user.email, amount, 'live');
-    }
+    updateAndPersistLiveBalance(amount);
   };
 
   // Handle Deposit Success
@@ -802,13 +884,8 @@ export default function App() {
 
   // Handle Withdrawal Success
   const handleWithdrawSuccess = (amount: number) => {
-    // Note: Deduct amount immediately, refund if rejected by admin
-    const newBal = Math.max(0, liveBalance - amount);
-    setLiveBalance(newBal);
-
-    if (user?.email) {
-      FirebaseService.updateUserBalance(user.email, newBal, 'live');
-    }
+    // Note: Deduct amount immediately and persist, refund if rejected by admin
+    updateAndPersistLiveBalance((prev) => Math.max(0, prev - amount));
 
     setNotifications((prev) => [
       {

@@ -75,19 +75,30 @@ export const triggerDirectGoogleLogin = async (
         role: isAdmin ? 'admin' : 'user',
       };
 
-      // 1. Sync to Firebase Firestore
+      // 1. Fetch existing user data to preserve their balance and profit
       try {
+        const existingDoc = await FirebaseService.getUser(email);
+        const existingBal = typeof existingDoc?.balance === 'number' ? existingDoc.balance : undefined;
+        const existingDemoBal = typeof existingDoc?.demoBalance === 'number' ? existingDoc.demoBalance : undefined;
+
         await FirebaseService.syncUser({
           username: email,
           email: email,
           fullName: name,
           role: userAccount.role,
-          balance: 0,
-          demoBalance: 10000,
-          accountStatus: 'active',
-          verificationStatus: 'verified',
-          createdAt: new Date().toISOString()
+          balance: existingBal,
+          demoBalance: existingDemoBal,
+          accountStatus: existingDoc?.accountStatus || 'active',
+          verificationStatus: existingDoc?.verificationStatus || 'verified',
+          createdAt: existingDoc?.createdAt || new Date().toISOString()
         });
+
+        if (typeof existingBal === 'number') {
+          userAccount.balance = existingBal;
+        }
+        if (typeof existingDemoBal === 'number') {
+          userAccount.demoBalance = existingDemoBal;
+        }
       } catch (syncErr) {
         console.warn('Firestore user sync notice:', syncErr);
       }

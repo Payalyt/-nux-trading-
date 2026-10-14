@@ -163,6 +163,9 @@ export interface UserAccount {
   id: string; // 8-digit unique ID
   numericId?: string; // 8-digit unique ID
   currency: string;
+  balance?: number;
+  demoBalance?: number;
+  bonus?: number;
   isVerified?: boolean;
   role?: string;
   balanceLocked?: boolean;
