@@ -78,8 +78,21 @@ export const triggerDirectGoogleLogin = async (
       // 1. Fetch existing user data to preserve their balance and profit
       try {
         const existingDoc = await FirebaseService.getUser(email);
-        const existingBal = typeof existingDoc?.balance === 'number' ? existingDoc.balance : undefined;
-        const existingDemoBal = typeof existingDoc?.demoBalance === 'number' ? existingDoc.demoBalance : undefined;
+        const localLive = localStorage.getItem('qx_live_balance');
+        const localLiveBal = localLive !== null && !isNaN(Number(localLive)) ? Number(localLive) : undefined;
+        const localDemo = localStorage.getItem('qx_demo_balance');
+        const localDemoBal = localDemo !== null && !isNaN(Number(localDemo)) ? Number(localDemo) : undefined;
+
+        const existingBal = typeof existingDoc?.balance === 'number' 
+          ? existingDoc.balance 
+          : localLiveBal;
+
+        const existingDemoBal = typeof existingDoc?.demoBalance === 'number' 
+          ? existingDoc.demoBalance 
+          : localDemoBal;
+
+        const localBalTime = Number(localStorage.getItem('qx_balance_updated_at') || 0);
+        const localDemoTime = Number(localStorage.getItem('qx_demo_balance_updated_at') || 0);
 
         await FirebaseService.syncUser({
           username: email,
@@ -88,6 +101,8 @@ export const triggerDirectGoogleLogin = async (
           role: userAccount.role,
           balance: existingBal,
           demoBalance: existingDemoBal,
+          balanceUpdatedAt: existingDoc?.balanceUpdatedAt || localBalTime || Date.now(),
+          demoBalanceUpdatedAt: existingDoc?.demoBalanceUpdatedAt || localDemoTime || Date.now(),
           accountStatus: existingDoc?.accountStatus || 'active',
           verificationStatus: existingDoc?.verificationStatus || 'verified',
           createdAt: existingDoc?.createdAt || new Date().toISOString()

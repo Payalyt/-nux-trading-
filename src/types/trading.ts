@@ -165,6 +165,8 @@ export interface UserAccount {
   currency: string;
   balance?: number;
   demoBalance?: number;
+  balanceUpdatedAt?: number;
+  demoBalanceUpdatedAt?: number;
   bonus?: number;
   isVerified?: boolean;
   role?: string;

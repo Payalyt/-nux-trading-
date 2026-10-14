@@ -292,6 +292,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         numericId: assignedNumericId,
         balance: isNaN(newBal) ? Number(managingUser.balance || 0) : newBal,
         bonus: isNaN(newBonus) ? Number(managingUser.bonus || 0) : newBonus,
+        balanceUpdatedAt: Date.now(),
         forceBalance: true,
         lastUpdated: new Date().toISOString()
       };

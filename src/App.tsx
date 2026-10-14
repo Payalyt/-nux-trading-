@@ -117,71 +117,12 @@ export default function App() {
     return (localStorage.getItem('qx_account_type') as AccountType) || 'LIVE';
   });
 
-  const userRef = useRef<UserAccount | null>(user);
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
-
-  // Central Persistent Balance Handlers (Guarantees balance NEVER reverts on refresh or tab switch)
-  const updateAndPersistLiveBalance = (amountOrUpdater: number | ((prev: number) => number)) => {
-    setLiveBalance((prev) => {
-      const nextVal = typeof amountOrUpdater === 'function' ? amountOrUpdater(prev) : amountOrUpdater;
-      const formatted = Math.max(0, Math.round(nextVal * 100) / 100);
-
-      try {
-        localStorage.setItem('qx_live_balance', String(formatted));
-        localStorage.setItem('qx_balance_updated_at', String(Date.now()));
-      } catch {}
-
-      const activeUser = userRef.current;
-      if (activeUser?.email) {
-        try {
-          const updatedUser = { ...activeUser, balance: formatted };
-          saveUserSession(updatedUser);
-          userRef.current = updatedUser;
-        } catch (err) {
-          console.warn('[Session] Failed to update balance in session:', err);
-        }
-
-        // Realtime Firestore synchronization for cloud persistence
-        FirebaseService.updateUserBalance(activeUser.email, formatted, 'live');
-      }
-
-      return formatted;
-    });
-  };
-
-  const updateAndPersistDemoBalance = (amountOrUpdater: number | ((prev: number) => number)) => {
-    setDemoBalance((prev) => {
-      const nextVal = typeof amountOrUpdater === 'function' ? amountOrUpdater(prev) : amountOrUpdater;
-      const formatted = Math.max(0, Math.round(nextVal * 100) / 100);
-
-      try {
-        localStorage.setItem('qx_demo_balance', String(formatted));
-        localStorage.setItem('qx_demo_balance_updated_at', String(Date.now()));
-      } catch {}
-
-      const activeUser = userRef.current;
-      if (activeUser?.email) {
-        try {
-          const updatedUser = { ...activeUser, demoBalance: formatted };
-          saveUserSession(updatedUser);
-          userRef.current = updatedUser;
-        } catch {}
-
-        FirebaseService.updateUserBalance(activeUser.email, formatted, 'demo');
-      }
-
-      return formatted;
-    });
-  };
-
   const [demoBalance, setDemoBalance] = useState<number>(() => {
-    const session = getUserSession();
     const saved = localStorage.getItem('qx_demo_balance');
     if (saved !== null && !isNaN(Number(saved))) {
       return Number(saved);
     }
+    const session = getUserSession();
     if (session?.user && typeof session.user.demoBalance === 'number') {
       return session.user.demoBalance;
     }
@@ -189,16 +130,95 @@ export default function App() {
   });
 
   const [liveBalance, setLiveBalance] = useState<number>(() => {
-    const session = getUserSession();
     const saved = localStorage.getItem('qx_live_balance');
     if (saved !== null && !isNaN(Number(saved))) {
       return Number(saved);
     }
+    const session = getUserSession();
     if (session?.user && typeof session.user.balance === 'number') {
       return session.user.balance;
     }
     return 0;
   });
+
+  const userRef = useRef<UserAccount | null>(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // Central Persistent Balance Handlers (Guarantees balance NEVER reverts on refresh or tab switch)
+  const updateAndPersistLiveBalance = (amountOrUpdater: number | ((prev: number) => number)) => {
+    const currentVal = Number(localStorage.getItem('qx_live_balance') ?? liveBalance);
+    const nextVal = typeof amountOrUpdater === 'function' ? amountOrUpdater(currentVal) : amountOrUpdater;
+    const formatted = Math.max(0, Math.round(nextVal * 100) / 100);
+    const now = Date.now();
+
+    try {
+      localStorage.setItem('qx_live_balance', String(formatted));
+      localStorage.setItem('qx_balance_updated_at', String(now));
+    } catch {}
+
+    setLiveBalance(formatted);
+
+    const activeUser = userRef.current;
+    const targetEmail = activeUser?.email || auth.currentUser?.email;
+
+    if (targetEmail) {
+      if (activeUser) {
+        try {
+          const updatedUser: UserAccount = { 
+            ...activeUser, 
+            balance: formatted,
+            balanceUpdatedAt: now
+          };
+          saveUserSession(updatedUser);
+          userRef.current = updatedUser;
+        } catch (err) {
+          console.warn('[Session] Failed to update balance in session:', err);
+        }
+      }
+
+      // Realtime Firestore synchronization with timestamp for cloud persistence
+      FirebaseService.updateUserBalance(targetEmail, formatted, 'live', now);
+    }
+
+    return formatted;
+  };
+
+  const updateAndPersistDemoBalance = (amountOrUpdater: number | ((prev: number) => number)) => {
+    const currentVal = Number(localStorage.getItem('qx_demo_balance') ?? demoBalance);
+    const nextVal = typeof amountOrUpdater === 'function' ? amountOrUpdater(currentVal) : amountOrUpdater;
+    const formatted = Math.max(0, Math.round(nextVal * 100) / 100);
+    const now = Date.now();
+
+    try {
+      localStorage.setItem('qx_demo_balance', String(formatted));
+      localStorage.setItem('qx_demo_balance_updated_at', String(now));
+    } catch {}
+
+    setDemoBalance(formatted);
+
+    const activeUser = userRef.current;
+    const targetEmail = activeUser?.email || auth.currentUser?.email;
+
+    if (targetEmail) {
+      if (activeUser) {
+        try {
+          const updatedUser: UserAccount = { 
+            ...activeUser, 
+            demoBalance: formatted,
+            demoBalanceUpdatedAt: now
+          };
+          saveUserSession(updatedUser);
+          userRef.current = updatedUser;
+        } catch {}
+      }
+
+      FirebaseService.updateUserBalance(targetEmail, formatted, 'demo', now);
+    }
+
+    return formatted;
+  };
 
   // Listen to Firebase User Profile for Real-time Balance Updates
   useEffect(() => {
@@ -208,30 +228,37 @@ export default function App() {
       if (data) {
         if (typeof data.balance === 'number') {
           const lastLocalUpdate = Number(localStorage.getItem('qx_balance_updated_at') || 0);
-          const timeSinceLocalUpdate = Date.now() - lastLocalUpdate;
           const currentLocal = Number(localStorage.getItem('qx_live_balance') || 0);
+          const remoteTime = Number(data.balanceUpdatedAt || 0);
 
-          // If local balance was changed very recently (within 4 seconds, e.g. trade win profit),
-          // avoid overwriting with older stale Firestore snapshot, and ensure Firestore is up-to-date
-          if (timeSinceLocalUpdate < 4000 && Math.abs(currentLocal - data.balance) > 0.01) {
-            FirebaseService.updateUserBalance(user.email, currentLocal, 'live');
+          // If local balance has a newer update (e.g. recent trade winnings or deductions)
+          // DO NOT revert back to older snapshot! Push the latest profit balance to Firestore!
+          if (lastLocalUpdate > remoteTime && Math.abs(currentLocal - data.balance) > 0.009) {
+            FirebaseService.updateUserBalance(user.email, currentLocal, 'live', lastLocalUpdate);
             setLiveBalance(currentLocal);
           } else {
+            // Firestore has a newer balance (admin edit, deposit approved, or initial load)
             setLiveBalance(data.balance);
             localStorage.setItem('qx_live_balance', String(data.balance));
+            if (remoteTime > 0) {
+              localStorage.setItem('qx_balance_updated_at', String(remoteTime));
+            }
           }
         }
         if (typeof data.demoBalance === 'number') {
           const lastDemoUpdate = Number(localStorage.getItem('qx_demo_balance_updated_at') || 0);
-          const timeSinceDemoUpdate = Date.now() - lastDemoUpdate;
-          const currentDemoLocal = Number(localStorage.getItem('qx_demo_balance') || 0);
+          const currentDemoLocal = Number(localStorage.getItem('qx_demo_balance') ?? 10000);
+          const remoteDemoTime = Number(data.demoBalanceUpdatedAt || 0);
 
-          if (timeSinceDemoUpdate < 4000 && Math.abs(currentDemoLocal - data.demoBalance) > 0.01) {
-            FirebaseService.updateUserBalance(user.email, currentDemoLocal, 'demo');
+          if (lastDemoUpdate > remoteDemoTime && Math.abs(currentDemoLocal - data.demoBalance) > 0.009) {
+            FirebaseService.updateUserBalance(user.email, currentDemoLocal, 'demo', lastDemoUpdate);
             setDemoBalance(currentDemoLocal);
           } else {
             setDemoBalance(data.demoBalance);
             localStorage.setItem('qx_demo_balance', String(data.demoBalance));
+            if (remoteDemoTime > 0) {
+              localStorage.setItem('qx_demo_balance_updated_at', String(remoteDemoTime));
+            }
           }
         }
         
@@ -421,8 +448,25 @@ export default function App() {
 
   const handleAuthSuccess = (userData: UserAccount) => {
     const isAdmin = userData.email?.toLowerCase() === 'rosul9552@gmail.com' || userData.role === 'admin';
+    const currentStoredLive = localStorage.getItem('qx_live_balance');
+    const effectiveLiveBal = typeof userData.balance === 'number'
+      ? userData.balance
+      : (currentStoredLive !== null && !isNaN(Number(currentStoredLive)) ? Number(currentStoredLive) : liveBalance);
+
+    const currentStoredDemo = localStorage.getItem('qx_demo_balance');
+    const effectiveDemoBal = typeof userData.demoBalance === 'number'
+      ? userData.demoBalance
+      : (currentStoredDemo !== null && !isNaN(Number(currentStoredDemo)) ? Number(currentStoredDemo) : demoBalance);
+
+    const balTime = Number(localStorage.getItem('qx_balance_updated_at') || Date.now());
+    const demoBalTime = Number(localStorage.getItem('qx_demo_balance_updated_at') || Date.now());
+
     const finalUserData: UserAccount = {
       ...userData,
+      balance: effectiveLiveBal,
+      demoBalance: effectiveDemoBal,
+      balanceUpdatedAt: balTime,
+      demoBalanceUpdatedAt: demoBalTime,
       role: isAdmin ? 'admin' : (userData.role || 'user')
     };
 
@@ -451,15 +495,17 @@ export default function App() {
     }
     setIsAuthModalOpen(false);
 
-    // Sync user data directly to Firebase Firestore
+    // Sync user data directly to Firebase Firestore preserving profit
     FirebaseService.syncUser({
       username: finalUserData.email,
       email: finalUserData.email,
       fullName: finalUserData.name,
       phone: (finalUserData as any).phone || '',
       role: finalUserData.role,
-      balance: liveBalance,
-      demoBalance: demoBalance,
+      balance: effectiveLiveBal,
+      demoBalance: effectiveDemoBal,
+      balanceUpdatedAt: balTime,
+      demoBalanceUpdatedAt: demoBalTime,
       accountStatus: 'active',
       verificationStatus: 'verified',
       createdAt: new Date().toISOString()

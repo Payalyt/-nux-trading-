@@ -151,12 +151,8 @@ export function saveUserSession(
  */
 export function getUserSession(): { sessionId: string; user: UserAccount } | null {
   const sessionId = getCurrentSessionId();
-  
-  if (!sessionId) {
-    return null;
-  }
 
-  // Attempt to load user from localStorage
+  // Attempt to load user from localStorage (always check even if cookie is restricted in iframe)
   if (typeof localStorage !== 'undefined') {
     try {
       // 1. Try modern session key
@@ -164,8 +160,14 @@ export function getUserSession(): { sessionId: string; user: UserAccount } | nul
       if (modernRaw) {
         const parsed = JSON.parse(modernRaw);
         if (parsed?.user?.email) {
+          const effectiveSessionId = parsed.sessionId || sessionId || generateSessionId();
+          if (!sessionId) {
+            setCookie(SESSION_COOKIE_NAME, effectiveSessionId, 30);
+            setCookie(SESSION_COOKIE_ALIAS, effectiveSessionId, 30);
+            setCookie('qx_token', effectiveSessionId, 30);
+          }
           return {
-            sessionId: parsed.sessionId || sessionId,
+            sessionId: effectiveSessionId,
             user: parsed.user
           };
         }
@@ -176,14 +178,20 @@ export function getUserSession(): { sessionId: string; user: UserAccount } | nul
       if (legacyRaw) {
         const parsed = JSON.parse(legacyRaw);
         if (parsed?.user?.email) {
+          const effectiveSessionId = parsed.token || sessionId || generateSessionId();
+          if (!sessionId) {
+            setCookie(SESSION_COOKIE_NAME, effectiveSessionId, 30);
+            setCookie(SESSION_COOKIE_ALIAS, effectiveSessionId, 30);
+          }
           return {
-            sessionId: parsed.token || sessionId,
+            sessionId: effectiveSessionId,
             user: parsed.user
           };
         }
         if (parsed?.email) {
+          const effectiveSessionId = sessionId || generateSessionId();
           return {
-            sessionId,
+            sessionId: effectiveSessionId,
             user: parsed as UserAccount
           };
         }

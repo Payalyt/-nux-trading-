@@ -58,32 +58,74 @@ export const FirebaseService = {
 
       let finalBalance = typeof user.balance === 'number' ? user.balance : 0;
       let finalDemoBalance = typeof user.demoBalance === 'number' ? user.demoBalance : 10000;
+      let finalBalanceUpdatedAt = user.balanceUpdatedAt || Date.now();
+      let finalDemoBalanceUpdatedAt = user.demoBalanceUpdatedAt || Date.now();
 
       if (existingData) {
         if (user.forceBalance) {
           // If forceBalance is true (admin action, deposit approval, balance edit), respect user.balance directly
           finalBalance = typeof user.balance === 'number' ? user.balance : (typeof existingData.balance === 'number' ? existingData.balance : 0);
           finalDemoBalance = typeof user.demoBalance === 'number' ? user.demoBalance : (typeof existingData.demoBalance === 'number' ? existingData.demoBalance : 10000);
+          finalBalanceUpdatedAt = Date.now();
+          finalDemoBalanceUpdatedAt = Date.now();
         } else {
-          // Standard login sync: prevent login default 0 from overwriting existing non-zero balance
+          // Standard login / session sync: PRESERVE PROFIT AND DO NOT OVERWRITE WITH 0 OR DEFAULT!
+          const userBalTime = Number(user.balanceUpdatedAt || 0);
+          const existBalTime = Number(existingData.balanceUpdatedAt || 0);
+
           if (typeof existingData.balance === 'number') {
-            if (user.balance === 0 && existingData.balance !== 0) {
+            if (user.balance === undefined) {
               finalBalance = existingData.balance;
-            } else if (user.balance !== undefined) {
-              finalBalance = user.balance;
+              finalBalanceUpdatedAt = existBalTime || Date.now();
+            } else if (user.balance === 0 && existingData.balance > 0) {
+              // User has uninitialized 0 balance, preserve existing profit/deposit balance
+              finalBalance = existingData.balance;
+              finalBalanceUpdatedAt = existBalTime || Date.now();
+            } else if (userBalTime > 0 && existBalTime > 0) {
+              // Compare timestamps: newer update wins
+              if (userBalTime >= existBalTime) {
+                finalBalance = user.balance;
+                finalBalanceUpdatedAt = userBalTime;
+              } else {
+                finalBalance = existingData.balance;
+                finalBalanceUpdatedAt = existBalTime;
+              }
             } else {
-              finalBalance = existingData.balance;
+              // Default to user's current session balance if available
+              finalBalance = user.balance;
+              finalBalanceUpdatedAt = userBalTime || Date.now();
             }
+          } else if (typeof user.balance === 'number') {
+            finalBalance = user.balance;
+            finalBalanceUpdatedAt = userBalTime || Date.now();
           }
           
+          const userDemoBalTime = Number(user.demoBalanceUpdatedAt || 0);
+          const existDemoBalTime = Number(existingData.demoBalanceUpdatedAt || 0);
+
           if (typeof existingData.demoBalance === 'number') {
-            if (user.demoBalance === 10000 && existingData.demoBalance !== 10000) {
+            if (user.demoBalance === undefined) {
               finalDemoBalance = existingData.demoBalance;
-            } else if (user.demoBalance !== undefined) {
-              finalDemoBalance = user.demoBalance;
+              finalDemoBalanceUpdatedAt = existDemoBalTime || Date.now();
+            } else if (user.demoBalance === 10000 && existingData.demoBalance !== 10000) {
+              // User passed default 10,000 but existing has trade profit/loss, preserve existing!
+              finalDemoBalance = existingData.demoBalance;
+              finalDemoBalanceUpdatedAt = existDemoBalTime || Date.now();
+            } else if (userDemoBalTime > 0 && existDemoBalTime > 0) {
+              if (userDemoBalTime >= existDemoBalTime) {
+                finalDemoBalance = user.demoBalance;
+                finalDemoBalanceUpdatedAt = userDemoBalTime;
+              } else {
+                finalDemoBalance = existingData.demoBalance;
+                finalDemoBalanceUpdatedAt = existDemoBalTime;
+              }
             } else {
-              finalDemoBalance = existingData.demoBalance;
+              finalDemoBalance = user.demoBalance;
+              finalDemoBalanceUpdatedAt = userDemoBalTime || Date.now();
             }
+          } else if (typeof user.demoBalance === 'number') {
+            finalDemoBalance = user.demoBalance;
+            finalDemoBalanceUpdatedAt = userDemoBalTime || Date.now();
           }
         }
       }
@@ -109,6 +151,8 @@ export const FirebaseService = {
         role: user.role || (existingData ? existingData.role : null) || 'user',
         balance: finalBalance,
         demoBalance: finalDemoBalance,
+        balanceUpdatedAt: finalBalanceUpdatedAt,
+        demoBalanceUpdatedAt: finalDemoBalanceUpdatedAt,
         bonus: user.bonus !== undefined ? user.bonus : (existingData && existingData.bonus !== undefined ? existingData.bonus : 0),
         accountStatus: user.accountStatus || (existingData ? existingData.accountStatus : null) || 'active',
         balanceLocked: user.balanceLocked !== undefined ? user.balanceLocked : (existingData && existingData.balanceLocked !== undefined ? existingData.balanceLocked : false),
@@ -172,12 +216,13 @@ export const FirebaseService = {
   /**
    * Update User Balance in Firestore
    */
-  async updateUserBalance(username: string, newBalance: number, type: 'live' | 'demo' = 'live'): Promise<boolean> {
+  async updateUserBalance(username: string, newBalance: number, type: 'live' | 'demo' = 'live', timestamp?: number): Promise<boolean> {
     try {
       const emailValue = (username || '').trim().toLowerCase();
       if (!emailValue) return false;
       const sanitizedId = emailValue.replace(/[^a-zA-Z0-9_-]/g, '_');
       const userRef = doc(db, 'users', sanitizedId);
+      const updateTime = timestamp || Date.now();
       
       const payload: any = {
         lastUpdated: new Date().toISOString(),
@@ -185,8 +230,10 @@ export const FirebaseService = {
       };
       if (type === 'live') {
         payload.balance = newBalance;
+        payload.balanceUpdatedAt = updateTime;
       } else {
         payload.demoBalance = newBalance;
+        payload.demoBalanceUpdatedAt = updateTime;
       }
 
       await setDoc(userRef, payload, { merge: true });
