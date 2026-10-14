@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserAccount, CentralCandleControl, CandleDirection, CandleIntensity } from '../../types/trading';
+import { UserAccount, CentralCandleControl, CandleDirection, CandleIntensity, UserCandleOverride } from '../../types/trading';
 import { FirebaseService } from '../../utils/firebaseSync';
 import { SiteLogo } from '../common/SiteLogo';
 import { get8DigitId, isValid8DigitId, generate8DigitId } from '../../utils/userId';
@@ -31,7 +31,11 @@ import {
   Zap,
   Sparkles,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  Filter,
+  Sliders,
+  Flame,
+  RotateCcw
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -86,6 +90,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
   });
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+
+  // Individual User Candlestick Manipulation & Search States
+  const [candleUserSearch, setCandleUserSearch] = useState('');
+  const [candleUserFilter, setCandleUserFilter] = useState<'all' | 'custom_candle' | 'up' | 'down' | 'win' | 'lose'>('all');
+  const [candleUserLimit, setCandleUserLimit] = useState<'10' | '25' | '50' | 'all'>('all');
+  const [editingUserCandle, setEditingUserCandle] = useState<any | null>(null);
 
   // User 8-Digit ID Management State
   const [customIdInput, setCustomIdInput] = useState('');
@@ -369,6 +379,109 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Set candle direction, outcome, or reset individually for a single trader
+  const handleSetUserCandleOverride = async (
+    userToUpdate: any,
+    overridePatch: {
+      direction?: CandleDirection;
+      outcome?: 'always_win' | 'always_lose' | 'normal';
+      intensity?: CandleIntensity;
+    } | null
+  ) => {
+    const emailKey = (userToUpdate.email || userToUpdate.username || '').toLowerCase();
+    const idKey = userToUpdate.numericId || userToUpdate.id || get8DigitId(userToUpdate);
+    const currentOverrides = { ...(centralCandleControl.userCandleOverrides || {}) };
+
+    if (overridePatch === null) {
+      delete currentOverrides[emailKey];
+      if (idKey) delete currentOverrides[idKey];
+    } else {
+      const existing = currentOverrides[emailKey] || {};
+      const updatedOverride: UserCandleOverride = {
+        ...existing,
+        ...overridePatch,
+        updatedAt: Date.now()
+      };
+      currentOverrides[emailKey] = updatedOverride;
+      if (idKey) {
+        currentOverrides[idKey] = updatedOverride;
+      }
+    }
+
+    const updatedControl: CentralCandleControl = {
+      ...centralCandleControl,
+      userCandleOverrides: currentOverrides,
+      updatedAt: Date.now(),
+      updatedBy: _currentUser?.email || 'Admin'
+    };
+
+    setCentralCandleControl(updatedControl);
+    localStorage.setItem('qx_central_candle_control', JSON.stringify(updatedControl));
+
+    // Also sync graphControls for win/loss
+    if (overridePatch?.outcome) {
+      const updatedGraphControls = {
+        ...graphControls,
+        userOverrides: {
+          ...(graphControls.userOverrides || {}),
+          [emailKey]: overridePatch.outcome
+        }
+      };
+      setGraphControls(updatedGraphControls);
+      localStorage.setItem('qx_graph_controls', JSON.stringify(updatedGraphControls));
+    }
+
+    const ok = await FirebaseService.updateCandleControl(updatedControl);
+    if (ok) {
+      if (overridePatch === null) {
+        setActionMessage(`Reset: User ${emailKey} restored to global market candle.`);
+      } else if (overridePatch.direction === 'UP') {
+        setActionMessage(`🟢 User ${emailKey} set to FORCE UP (Bullish Green Candles)!`);
+      } else if (overridePatch.direction === 'DOWN') {
+        setActionMessage(`🔴 User ${emailKey} set to FORCE DOWN (Bearish Red Candles)!`);
+      } else if (overridePatch.direction === 'NORMAL') {
+        setActionMessage(`⚖️ User ${emailKey} set to NORMAL Candles.`);
+      } else if (overridePatch.direction === 'SPIKE_UP') {
+        setActionMessage(`🚀 Injected Bull Spike (+2.5%) for ${emailKey}!`);
+      } else if (overridePatch.direction === 'SPIKE_DOWN') {
+        setActionMessage(`💥 Injected Bear Dump (-2.5%) for ${emailKey}!`);
+      } else if (overridePatch.outcome) {
+        setActionMessage(`Trade outcome for ${emailKey} set to: ${overridePatch.outcome}`);
+      }
+      setTimeout(() => setActionMessage(''), 4500);
+    } else {
+      alert('Failed to sync user candle control to Firestore.');
+    }
+  };
+
+  // Reset all individual user candle overrides back to global broadcast
+  const handleResetAllUserCandles = async () => {
+    if (!window.confirm('Are you sure you want to reset all user candle overrides back to global market control?')) {
+      return;
+    }
+    const updatedControl: CentralCandleControl = {
+      ...centralCandleControl,
+      userCandleOverrides: {},
+      updatedAt: Date.now(),
+      updatedBy: _currentUser?.email || 'Admin'
+    };
+    setCentralCandleControl(updatedControl);
+    localStorage.setItem('qx_central_candle_control', JSON.stringify(updatedControl));
+
+    const updatedGraphControls = {
+      ...graphControls,
+      userOverrides: {}
+    };
+    setGraphControls(updatedGraphControls);
+    localStorage.setItem('qx_graph_controls', JSON.stringify(updatedGraphControls));
+
+    const ok = await FirebaseService.updateCandleControl(updatedControl);
+    if (ok) {
+      setActionMessage('All user candle overrides successfully reset to Global Broadcast!');
+      setTimeout(() => setActionMessage(''), 4000);
+    }
+  };
+
   const handleToggleBlockUser = async (user: any) => {
     try {
       const newStatus = user.accountStatus === 'blocked' ? 'active' : 'blocked';
@@ -513,6 +626,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       id8.includes(term)
     );
   });
+
+  const filteredCandleUsers = users.filter(u => {
+    const term = candleUserSearch.toLowerCase().trim();
+    const id8 = get8DigitId(u);
+    const emailVal = (u.email || u.username || '').toLowerCase();
+    const nameVal = (u.fullName || '').toLowerCase();
+    const matchesSearch = !term || emailVal.includes(term) || nameVal.includes(term) || id8.includes(term);
+    if (!matchesSearch) return false;
+
+    const userOverride = centralCandleControl.userCandleOverrides?.[emailVal] || 
+                         centralCandleControl.userCandleOverrides?.[id8];
+    const outcomeOverride = graphControls.userOverrides?.[emailVal];
+
+    if (candleUserFilter === 'custom_candle') {
+      return !!userOverride?.direction && userOverride.direction !== 'NORMAL';
+    }
+    if (candleUserFilter === 'up') {
+      return userOverride?.direction === 'UP' || (centralCandleControl.direction === 'UP' && !userOverride?.direction);
+    }
+    if (candleUserFilter === 'down') {
+      return userOverride?.direction === 'DOWN' || (centralCandleControl.direction === 'DOWN' && !userOverride?.direction);
+    }
+    if (candleUserFilter === 'win') {
+      return userOverride?.outcome === 'always_win' || outcomeOverride === 'always_win';
+    }
+    if (candleUserFilter === 'lose') {
+      return userOverride?.outcome === 'always_lose' || outcomeOverride === 'always_lose';
+    }
+    return true;
+  });
+
+  const displayedCandleUsers = candleUserLimit === 'all' 
+    ? filteredCandleUsers 
+    : filteredCandleUsers.slice(0, Number(candleUserLimit));
+
+  // Candle Statistics
+  const customCandleCount = Object.keys(centralCandleControl.userCandleOverrides || {}).filter(k => {
+    const ov = centralCandleControl.userCandleOverrides?.[k];
+    return ov?.direction && ov.direction !== 'NORMAL';
+  }).length;
 
   return (
     <div className="flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-y-auto select-none">
@@ -665,6 +818,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <th className="p-4">8-Digit ID (ইউনিক আইডি)</th>
                       <th className="p-4">Full Name</th>
                       <th className="p-4">Status / Lock</th>
+                      <th className="p-4">Candle Mode</th>
                       <th className="p-4">Live Balance</th>
                       <th className="p-4">Bonus</th>
                       <th className="p-4 text-right">Admin Actions</th>
@@ -673,19 +827,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody className="divide-y divide-white/5">
                     {loading ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                        <td colSpan={8} className="p-8 text-center text-slate-500">
                           Loading Firestore users...
                         </td>
                       </tr>
                     ) : filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                        <td colSpan={8} className="p-8 text-center text-slate-500">
                           No users found matching your search.
                         </td>
                       </tr>
                     ) : (
                       filteredUsers.map((u, i) => {
                         const user8DigitId = get8DigitId(u);
+                        const emailVal = (u.email || u.username || '').toLowerCase();
+                        const userCandleOverride = centralCandleControl.userCandleOverrides?.[emailVal] || 
+                                                   centralCandleControl.userCandleOverrides?.[user8DigitId];
+
                         return (
                           <tr key={u.id || i} className="hover:bg-white/[0.02] transition-colors">
                             <td className="p-4 font-mono font-bold text-white flex items-center gap-2">
@@ -728,6 +886,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </span>
                               )}
                             </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-1.5">
+                                {userCandleOverride?.direction === 'UP' ? (
+                                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                    🟢 UP
+                                  </span>
+                                ) : userCandleOverride?.direction === 'DOWN' ? (
+                                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                                    🔴 DOWN
+                                  </span>
+                                ) : userCandleOverride?.direction === 'SPIKE_UP' ? (
+                                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-black bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                                    🚀 SPIKE
+                                  </span>
+                                ) : userCandleOverride?.direction === 'SPIKE_DOWN' ? (
+                                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-black bg-orange-500/20 text-orange-300 border border-orange-500/40">
+                                    💥 DUMP
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-white/5 text-slate-400 border border-white/10">
+                                    🌐 Global ({centralCandleControl.direction})
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => setEditingUserCandle(u)}
+                                  className="p-1 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-white/10 transition-all cursor-pointer"
+                                  title="Change Candle for this User"
+                                >
+                                  <Sliders className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
                             <td className="p-4 font-mono font-extrabold text-emerald-400">
                               ${Number(u.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                             </td>
@@ -735,6 +925,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               +${Number(u.bonus || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                             </td>
                             <td className="p-4 text-right space-x-1.5">
+                              <button
+                                onClick={() => setEditingUserCandle(u)}
+                                className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-xl transition-all cursor-pointer inline-flex items-center gap-1"
+                                title="Change Candle Movement for this User"
+                              >
+                                <Flame className="w-3.5 h-3.5" />
+                                <span>Candle</span>
+                              </button>
                               <button
                                 onClick={() => {
                                   setManagingUser(u);
@@ -1213,57 +1411,329 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Targeted User Specific Override Table */}
-              <div className="pt-4 border-t border-white/10 space-y-3">
-                <h4 className="text-xs font-bold text-white">Specific Trader Outcome Overrides</h4>
-                <div className="bg-[#0a0e17] border border-white/10 rounded-xl p-3 overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px]">
-                        <th className="pb-2">User Email / ID</th>
-                        <th className="pb-2">Live Balance</th>
-                        <th className="pb-2 text-right">Specific Outcome Control</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {users.slice(0, 10).map((u) => {
-                        const currentOverride = graphControls.userOverrides?.[u.email] || 'normal';
-                        const id8 = get8DigitId(u);
-                        return (
-                          <tr key={u.email} className="hover:bg-white/[0.02]">
-                            <td className="py-2.5 font-bold text-white font-mono">
-                              <div>{u.email}</div>
-                              <div className="text-[10px] text-slate-500 font-normal">ID: #{id8}</div>
-                            </td>
-                            <td className="py-2.5 font-mono text-emerald-400">${Number(u.balance || 0).toFixed(2)}</td>
-                            <td className="py-2.5 text-right">
-                              <select
-                                value={currentOverride}
-                                onChange={(e) => {
-                                  const updatedOverrides = {
-                                    ...(graphControls.userOverrides || {}),
-                                    [u.email]: e.target.value
-                                  };
-                                  const updated = { ...graphControls, userOverrides: updatedOverrides };
-                                  setGraphControls(updated);
-                                  localStorage.setItem('qx_graph_controls', JSON.stringify(updated));
-                                }}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${
-                                  currentOverride === 'always_win' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' :
-                                  currentOverride === 'always_lose' ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' :
-                                  'bg-white/5 text-slate-300 border-white/10'
-                                }`}
-                              >
-                                <option value="normal">Default Market</option>
-                                <option value="always_win">Force Always Win 🟢</option>
-                                <option value="always_lose">Force Always Lose 🔴</option>
-                              </select>
+              {/* Individual User Candlestick Movement & Trade Outcome Control */}
+              <div className="pt-6 border-t border-white/10 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-black text-white flex items-center gap-2">
+                      <Flame className="w-4 h-4 text-emerald-400" />
+                      <span>নিচের সকল ইউজারদের ক্যান্ডেল ও ট্রেড কন্ট্রোল (Individual User Candle Control)</span>
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      নিচের তালিকায় সকল ট্রেডার দৃশ্যমান। নির্দিষ্ট ইউজারের জন্য ক্যান্ডেল আপ (🟢 UP) বা ডাউন (🔴 DOWN) করুন, স্পাইক দিন অথবা উইন/লস নির্ধারণ করুন।
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleResetAllUserCandles}
+                      className="px-3 py-1.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                      title="Reset all individual user candle overrides back to global broadcast"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset All to Global (সবার ক্যান্ডেল রিসেট)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Stats Summary */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="p-3 bg-[#0a0e17] border border-white/10 rounded-xl">
+                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Traders</div>
+                    <div className="text-base font-black text-white font-mono">{users.length}</div>
+                  </div>
+                  <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-xl">
+                    <div className="text-[10px] text-emerald-400 uppercase font-semibold">Custom Candle Active</div>
+                    <div className="text-base font-black text-emerald-300 font-mono">{customCandleCount}</div>
+                  </div>
+                  <div className="p-3 bg-blue-950/20 border border-blue-500/30 rounded-xl">
+                    <div className="text-[10px] text-blue-400 uppercase font-semibold">Following Global</div>
+                    <div className="text-base font-black text-blue-300 font-mono">{users.length - customCandleCount}</div>
+                  </div>
+                  <div className="p-3 bg-purple-950/20 border border-purple-500/30 rounded-xl">
+                    <div className="text-[10px] text-purple-400 uppercase font-semibold">Global Broadcast</div>
+                    <div className="text-base font-black text-purple-300 font-mono">{centralCandleControl.direction}</div>
+                  </div>
+                </div>
+
+                {/* Search & Filter Toolbar */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0a0e17] border border-white/10 p-3 rounded-2xl">
+                  {/* Search input */}
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by 8-Digit ID (#84920153), email or name..."
+                      value={candleUserSearch}
+                      onChange={(e) => setCandleUserSearch(e.target.value)}
+                      className="w-full bg-[#121824] border border-white/10 rounded-xl pl-10 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    />
+                    {candleUserSearch && (
+                      <button
+                        onClick={() => setCandleUserSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+                    {[
+                      { id: 'all', label: `All (${users.length})` },
+                      { id: 'custom_candle', label: `Custom Candle (${customCandleCount})` },
+                      { id: 'up', label: '🟢 Forced UP' },
+                      { id: 'down', label: '🔴 Forced DOWN' },
+                      { id: 'win', label: '🏆 Always Win' },
+                      { id: 'lose', label: '📉 Always Lose' },
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setCandleUserFilter(f.id as any)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 border ${
+                          candleUserFilter === f.id
+                            ? 'bg-emerald-500 text-black border-emerald-400 shadow-md font-black'
+                            : 'bg-white/5 text-slate-300 border-white/10 hover:border-white/25 hover:text-white'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* View Limit Selector */}
+                  <div className="flex items-center gap-1 shrink-0 text-xs text-slate-400">
+                    <span className="text-[10px] uppercase font-bold mr-1">View:</span>
+                    {[
+                      { id: '10', label: '10' },
+                      { id: '25', label: '25' },
+                      { id: '50', label: '50' },
+                      { id: 'all', label: `All (${users.length})` },
+                    ].map((lim) => (
+                      <button
+                        key={lim.id}
+                        onClick={() => setCandleUserLimit(lim.id as any)}
+                        className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer border ${
+                          candleUserLimit === lim.id
+                            ? 'bg-white/20 text-white border-white/30'
+                            : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
+                        }`}
+                      >
+                        {lim.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Users Candle Table */}
+                <div className="bg-[#0a0e17] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-white/5 border-b border-white/10 text-slate-400 uppercase tracking-wider text-[10px]">
+                          <th className="p-3.5">Trader Email & Info</th>
+                          <th className="p-3.5">8-Digit ID</th>
+                          <th className="p-3.5">Live Balance</th>
+                          <th className="p-3.5">Active Candle Mode</th>
+                          <th className="p-3.5 text-center">1-Click Candle Change (ক্যান্ডেল চেঞ্জ)</th>
+                          <th className="p-3.5">Trade Outcome</th>
+                          <th className="p-3.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {loading ? (
+                          <tr>
+                            <td colSpan={7} className="p-8 text-center text-slate-500">
+                              Loading users list...
                             </td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        ) : displayedCandleUsers.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="p-8 text-center text-slate-500">
+                              No users found matching your search or filter.
+                            </td>
+                          </tr>
+                        ) : (
+                          displayedCandleUsers.map((u) => {
+                            const emailVal = (u.email || u.username || '').toLowerCase();
+                            const id8 = get8DigitId(u);
+                            const userOverride = centralCandleControl.userCandleOverrides?.[emailVal] || 
+                                                 centralCandleControl.userCandleOverrides?.[id8];
+                            const currentOutcome = userOverride?.outcome || graphControls.userOverrides?.[emailVal] || 'normal';
+                            const hasCustomCandle = !!userOverride?.direction && userOverride.direction !== 'NORMAL';
+
+                            return (
+                              <tr key={u.email} className={`hover:bg-white/[0.03] transition-colors ${hasCustomCandle ? 'bg-emerald-950/10' : ''}`}>
+                                {/* User Info */}
+                                <td className="p-3.5 font-bold text-white font-mono">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
+                                      {(u.email || 'U').charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-white text-xs truncate max-w-[180px]">{u.email}</div>
+                                      <div className="text-[10px] text-slate-400 font-sans font-normal truncate max-w-[180px]">
+                                        {u.fullName || u.username || 'Standard Trader'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* 8-Digit ID */}
+                                <td className="p-3.5">
+                                  <span className="font-mono font-black text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 tracking-wider">
+                                    #{id8}
+                                  </span>
+                                </td>
+
+                                {/* Live Balance */}
+                                <td className="p-3.5 font-mono font-extrabold text-emerald-400">
+                                  ${Number(u.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                </td>
+
+                                {/* Active Candle Status */}
+                                <td className="p-3.5">
+                                  {userOverride?.direction === 'UP' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 text-xs font-mono font-black shadow-sm shadow-emerald-500/20">
+                                      <TrendingUp className="w-3.5 h-3.5 stroke-[3]" />
+                                      <span>FORCED UP 🟢</span>
+                                    </span>
+                                  ) : userOverride?.direction === 'DOWN' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/50 text-xs font-mono font-black shadow-sm shadow-rose-500/20">
+                                      <TrendingDown className="w-3.5 h-3.5 stroke-[3]" />
+                                      <span>FORCED DOWN 🔴</span>
+                                    </span>
+                                  ) : userOverride?.direction === 'SPIKE_UP' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/50 text-xs font-mono font-black">
+                                      <Zap className="w-3.5 h-3.5 text-teal-400" />
+                                      <span>SPIKE UP 🚀</span>
+                                    </span>
+                                  ) : userOverride?.direction === 'SPIKE_DOWN' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/50 text-xs font-mono font-black">
+                                      <Zap className="w-3.5 h-3.5 text-orange-400" />
+                                      <span>DUMP DOWN 💥</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/5 text-slate-400 border border-white/10 text-[11px] font-mono">
+                                      <span>🌐 Global ({centralCandleControl.direction})</span>
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* 1-Click Candle Change Action Buttons */}
+                                <td className="p-3.5">
+                                  <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                    {/* Force UP */}
+                                    <button
+                                      onClick={() => handleSetUserCandleOverride(u, { direction: 'UP' })}
+                                      className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1 border ${
+                                        userOverride?.direction === 'UP'
+                                          ? 'bg-emerald-500 text-black border-emerald-400 shadow-md shadow-emerald-500/30'
+                                          : 'bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border-emerald-500/30'
+                                      }`}
+                                      title="Force continuous green/bullish candles for this trader"
+                                    >
+                                      <TrendingUp className="w-3 h-3 stroke-[2.5]" />
+                                      <span>UP 🟢</span>
+                                    </button>
+
+                                    {/* Force DOWN */}
+                                    <button
+                                      onClick={() => handleSetUserCandleOverride(u, { direction: 'DOWN' })}
+                                      className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1 border ${
+                                        userOverride?.direction === 'DOWN'
+                                          ? 'bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/30'
+                                          : 'bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border-rose-500/30'
+                                      }`}
+                                      title="Force continuous red/bearish candles for this trader"
+                                    >
+                                      <TrendingDown className="w-3 h-3 stroke-[2.5]" />
+                                      <span>DOWN 🔴</span>
+                                    </button>
+
+                                    {/* Spike Bull */}
+                                    <button
+                                      onClick={() => handleSetUserCandleOverride(u, { direction: 'SPIKE_UP' })}
+                                      className="p-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/25 text-teal-400 border border-teal-500/30 transition-all cursor-pointer"
+                                      title="Inject instant Bull Spike (+2.5%) for this trader"
+                                    >
+                                      <Zap className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {/* Dump Bear */}
+                                    <button
+                                      onClick={() => handleSetUserCandleOverride(u, { direction: 'SPIKE_DOWN' })}
+                                      className="p-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/25 text-orange-400 border border-orange-500/30 transition-all cursor-pointer"
+                                      title="Inject instant Bear Dump (-2.5%) for this trader"
+                                    >
+                                      <Zap className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {/* Reset to Global */}
+                                    {hasCustomCandle && (
+                                      <button
+                                        onClick={() => handleSetUserCandleOverride(u, null)}
+                                        className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white border border-white/20 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                                        title="Reset this user back to Global Broadcast"
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                        <span>Reset</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+
+                                {/* Trade Outcome Selector */}
+                                <td className="p-3.5">
+                                  <select
+                                    value={currentOutcome}
+                                    onChange={(e) => {
+                                      handleSetUserCandleOverride(u, { 
+                                        outcome: e.target.value as any 
+                                      });
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold border focus:outline-none ${
+                                      currentOutcome === 'always_win' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' :
+                                      currentOutcome === 'always_lose' ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' :
+                                      'bg-[#121824] text-slate-300 border-white/10'
+                                    }`}
+                                  >
+                                    <option value="normal">Default Market</option>
+                                    <option value="always_win">Force Always Win 🟢</option>
+                                    <option value="always_lose">Force Always Lose 🔴</option>
+                                  </select>
+                                </td>
+
+                                {/* Actions */}
+                                <td className="p-3.5 text-right">
+                                  <button
+                                    onClick={() => setEditingUserCandle(u)}
+                                    className="px-2.5 py-1.5 bg-white/5 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                                    title="Open Detailed Candle & Outcome Control"
+                                  >
+                                    <Sliders className="w-3.5 h-3.5" />
+                                    <span>কন্ট্রোল</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Table Footer info */}
+                  <div className="p-3.5 bg-white/[0.02] border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-400 gap-2">
+                    <div>
+                      Showing <strong className="text-white font-mono">{displayedCandleUsers.length}</strong> of <strong className="text-white font-mono">{users.length}</strong> total registered traders
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> UP = Bullish Green</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-400" /> DOWN = Bearish Red</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400" /> Global = Synchronized</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1883,6 +2353,197 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Dedicated Individual User Candlestick & Trade Outcome Control Modal */}
+      {editingUserCandle && (() => {
+        const emailVal = (editingUserCandle.email || editingUserCandle.username || '').toLowerCase();
+        const id8 = get8DigitId(editingUserCandle);
+        const userOverride = centralCandleControl.userCandleOverrides?.[emailVal] || 
+                             centralCandleControl.userCandleOverrides?.[id8];
+        const currentOutcome = userOverride?.outcome || graphControls.userOverrides?.[emailVal] || 'normal';
+        const currentDir = userOverride?.direction || 'NORMAL';
+        const hasCustomCandle = !!userOverride?.direction && userOverride.direction !== 'NORMAL';
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-[#121824] border border-emerald-500/30 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <Flame className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <span>User Candle & Trade Control</span>
+                      <span className="font-mono text-xs px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        #{id8}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400 font-mono mt-0.5">{editingUserCandle.email}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setEditingUserCandle(null)}
+                  className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Current Status Banner */}
+              <div className="p-3.5 bg-[#0a0e17] border border-white/10 rounded-2xl flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Active Candle Mode for this User:</div>
+                  <div className="text-xs font-black text-white mt-0.5 flex items-center gap-1.5">
+                    {currentDir === 'UP' ? (
+                      <span className="text-emerald-400">🟢 FORCED UP (Continuous Green Bullish Candles)</span>
+                    ) : currentDir === 'DOWN' ? (
+                      <span className="text-rose-400">🔴 FORCED DOWN (Continuous Red Bearish Candles)</span>
+                    ) : currentDir === 'SPIKE_UP' ? (
+                      <span className="text-teal-400">🚀 BULL SPIKE INJECTED</span>
+                    ) : currentDir === 'SPIKE_DOWN' ? (
+                      <span className="text-orange-400">💥 BEAR DUMP INJECTED</span>
+                    ) : (
+                      <span className="text-slate-300">🌐 Following Global Broadcast ({centralCandleControl.direction})</span>
+                    )}
+                  </div>
+                </div>
+
+                {hasCustomCandle && (
+                  <button
+                    onClick={() => handleSetUserCandleOverride(editingUserCandle, null)}
+                    className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-slate-300 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Reset to Global</span>
+                  </button>
+                )}
+              </div>
+
+              {/* 1. Primary Direction Control Cards */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-300">
+                  Select Candlestick Direction (ক্যান্ডেল মুভমেন্ট নির্বাচন করুন)
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* FORCE UP */}
+                  <button
+                    onClick={() => handleSetUserCandleOverride(editingUserCandle, { direction: 'UP' })}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer group ${
+                      currentDir === 'UP'
+                        ? 'bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/20'
+                        : 'bg-[#0a0e17] border-white/10 hover:border-emerald-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 stroke-[2.5]" />
+                      </div>
+                      {currentDir === 'UP' && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500 text-black">ACTIVE</span>
+                      )}
+                    </div>
+                    <div className="text-xs font-black text-white group-hover:text-emerald-300">FORCE UP (সবুজ / বুলিশ)</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">টানা গ্রিন ক্যান্ডেল তৈরি হবে</div>
+                  </button>
+
+                  {/* FORCE DOWN */}
+                  <button
+                    onClick={() => handleSetUserCandleOverride(editingUserCandle, { direction: 'DOWN' })}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer group ${
+                      currentDir === 'DOWN'
+                        ? 'bg-rose-950/40 border-rose-500 ring-2 ring-rose-500/40 shadow-lg shadow-rose-500/20'
+                        : 'bg-[#0a0e17] border-white/10 hover:border-rose-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                        <TrendingDown className="w-4 h-4 stroke-[2.5]" />
+                      </div>
+                      {currentDir === 'DOWN' && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500 text-white">ACTIVE</span>
+                      )}
+                    </div>
+                    <div className="text-xs font-black text-white group-hover:text-rose-300">FORCE DOWN (লাল / বেয়ারিশ)</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">টানা রেড ক্যান্ডেল তৈরি হবে</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Instant Spikes and Normal Market */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleSetUserCandleOverride(editingUserCandle, { direction: 'NORMAL' })}
+                  className={`py-2 px-3 rounded-xl border text-center transition-all cursor-pointer text-xs font-bold ${
+                    currentDir === 'NORMAL' && hasCustomCandle
+                      ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                      : 'bg-[#0a0e17] border-white/10 text-slate-300 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  ⚖️ Normal Speed
+                </button>
+                <button
+                  onClick={() => handleSetUserCandleOverride(editingUserCandle, { direction: 'SPIKE_UP' })}
+                  className="py-2 px-3 rounded-xl border bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/30 text-teal-300 text-center transition-all cursor-pointer text-xs font-bold"
+                >
+                  🚀 Spike (+2.5%)
+                </button>
+                <button
+                  onClick={() => handleSetUserCandleOverride(editingUserCandle, { direction: 'SPIKE_DOWN' })}
+                  className="py-2 px-3 rounded-xl border bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/30 text-orange-300 text-center transition-all cursor-pointer text-xs font-bold"
+                >
+                  💥 Dump (-2.5%)
+                </button>
+              </div>
+
+              {/* 3. Trade Settlement Win/Loss Outcome */}
+              <div className="p-4 bg-[#0a0e17] border border-white/10 rounded-2xl space-y-2">
+                <label className="block text-xs font-bold text-slate-300">
+                  Trade Expiration Outcome (এই ইউজারের ট্রেড ফলাফল নির্ধারণ)
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'normal', label: 'Default Market ⚖️' },
+                    { id: 'always_win', label: 'Force Win 🟢' },
+                    { id: 'always_lose', label: 'Force Lose 🔴' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSetUserCandleOverride(editingUserCandle, { outcome: item.id as any })}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border text-center ${
+                        currentOutcome === item.id
+                          ? item.id === 'always_win' ? 'bg-emerald-500 text-black border-emerald-400 font-black'
+                          : item.id === 'always_lose' ? 'bg-rose-500 text-white border-rose-400 font-black'
+                          : 'bg-white/20 text-white border-white/40'
+                          : 'bg-[#121824] text-slate-300 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                <button
+                  onClick={() => handleSetUserCandleOverride(editingUserCandle, null)}
+                  className="px-3 py-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Reset User to Global
+                </button>
+                <button
+                  onClick={() => setEditingUserCandle(null)}
+                  className="px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl text-xs font-black shadow-lg shadow-emerald-500/20 cursor-pointer"
+                >
+                  Done / সম্পূর্ণ
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

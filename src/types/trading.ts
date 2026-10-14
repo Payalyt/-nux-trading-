@@ -139,6 +139,13 @@ export interface NotificationItem {
 export type CandleDirection = 'UP' | 'DOWN' | 'NORMAL' | 'SPIKE_UP' | 'SPIKE_DOWN';
 export type CandleIntensity = 'low' | 'medium' | 'high';
 
+export interface UserCandleOverride {
+  direction?: CandleDirection;
+  intensity?: CandleIntensity;
+  outcome?: 'always_win' | 'always_lose' | 'normal';
+  updatedAt?: number;
+}
+
 export interface CentralCandleControl {
   direction: CandleDirection;
   intensity: CandleIntensity;
@@ -147,6 +154,7 @@ export interface CentralCandleControl {
   updatedAt: number;
   updatedBy?: string;
   spikeTimestamp?: number;
+  userCandleOverrides?: Record<string, UserCandleOverride>;
 }
 
 export interface UserAccount {

